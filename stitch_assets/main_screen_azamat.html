@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="kk" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zerde — Азамат Қалиев (Басты экран)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+  
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tactile-card {
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .tactile-btn {
+      box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
+    }
+    .tactile-btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+
+<body class="bg-[#0b1120] text-slate-100 min-h-screen flex justify-center selection:bg-emerald-500 selection:text-white">
+
+  <!-- Mobile Container (Max 430px) -->
+  <div class="w-full max-w-md bg-[#0f172a] min-h-screen flex flex-col justify-between border-x border-slate-800 shadow-2xl relative pb-24">
+    
+    <!-- TOP HEADER -->
+    <header class="pt-5 px-5 pb-4 border-b border-slate-800/80 bg-[#0f172a]/95 backdrop-blur sticky top-0 z-30">
+      <div class="flex items-center justify-between">
+        
+        <!-- Logo & User Info -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/20">
+            Z
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="font-bold text-base text-white leading-tight">Азамат Қалиев</h1>
+              <span class="text-xs px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-semibold border border-slate-700">9 «А»</span>
+            </div>
+            <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+              <span>🦅 Лига: <strong class="text-slate-200">Қыран</strong></span>
+              <span class="text-slate-600">•</span>
+              <span>⭐ <strong>1420 ELO</strong></span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Controls: Streak & Language -->
+        <div class="flex items-center gap-2">
+          <!-- Streak Badge -->
+          <div class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs shadow-sm">
+            <span>🔥</span>
+            <span>12 күн</span>
+          </div>
+
+          <!-- Language Selector -->
+          <button id="langBtn" onclick="toggleLang()" class="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 hover:bg-slate-700 transition">
+            🇰🇿 KZ
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- MAIN SCROLL CONTENT -->
+    <main class="flex-1 px-5 py-4 space-y-6 overflow-y-auto">
+
+      <!-- SECTION: INFINITE SUBJECTS CAROUSEL -->
+      <section class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-emerald-400 text-sm">bolt</span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Бүгінгі 3 минуттық фокус</h2>
+          </div>
+          <span class="text-[11px] text-slate-500">Пәнді таңдау ⟷</span>
+        </div>
+
+        <!-- Carousel Wrapper -->
+        <div class="relative">
+          <!-- Card Container -->
+          <div id="subjectCard" class="tactile-card rounded-2xl bg-gradient-to-b from-slate-800/90 to-slate-900 border border-slate-700/80 p-5 space-y-4 transition-all duration-300">
+            
+            <!-- Card Header: Subject + Stats -->
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div id="subjectIconBg" class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl">
+                  <span id="subjectIcon">📐</span>
+                </div>
+                <div>
+                  <h3 id="subjectTitle" class="font-bold text-lg text-white">Алгебра 9 сынып</h3>
+                  <p class="text-xs text-slate-400">
+                    Рейтинг: <span id="subjectElo" class="text-emerald-400 font-bold">1435 ELO</span> • Болжам: <span id="subjectScore" class="text-slate-200 font-bold">38/40</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Nav Arrows -->
+              <div class="flex items-center gap-1">
+                <button onclick="prevSubject()" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 transition active:scale-95">
+                  <span class="material-symbols-outlined text-base">chevron_left</span>
+                </button>
+                <button onclick="nextSubject()" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 transition active:scale-95">
+                  <span class="material-symbols-outlined text-base">chevron_right</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Topic & Reason -->
+            <div class="bg-slate-950/60 rounded-xl p-3.5 border border-slate-800/90 space-y-1.5">
+              <div class="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="topicTitle">Квадраттық теңсіздіктер (Интервалдар әдісі)</span>
+              </div>
+              <p id="topicReason" class="text-xs text-slate-300 leading-relaxed">
+                Кеше дәптер тексеруде таңбаларды анықтаудан қателестің. Осы 1 ережені бекітсек емтихан болжамың 39-ға өседі.
+              </p>
+            </div>
+
+            <!-- Action Button -->
+            <button class="tactile-btn w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 transition duration-200">
+              <span class="material-symbols-outlined text-lg">play_arrow</span>
+              <span id="actionBtnText">Жаттығуды бастау (3 минут)</span>
+            </button>
+
+          </div>
+
+          <!-- Pagination Dots -->
+          <div id="dotsContainer" class="flex justify-center items-center gap-1.5 mt-3">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: TOPIC MATRIX OF SELECTED SUBJECT -->
+      <section class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Тақырыптар мәртебесі</h2>
+          <span class="text-xs text-emerald-400 font-semibold">Тоқсандық баға: 8.8 / 10</span>
+        </div>
+
+        <div class="space-y-2.5" id="topicsList">
+          <!-- Dynamic topics rendered here -->
+        </div>
+      </section>
+
+      <!-- SECTION: EXPANDED MEMORY REPETITION BANNER (ҚАЙТАЛАУ ОРТАЛЫҒЫ) -->
+      <section>
+        <div class="tactile-card p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-amber-500/30 flex items-center justify-between hover:border-amber-500/50 transition group cursor-pointer">
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition shadow-sm">
+              <span class="material-symbols-outlined text-2xl">style</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-white">Жадты бекіту (Қайталау)</h3>
+                <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[11px] font-bold border border-amber-500/40">3 карточка</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Өткен формулалар мен ережелерді 1 минутта пысықтау</p>
+            </div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 group-hover:text-amber-400 group-hover:border-amber-500/40 transition">
+            <span class="material-symbols-outlined text-lg">arrow_forward</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION (4 TABS) -->
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-[#0f172a]/95 backdrop-blur border-t border-slate-800 px-6 py-2.5 flex items-center justify-between z-40">
+      
+      <!-- Tab 1: Home (Active) -->
+      <button class="flex flex-col items-center gap-1 text-emerald-400 transition">
+        <span class="material-symbols-outlined text-2xl">home</span>
+        <span class="text-[10px] font-bold">Басты</span>
+      </button>
+
+      <!-- Tab 2: Learn -->
+      <button class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <span class="material-symbols-outlined text-2xl">menu_book</span>
+        <span class="text-[10px] font-medium">Оқу</span>
+      </button>
+
+      <!-- Tab 3: Tasks -->
+      <button class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <span class="material-symbols-outlined text-2xl">track_changes</span>
+        <span class="text-[10px] font-medium">Тапсырма</span>
+      </button>
+
+      <!-- Tab 4: Analytics -->
+      <button class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+        <span class="material-symbols-outlined text-2xl">bar_chart</span>
+        <span class="text-[10px] font-medium">Аналитика</span>
+      </button>
+
+    </nav>
+
+  </div>
+
+  <!-- SCRIPT: CAROUSEL & INTERACTIVITY -->
+  <script>
+    const subjects = [
+      {
+        id: "algebra_9",
+        title: "Алгебра 9 сынып",
+        icon: "📐",
+        elo: 1435,
+        score: "38/40",
+        topic: "Квадраттық теңсіздіктер (Интервалдар әдісі)",
+        reason: "Кеше дәптер тексеруде таңбаларды анықтаудан қателестің. Осы 1 ережені бекітсек емтихан болжамың 39-ға өседі.",
+        topics: [
+          { title: "Сызықтық теңдеулер", status: "mastered", label: "Усвоено (Мұғалім бекітті)" },
+          { title: "Виет теоремасы", status: "pending", label: "Ожидает зачета (Мұғалімде)" },
+          { title: "Квадраттық теңсіздіктер", status: "in_progress", label: "В работе (Бүгінгі фокус)" },
+          { title: "Бөлшек-рационал теңсіздіктер", status: "queued", label: "Очередь" }
+        ]
+      },
+      {
+        id: "physics_9",
+        title: "Физика 9 сынып",
+        icon: "⚡",
+        elo: 1380,
+        score: "34/40",
+        topic: "Энергияның сақталу заңы",
+        reason: "Ең жоғарғы көтерілу биіктігін табу формуласын қайталау қажет.",
+        topics: [
+          { title: "Кинематика негіздері", status: "mastered", label: "Усвоено" },
+          { title: "Энергияның сақталу заңы", status: "in_progress", label: "В работе" },
+          { title: "Импульс және сақталу заңы", status: "queued", label: "Очередь" }
+        ]
+      },
+      {
+        id: "kazakh_9",
+        title: "Қазақ тілі 9 сынып",
+        icon: "🇰🇿",
+        elo: 1450,
+        score: "39/40",
+        topic: "Сабақтас құрмалас сөйлем",
+        reason: "Шартты бағыныңқылы сөйлемдегі жалғауларды ажырату жаттығуы.",
+        topics: [
+          { title: "Жай сөйлем синтаксисі", status: "mastered", label: "Усвоено" },
+          { title: "Салалас құрмалас сөйлем", status: "mastered", label: "Усвоено" },
+          { title: "Сабақтас құрмалас сөйлем", status: "in_progress", label: "В работе" }
+        ]
+      },
+      {
+        id: "chemistry_9",
+        title: "Химия 9 сынып",
+        icon: "🧪",
+        elo: 1410,
+        score: "36/40",
+        topic: "Ион алмасу реакциялары",
+        reason: "Тұнба және газ бөліну белгілерін есептеуді бекіту.",
+        topics: [
+          { title: "Электролиттік диссоциация", status: "mastered", label: "Усвоено" },
+          { title: "Ион алмасу реакциялары", status: "in_progress", label: "В работе" }
+        ]
+      },
+      {
+        id: "history_kz_9",
+        title: "Қазақстан тарихы 9",
+        icon: "📜",
+        elo: 1420,
+        score: "18/20",
+        topic: "Алаш-Орда үкіметінің құрылуы",
+        reason: "1917 жылғы съездер хронологиясын пысықтау.",
+        topics: [
+          { title: "ХХ ғасыр басындағы Қазақстан", status: "mastered", label: "Усвоено" },
+          { title: "Алаш қозғалысы", status: "in_progress", label: "В работе" }
+        ]
+      },
+      {
+        id: "english_9",
+        title: "English 9th Grade",
+        icon: "🇬🇧",
+        elo: 1390,
+        score: "B2",
+        topic: "Conditionals (Type 2)",
+        reason: "Practice unreal present situations and if-clause structure.",
+        topics: [
+          { title: "Past Simple vs Present Perfect", status: "mastered", label: "Mastered" },
+          { title: "Conditionals Type 2", status: "in_progress", label: "In Progress" }
+        ]
+      }
+    ];
+
+    let currentIndex = 0;
+
+    function renderSubject() {
+      const s = subjects[currentIndex];
+      
+      // Update Card Header
+      document.getElementById('subjectIcon').innerText = s.icon;
+      document.getElementById('subjectTitle').innerText = s.title;
+      document.getElementById('subjectElo').innerText = s.elo + " ELO";
+      document.getElementById('subjectScore').innerText = s.score;
+      document.getElementById('topicTitle').innerText = s.topic;
+      document.getElementById('topicReason').innerText = s.reason;
+
+      // Render Dots
+      const dotsContainer = document.getElementById('dotsContainer');
+      dotsContainer.innerHTML = subjects.map((_, i) => `
+        <button onclick="goToSubject(${i})" class="transition-all duration-200 ${i === currentIndex ? 'w-5 h-1.5 bg-emerald-400 rounded-full' : 'w-1.5 h-1.5 bg-slate-700 hover:bg-slate-500 rounded-full'}"></button>
+      `).join('');
+
+      // Render Topic Matrix
+      const topicsContainer = document.getElementById('topicsList');
+      topicsContainer.innerHTML = s.topics.map(t => {
+        let badgeClass = "bg-slate-800 text-slate-400 border-slate-700";
+        let icon = "schedule";
+        
+        if (t.status === "mastered") {
+          badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+          icon = "check_circle";
+        } else if (t.status === "pending") {
+          badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/30";
+          icon = "hourglass_top";
+        } else if (t.status === "in_progress") {
+          badgeClass = "bg-sky-500/10 text-sky-400 border-sky-500/30 font-semibold";
+          icon = "radio_button_checked";
+        }
+
+        return `
+          <div class="tactile-card p-3 rounded-xl bg-slate-800/40 border border-slate-800 flex items-center justify-between hover:border-slate-700 transition">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-lg ${t.status === 'mastered' ? 'text-emerald-400' : t.status === 'pending' ? 'text-amber-400' : t.status === 'in_progress' ? 'text-sky-400 animate-pulse' : 'text-slate-500'}">${icon}</span>
+              <span class="text-xs font-semibold text-slate-200">${t.title}</span>
+            </div>
+            <span class="text-[11px] px-2 py-0.5 rounded-md border ${badgeClass}">${t.label}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function nextSubject() {
+      currentIndex = (currentIndex + 1) % subjects.length;
+      renderSubject();
+    }
+
+    function prevSubject() {
+      currentIndex = (currentIndex - 1 + subjects.length) % subjects.length;
+      renderSubject();
+    }
+
+    function goToSubject(index) {
+      currentIndex = index;
+      renderSubject();
+    }
+
+    function toggleLang() {
+      const btn = document.getElementById('langBtn');
+      if (btn.innerText.includes('KZ')) {
+        btn.innerText = '🇷🇺 RU';
+      } else if (btn.innerText.includes('RU')) {
+        btn.innerText = '🇬🇧 EN';
+      } else {
+        btn.innerText = '🇰🇿 KZ';
+      }
+    }
+
+    // Initialize
+    renderSubject();
+  </script>
+</body>
+</html>
