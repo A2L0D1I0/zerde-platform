@@ -432,12 +432,40 @@ export const ru = {
   'courses.catalog_subtitle': 'Динамические силлабусы, спецкурсы и олимпиадные треки от преподавателей',
   'courses.enrolled_filter': 'Мои курсы',
   'courses.pending_filter': 'Заявки',
-  'courses.enrollment_pending': 'На рассмотрении (pending_approval)',
   'courses.apply_enroll': 'Подать заявку',
   'student.continue_learning': 'Продолжить обучение',
+  'trainer.mentor_name': 'Наставник «Аға»',
+  'trainer.active_canvas_hint': 'Изменяйте ветви параболы и корни, чтобы исследовать чередование знаков интервалов!',
+  'student.leaderboard_desc': 'Еженедельный ELO и стрик рейтинг группы',
+  'student.top_5_badge': 'Топ-5',
+  'student.you_badge': 'Вы',
+  'student.days_unit_short': 'д',
+  'student.spaced_repetition_title': 'SM-2 Интервальное повторение',
+  'student.formulas_unit': 'формул',
+  'student.sm2_all_completed': 'Все карточки на сегодня повторены! Память обновлена на 100%.',
+  'student.review_card_btn': 'Повторить',
+  'student.elo_rating_label': 'Рейтинг ELO',
+  'student.streak_days_label': 'Учебный стрик',
+  'student.days_unit': 'дней',
+  'student.consecutive_commits': 'Непрерывные коммиты',
+  'student.quarter_goal_label': 'Цель четверти:',
+  'student.verified_passport': 'Верифицированный паспорт',
+  'student.streak_count': 'Стрик',
+  'student.exam_countdown': 'ЕНТ 2026: 74 дня осталось',
+  'student.pinned_subjects': 'Закрепленные предметы',
+  'student.all_courses': 'Все курсы',
+  'courses.next_topic_title': 'Следующая тема',
+  'student.roadmap_tab': 'Персональный Roadmap: ЕНТ 2026',
+  'student.score_trajectory_desc': 'Траектория целевого балла: 94 → 132 балла (74 дня осталось)',
+  'student.full_roadmap_btn': 'Полный Roadmap',
+  'student.linear_equations': 'Линейные уравнения',
+  'student.quadratic_inequalities': 'Квадратные неравенства',
+  'student.rational_equations': 'Дробно-рациональные уравнения',
+  'student.quarter_topics_desc': 'Двухфакторный зачет и учебная матрица',
 } as const;
 
 export default ru;
+
 
 
 

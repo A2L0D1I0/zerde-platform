@@ -1,6 +1,7 @@
 import React from 'react';
 import { ClassLeaderboardEntry } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { useLanguage } from '@/context/LanguageContext';
 import { Trophy, Flame, Award, Crown, ChevronRight } from 'lucide-react';
 
 interface ClassLeaderboardCardProps {
@@ -14,6 +15,8 @@ export const ClassLeaderboardCard: React.FC<ClassLeaderboardCardProps> = ({
   currentUserId = 'usr_student_01',
   onViewFull,
 }) => {
+  const { t } = useLanguage();
+
   const getRankMedal = (rank: number) => {
     switch (rank) {
       case 1:
@@ -53,16 +56,16 @@ export const ClassLeaderboardCard: React.FC<ClassLeaderboardCardProps> = ({
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-              Сынып Лидерборды (9 «А»)
+              {t('student.leaderboard_title')}
             </h3>
             <p className="text-[10px] text-primer-fg-muted">
-              Апталық ELO және стрик рейтингі
+              {t('student.leaderboard_desc')}
             </p>
           </div>
         </div>
 
         <Badge variant="outline" className="text-[10px] font-mono">
-          Топ-5
+          {t('student.top_5_badge')}
         </Badge>
       </div>
 
@@ -98,7 +101,7 @@ export const ClassLeaderboardCard: React.FC<ClassLeaderboardCardProps> = ({
                     </span>
                     {isCurrent && (
                       <span className="text-[9px] px-1 py-0.2 rounded bg-primer-accent-emphasis text-white font-mono font-bold">
-                        Сен
+                        {t('student.you_badge')}
                       </span>
                     )}
                   </div>
@@ -107,7 +110,7 @@ export const ClassLeaderboardCard: React.FC<ClassLeaderboardCardProps> = ({
                     <span>•</span>
                     <span className="text-primer-attention-fg flex items-center gap-0.5">
                       <Flame className="w-2.5 h-2.5 fill-current" />
-                      {entry.streakDays}к
+                      {entry.streakDays}{t('student.days_unit_short')}
                     </span>
                   </div>
                 </div>
@@ -118,7 +121,7 @@ export const ClassLeaderboardCard: React.FC<ClassLeaderboardCardProps> = ({
                   {entry.elo}
                 </div>
                 <div className="text-[9px] text-primer-fg-subtle">
-                  {entry.masteredCount} тақырып
+                  {entry.masteredCount} {t('common.topics')}
                 </div>
               </div>
             </div>
@@ -128,3 +131,4 @@ export const ClassLeaderboardCard: React.FC<ClassLeaderboardCardProps> = ({
     </div>
   );
 };
+

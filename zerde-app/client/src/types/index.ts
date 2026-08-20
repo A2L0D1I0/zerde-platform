@@ -70,14 +70,24 @@ export interface HeatmapDay {
 export interface SubjectFocus {
   id: string;
   title: string;
+  titleKZ?: string;
+  titleRU?: string;
+  titleEN?: string;
   icon: string;
   subjectElo: number;
   predictedScore: string;
   focusTopic: string;
+  focusTopicKZ?: string;
+  focusTopicRU?: string;
+  focusTopicEN?: string;
   focusReason: string;
+  focusReasonKZ?: string;
+  focusReasonRU?: string;
+  focusReasonEN?: string;
   durationMinutes: number;
   ctaLabel: string;
 }
+
 
 export interface SpacedRepetitionItem {
   available: boolean;

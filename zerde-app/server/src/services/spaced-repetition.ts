@@ -74,7 +74,7 @@ export function calculateSM2(input: SM2Input): SM2Result {
   const prevEf = input.easinessFactor ?? 2.5;
   const prevReps = input.repetitions ?? 0;
   const prevInterval = input.intervalDays ?? 1;
-  const base = input.baseDate ?? new Date();
+  const base = (input.baseDate instanceof Date && !isNaN(input.baseDate.getTime())) ? input.baseDate : new Date();
 
   // 1. Calculate updated Easiness Factor EF'
   // EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
@@ -105,10 +105,12 @@ export function calculateSM2(input: SM2Input): SM2Result {
     }
   }
 
+  const safeInterval = isNaN(newInterval) || !isFinite(newInterval) ? 1 : Math.max(1, Math.min(365, newInterval));
+
   // 3. Compute next review date
-  const nextDate = new Date(base.getTime());
-  nextDate.setDate(nextDate.getDate() + newInterval);
+  const nextDate = new Date(base.getTime() + safeInterval * 24 * 60 * 60 * 1000);
   const nextReviewDate = nextDate.toISOString().split('T')[0];
+
 
   return {
     quality: q,

@@ -537,13 +537,40 @@ export const en = {
   'courses.catalog_title': 'Course Catalog & Curriculums',
   'courses.catalog_subtitle': 'Dynamic syllabi, advanced electives and olympiad tracks from instructors',
   'courses.enrolled_filter': 'My Courses',
-  'courses.pending_filter': 'Applications',
-  'courses.enrollment_pending': 'Pending Review (pending_approval)',
   'courses.apply_enroll': 'Apply to Enroll',
   'student.continue_learning': 'Continue Learning',
+  'trainer.mentor_name': '"Aga" Mentor',
+  'trainer.active_canvas_hint': 'Adjust the parabola branches and roots to explore interval sign alternations!',
+  'student.leaderboard_desc': 'Weekly ELO and streak rating for your group',
+  'student.top_5_badge': 'Top-5',
+  'student.you_badge': 'You',
+  'student.days_unit_short': 'd',
+  'student.spaced_repetition_title': 'SM-2 Spaced Repetition',
+  'student.formulas_unit': 'formulas',
+  'student.sm2_all_completed': 'All cards reviewed for today! Memory updated 100%.',
+  'student.review_card_btn': 'Review',
+  'student.elo_rating_label': 'ELO Rating',
+  'student.streak_days_label': 'Study Streak',
+  'student.days_unit': 'days',
+  'student.consecutive_commits': 'Consecutive Commits',
+  'student.quarter_goal_label': 'Quarter Goal:',
+  'student.verified_passport': 'Verified Passport',
+  'student.streak_count': 'Streak',
+  'student.exam_countdown': 'ENT 2026: 74 days remaining',
+  'student.pinned_subjects': 'Pinned Subjects',
+  'student.all_courses': 'All Courses',
+  'courses.next_topic_title': 'Next Topic',
+  'student.roadmap_tab': 'Personal Roadmap: ENT 2026',
+  'student.score_trajectory_desc': 'Target Score Trajectory: 94 → 132 pts (74 days left)',
+  'student.full_roadmap_btn': 'Full Roadmap',
+  'student.linear_equations': 'Linear Equations',
+  'student.quadratic_inequalities': 'Quadratic Inequalities',
+  'student.rational_equations': 'Rational Equations',
 } as const;
 
 export default en;
+
+
 
 
 

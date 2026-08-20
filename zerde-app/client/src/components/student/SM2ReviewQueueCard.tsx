@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { MathText } from '@/components/ui/MathText';
 import { Brain, Sparkles, ArrowRight, RotateCw, CheckCircle2, ThumbsUp, Flame } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface SM2ReviewQueueCardProps {
   cards: SM2MemoryCard[];
@@ -15,9 +16,11 @@ interface SM2ReviewQueueCardProps {
 export const SM2ReviewQueueCard: React.FC<SM2ReviewQueueCardProps> = ({
   cards,
 }) => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [selectedCard, setSelectedCard] = useState<SM2MemoryCard | null>(null);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+
   const [activeCards, setActiveCards] = useState<SM2MemoryCard[]>(cards);
 
   const dueCards = activeCards.filter((c) => c.isDueToday);
@@ -56,14 +59,14 @@ export const SM2ReviewQueueCard: React.FC<SM2ReviewQueueCardProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <h4 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-                  SM-2 Интервалды қайталау
+                  {t('student.spaced_repetition_title')}
                 </h4>
                 <Badge variant="accent" className="text-[10px] py-0 font-mono">
-                  {dueCards.length} формула
+                  {dueCards.length} {t('student.formulas_unit')}
                 </Badge>
               </div>
               <p className="text-[10px] text-primer-fg-muted">
-                Күнделікті 1-минуттық экспресс-жад жаттығуы
+                {t('student.spaced_repetition_desc')}
               </p>
             </div>
           </div>
@@ -74,7 +77,7 @@ export const SM2ReviewQueueCard: React.FC<SM2ReviewQueueCardProps> = ({
           {dueCards.length === 0 ? (
             <div className="py-4 text-center text-xs text-primer-success-fg font-medium bg-primer-success-subtle/20 rounded-lg border border-primer-success-muted/30">
               <CheckCircle2 className="w-4 h-4 mx-auto mb-1 text-primer-success-fg" />
-              Бүгінгі барлық карточкалар қайталанды! Жад 100% жаңартылды.
+              {t('student.sm2_all_completed')}
             </div>
           ) : (
             dueCards.map((card) => (
@@ -102,12 +105,13 @@ export const SM2ReviewQueueCard: React.FC<SM2ReviewQueueCardProps> = ({
                   variant="secondary"
                   className="shrink-0 gap-1 text-[11px] font-semibold group-hover:bg-primer-accent-emphasis group-hover:text-white transition"
                 >
-                  <span>Қайталау</span>
+                  <span>{t('student.review_card_btn')}</span>
                   <ArrowRight className="w-3 h-3" />
                 </Button>
               </div>
             ))
           )}
+
         </div>
       </div>
 

@@ -64,14 +64,23 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
 
   const mockPinnedSubject: SubjectFocus = {
     id: 'subj_math',
-    title: 'Алгебра 9 сынып',
+    title: 'Алгебра',
+    titleKZ: 'Алгебра (Тереңдетілген курс)',
+    titleRU: 'Алгебра (Углубленный курс)',
+    titleEN: 'Algebra (Advanced Elective)',
     icon: '📐',
     subjectElo: 1435,
-    predictedScore: '38/40 балл ⭐',
+    predictedScore: '38/40',
     focusTopic: 'Квадраттық теңсіздіктер (Интервалдар әдісі)',
-    focusReason: '💡 Кеше таңбаларды анықтаудан қателестің. Осы 1 ережені бекітсек емтихан болжамың 39-ға өседі.',
+    focusTopicKZ: 'Квадраттық теңсіздіктер (Интервалдар әдісі)',
+    focusTopicRU: 'Квадратные неравенства (Метод интервалов)',
+    focusTopicEN: 'Quadratic Inequalities (Interval Method)',
+    focusReason: '💡 Осы 1 ережені бекітсек емтихан болжамыңыз өседі.',
+    focusReasonKZ: '💡 Кеше таңбаларды анықтаудан қателестіңіз. Осы 1 ережені бекітсек емтихан болжамыңыз өседі.',
+    focusReasonRU: '💡 Вчера возникло затруднение со знаками интервалов. Закрепив это правило, ваш прогноз вырастет.',
+    focusReasonEN: '💡 Yesterday you had friction with sign transitions. Fixing this will boost your exam forecast.',
     durationMinutes: 3,
-    ctaLabel: 'Жаттығуды бастау (3 минут)',
+    ctaLabel: '3 мин',
   };
 
   useEffect(() => {
@@ -129,12 +138,12 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
           onSelectDay={(day) => {
             showToast({
               type: 'info',
-              title: `${day.dayOfWeek}, ${day.dayNumber} күнінің белсенділігі`,
+              title: `${day.dayOfWeek}, ${day.dayNumber}`,
               message: day.isCompleted
-                ? `Орындалған микро-жаттығулар: ${day.tasksCount}`
+                ? `${t('student.streak_count')}: ${day.tasksCount}`
                 : day.isToday
-                ? 'Бүгінгі 3 минуттық мақсат күтуде 🔥'
-                : 'Алдағы жоспарланған күн',
+                ? t('student.start_focus')
+                : t('student.exam_countdown'),
             });
           }}
         />
@@ -156,11 +165,11 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
           item={{
             available: true,
             cardsCount: sm2Cards.filter((c) => c.isDueToday).length || 3,
-            timeEstimate: '1 мин',
-            title: 'Жадты бекіту (Spaced Repetition)',
-            description: '1-тоқсанның 3 формуласы қайталауды күтуде (1 минут)',
+            timeEstimate: `1 ${t('common.minutes')}`,
+            title: t('student.spaced_repetition_title'),
+            description: t('student.spaced_repetition_desc'),
           }}
-          onReview={() => handleStartTrainer('Интервалды қайталау: Негізгі формулалар')}
+          onReview={() => handleStartTrainer('Интервалды қайталау')}
         />
 
         {/* Mobile Quick Roadmap Banner */}
@@ -174,10 +183,10 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
             </div>
             <div>
               <div className="text-xs font-bold text-primer-fg-default">
-                ҰБТ 2026: 74 күн қалды
+                {t('student.exam_countdown')}
               </div>
               <div className="text-[10px] text-primer-fg-muted">
-                Болжам: <strong className="text-primer-success-fg">118/140</strong> • Мақсат: 132 балл
+                {t('student.predicted_grade_label')}: <strong className="text-primer-success-fg">118/140</strong>
               </div>
             </div>
           </div>
@@ -203,7 +212,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-primer-accent-fg" />
                 <h3 className="text-sm font-bold text-primer-fg-default">
-                  Бекітілген пәндер (Pinned Repositories)
+                  {t('student.pinned_subjects')}
                 </h3>
               </div>
               <Button
@@ -212,7 +221,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
                 onClick={() => onNavigateTab('courses')}
                 className="text-xs text-primer-accent-fg hover:underline gap-1"
               >
-                <span>Барлық курстар</span>
+                <span>{t('student.all_courses')}</span>
                 <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
@@ -255,7 +264,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
                       />
                     </div>
                     <div className="flex items-center justify-between text-[10px] text-primer-fg-subtle pt-0.5">
-                      <span>Келесі: <strong className="text-primer-fg-default">{course.next_topic}</strong></span>
+                      <span>{t('courses.next_topic_title')}: <strong className="text-primer-fg-default">{course.next_topic}</strong></span>
                       <span className="flex items-center gap-1 font-mono">
                         <Users className="w-3 h-3" />
                         {course.students_count}
@@ -266,6 +275,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
               ))}
             </div>
           </div>
+
 
           {/* B. Active Simulator / Trainer Block (Desmos & Active Canvas) */}
           <ActiveTrainerBlock
@@ -289,10 +299,10 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-                    Персоналды Roadmap: ҰБТ / ЕНТ 2026
+                    {t('student.roadmap_tab')}
                   </h3>
                   <p className="text-[10px] text-primer-fg-muted">
-                    Мақсатты балл траекториясы: 94 → 132 балл (74 күн қалды)
+                    {t('student.score_trajectory_desc')}
                   </p>
                 </div>
               </div>
@@ -303,7 +313,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
                 size="sm"
                 className="gap-1 font-bold text-xs"
               >
-                <span>Толық Roadmap</span>
+                <span>{t('student.full_roadmap_btn')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -313,28 +323,29 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
               <div className="p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-done-muted/40">
                 <div className="flex items-center gap-1.5 text-primer-done-fg font-bold text-[11px] mb-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>1. Сызықтық теңдеулер</span>
+                  <span>1. {t('student.linear_equations')}</span>
                 </div>
-                <div className="text-[10px] text-primer-fg-muted">100% усвоено • СОР 1 тапсырылды</div>
+                <div className="text-[10px] text-primer-fg-muted">100% {t('status.mastered')}</div>
               </div>
 
               <div className="p-2.5 rounded-lg bg-primer-success-subtle/30 border border-primer-success-emphasis/50 ring-1 ring-primer-success-emphasis/30">
                 <div className="flex items-center gap-1.5 text-primer-success-fg font-bold text-[11px] mb-1">
                   <Zap className="w-3.5 h-3.5 fill-current" />
-                  <span>2. Квадрат теңсіздіктер</span>
+                  <span>2. {t('student.quadratic_inequalities')}</span>
                 </div>
-                <div className="text-[10px] text-primer-fg-default">● Ағымдағы қадам • 68% меңгерілді</div>
+                <div className="text-[10px] text-primer-fg-default">● 68% {t('status.in_progress')}</div>
               </div>
 
               <div className="p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted/50 opacity-75">
                 <div className="flex items-center gap-1.5 text-primer-fg-muted font-bold text-[11px] mb-1">
                   <Clock className="w-3.5 h-3.5" />
-                  <span>3. Бөлшек-рационал</span>
+                  <span>3. {t('student.rational_equations')}</span>
                 </div>
-                <div className="text-[10px] text-primer-fg-subtle">🔒 Келесі апта жоспарында</div>
+                <div className="text-[10px] text-primer-fg-subtle">🔒 {t('status.queued')}</div>
               </div>
             </div>
           </div>
+
 
         </div>
 

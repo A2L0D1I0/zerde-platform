@@ -12,69 +12,113 @@ import {
 } from '@/types';
 
 // Mock/Fallback Data Constants
-export const mockTopicsList: Topic[] = [
+export const mockTopicsList: (Topic & {
+  titleKZ?: string;
+  titleRU?: string;
+  titleEN?: string;
+  sub_textKZ?: string;
+  sub_textRU?: string;
+  sub_textEN?: string;
+})[] = [
   {
     id: 'top_1',
     course_id: 'math',
     topic_number: '#1.1',
     title: 'Квадрат үшмүше түбірлері және Виет теоремасы',
+    titleKZ: 'Квадрат үшмүше түбірлері және Виет теоремасы',
+    titleRU: 'Корни квадратного трехчлена и теорема Виета',
+    titleEN: 'Roots of Quadratic Trinomial and Vieta Theorem',
     order_index: 1,
     status: 'in_progress',
     is_today_focus: true,
     mastery_percentage: 68,
     sub_text: '«Аға» наставнигімен 12 қадам орындалды • 3 мин жаттығу',
+    sub_textKZ: '«Аға» наставнигімен 12 қадам орындалды • 3 мин жаттығу',
+    sub_textRU: 'Пройдено 12 шагов с наставником «Аға» • 3 мин тренировки',
+    sub_textEN: '12 steps completed with "Aga" mentor • 3 min practice',
   },
   {
     id: 'top_2',
     course_id: 'math',
     topic_number: '#1.2',
     title: 'Бөлшек-рационал теңдеулер мен ОДЗ есебі',
+    titleKZ: 'Бөлшек-рационал теңдеулер мен ОДЗ есебі',
+    titleRU: 'Дробно-рациональные уравнения и учет ОДЗ',
+    titleEN: 'Fractional Rational Equations and Domain Restrictions',
     order_index: 2,
     status: 'pending',
     mastery_percentage: 85,
     sub_text: 'ИИ қабылдады • Мұғалімнің қорытынды зачетін күтуде',
+    sub_textKZ: 'ИИ қабылдады • Мұғалімнің қорытынды зачетін күтуде',
+    sub_textRU: 'Принято ИИ • Ожидает финального зачета преподавателя',
+    sub_textEN: 'Accepted by AI • Pending final teacher assessment',
   },
   {
     id: 'top_3',
     course_id: 'math',
     topic_number: '#1.3',
     title: 'Интервалдар әдісі және теңсіздіктер жүйесі',
+    titleKZ: 'Интервалдар әдісі және теңсіздіктер жүйесі',
+    titleRU: 'Метод интервалов и системы неравенств',
+    titleEN: 'Method of Intervals and Systems of Inequalities',
     order_index: 3,
     status: 'mastered',
     mastery_percentage: 100,
     sub_text: 'Мұғалім бекітті ✓ • СОР 1 толық тапсырылды (10/10 балл)',
+    sub_textKZ: 'Мұғалім бекітті ✓ • СОР 1 толық тапсырылды (10/10 балл)',
+    sub_textRU: 'Утверждено преподавателем ✓ • СОР 1 сдан на 10/10 баллов',
+    sub_textEN: 'Approved by teacher ✓ • Summative assessment passed (10/10)',
   },
   {
     id: 'top_4',
     course_id: 'math',
     topic_number: '#1.4',
     title: 'Иррационал теңдеулер мен модульдік теңдеулер',
+    titleKZ: 'Иррационал теңдеулер мен модульдік теңдеулер',
+    titleRU: 'Иррациональные уравнения и уравнения с модулем',
+    titleEN: 'Irrational Equations and Absolute Value Equations',
     order_index: 4,
     status: 'queued',
     mastery_percentage: 0,
     sub_text: '1-тоқсан жоспарында • Келесі аптада ашылады',
+    sub_textKZ: '1-тоқсан жоспарында • Келесі аптада ашылады',
+    sub_textRU: 'В плане 1-й четверти • Откроется на следующей неделе',
+    sub_textEN: 'In Quarter 1 syllabus • Unlocks next week',
   },
   {
     id: 'top_5',
     course_id: 'phys',
     topic_number: '#2.1',
     title: 'Ньютонның екінші заңы және күштер векторлары',
+    titleKZ: 'Ньютонның екінші заңы және күштер векторлары',
+    titleRU: 'Второй закон Ньютона и векторы сил',
+    titleEN: 'Newton Second Law and Force Vectors',
     order_index: 5,
     status: 'mastered',
     mastery_percentage: 95,
     sub_text: 'Active Canvas зертханалық жұмысы қорғалды',
+    sub_textKZ: 'Active Canvas зертханалық жұмысы қорғалды',
+    sub_textRU: 'Лабораторная работа Active Canvas успешно защищена',
+    sub_textEN: 'Active Canvas interactive lab completed successfully',
   },
   {
     id: 'top_6',
     course_id: 'phys',
     topic_number: '#2.2',
     title: 'Бүкіләлемдік тартылыс заңы және гравитация',
+    titleKZ: 'Бүкіләлемдік тартылыс заңы және гравитация',
+    titleRU: 'Закон всемирного тяготения и гравитация',
+    titleEN: 'Universal Law of Gravitation',
     order_index: 6,
     status: 'queued',
     mastery_percentage: 10,
     sub_text: 'Алдын ала шолу қолжетімді',
+    sub_textKZ: 'Алдын ала шолу қолжетімді',
+    sub_textRU: 'Предварительный просмотр доступен',
+    sub_textEN: 'Preview is available',
   },
 ];
+
 
 export const mockLeaderboardData: ClassLeaderboardEntry[] = [
   {
