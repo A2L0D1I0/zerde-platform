@@ -91,23 +91,24 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
         const [dash, heatmap, lboard, cards, courses] = await Promise.all([
           studentService.getDashboard(user?.id),
           studentService.getHeatmap(user?.id),
-          studentService.getLeaderboard(),
+          studentService.getLeaderboard(user),
           studentService.getSM2Cards(),
           courseService.getAllCourses(),
         ]);
 
-        if (dash?.recent_topics) {
+        if (dash?.recent_topics && dash.recent_topics.length > 0) {
           setTopics(dash.recent_topics);
         } else {
-          setTopics(mockTopicsList);
+          setTopics(mockTopicsList.slice(0, 3));
         }
 
         setHeatmapMatrix(heatmap?.matrix || []);
         setLeaderboard(lboard || []);
         setSm2Cards(cards || []);
-        setStudyDays(studentService.getStudyDays());
-        setPinnedCourses(courses.slice(0, 2));
+        setStudyDays(studentService.getStudyDays(user?.streakDays ?? 0));
+        setPinnedCourses(courses.filter((c) => c.is_enrolled || c.enrollment_status === 'enrolled'));
       } catch (err) {
+
         console.warn('Dashboard data loaded with fallback', err);
       } finally {
         setIsLoading(false);
@@ -136,6 +137,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
         {/* Weekday Study Days Horizontal Swipe */}
         <WeekdayStudyCarousel
           days={studyDays}
+          streakDays={user?.streakDays ?? 0}
           onSelectDay={(day) => {
             showToast({
               type: 'info',
@@ -205,7 +207,11 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
         <div className="col-span-12 lg:col-span-8 space-y-4">
           
           {/* Weekday Study Carousel (Desktop Header Component) */}
-          <WeekdayStudyCarousel days={studyDays} />
+          <WeekdayStudyCarousel
+            days={studyDays}
+            streakDays={user?.streakDays ?? 0}
+          />
+
 
           {/* A. Pinned Courses Grid (Pinned Repos Style) */}
           <div className="space-y-2.5">

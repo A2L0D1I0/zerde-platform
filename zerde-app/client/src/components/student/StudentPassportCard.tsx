@@ -13,15 +13,15 @@ interface StudentPassportCardProps {
 
 export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
   user,
-  overallMastery = 75,
-  totalMastered = 18,
-  totalTopics = 24,
+  overallMastery = 0,
+  totalMastered = 0,
+  totalTopics = 0,
 }) => {
   const { t } = useLanguage();
-  const elo = user?.overallElo || 1420;
-  const streak = user?.streakDays || 12;
-  const rankLevel = user?.eloRank?.level || 'Қыран';
-  const rankSymbol = user?.eloRank?.symbol || '🦅';
+  const elo = user?.overallElo ?? 1000;
+  const streak = user?.streakDays ?? 0;
+  const rankLevel = user?.eloRank?.level || (elo >= 1600 ? 'Самғау' : elo >= 1300 ? 'Қыран' : elo >= 1000 ? 'Тұғыр' : 'Өскін');
+  const rankSymbol = user?.eloRank?.symbol || (elo >= 1600 ? '🚀' : elo >= 1300 ? '🦅' : elo >= 1000 ? '🏔️' : '🌱');
 
   return (
     <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3.5 relative overflow-hidden">
@@ -32,7 +32,7 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
       <div className="flex items-center gap-3 pt-1">
         <div className="relative shrink-0">
           <div className="w-12 h-12 rounded-full bg-primer-accent-emphasis text-white flex items-center justify-center font-bold text-base shadow-sm ring-2 ring-primer-border-default">
-            {user?.full_name?.charAt(0) || 'А'}
+            {user?.full_name?.charAt(0) || 'О'}
           </div>
           <span className="absolute -bottom-1 -right-1 text-sm bg-primer-canvas-default rounded-full p-0.5 shadow-xs">
             {rankSymbol}
@@ -42,7 +42,7 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <h3 className="text-sm font-bold text-primer-fg-default truncate">
-              {user?.full_name || 'Азамат Темірханов'}
+              {user?.full_name || 'Оқушы'}
             </h3>
             {user?.grade && (
               <Badge variant="accent" className="text-[10px] py-0 font-mono">
@@ -52,10 +52,11 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
           </div>
           <p className="text-[11px] text-primer-fg-muted flex items-center gap-1 mt-0.5 truncate">
             <School className="w-3 h-3 shrink-0" />
-            <span>{user?.school || 'NIS IB Astana / Zerde Lab'}</span>
+            <span>{user?.school || user?.bio || 'Zerde Platform'}</span>
           </p>
         </div>
       </div>
+
 
       {/* 4 Pillars Matrix */}
       <div className="grid grid-cols-2 gap-2 pt-1">

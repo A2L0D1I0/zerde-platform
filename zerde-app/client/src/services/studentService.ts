@@ -120,68 +120,72 @@ export const mockTopicsList: (Topic & {
 ];
 
 
-export const mockLeaderboardData: ClassLeaderboardEntry[] = [
-  {
-    id: 'usr_lead_1',
-    rank: 1,
-    name: 'Дана Сұлтанова',
-    grade: '9 «А»',
-    school: 'NIS IB Astana',
-    elo: 1680,
-    eloRankLevel: 'Самғау',
-    streakDays: 35,
-    masteredCount: 24,
-    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 'usr_lead_2',
-    rank: 2,
-    name: 'Аружан Қалиева',
-    grade: '9 «А»',
-    school: 'NIS IB Astana',
-    elo: 1530,
-    eloRankLevel: 'Қыран',
-    streakDays: 21,
-    masteredCount: 22,
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 'usr_student_01',
-    rank: 3,
-    name: 'Әлихан Нұрғалиев',
-    grade: '9 «А»',
-    school: 'NIS IB Astana',
-    elo: 1420,
-    eloRankLevel: 'Қыран',
-    streakDays: 12,
-    masteredCount: 18,
-    isCurrentUser: true,
-  },
-  {
-    id: 'usr_lead_4',
-    rank: 4,
-    name: 'Еркебұлан Мұрат',
-    grade: '9 «А»',
-    school: 'NIS IB Astana',
-    elo: 1350,
-    eloRankLevel: 'Тұғыр',
-    streakDays: 9,
-    masteredCount: 16,
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-  },
-  {
-    id: 'usr_lead_5',
-    rank: 5,
-    name: 'Бақытжан Есенов',
-    grade: '9 «А»',
-    school: 'NIS IB Astana',
-    elo: 1210,
-    eloRankLevel: 'Тұғыр',
-    streakDays: 5,
-    masteredCount: 12,
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-  },
-];
+export const generateLeaderboardData = (currentUser?: any): ClassLeaderboardEntry[] => {
+  const currentId = currentUser?.id || 'usr_current';
+  const currentName = currentUser?.full_name || 'Сіз';
+  const currentElo = currentUser?.overallElo ?? 1000;
+  const currentStreak = currentUser?.streakDays ?? 0;
+  const currentRank = currentUser?.eloRank?.level || (currentElo >= 1600 ? 'Самғау' : currentElo >= 1300 ? 'Қыран' : currentElo >= 1000 ? 'Тұғыр' : 'Өскін');
+
+  const baseList: ClassLeaderboardEntry[] = [
+    {
+      id: 'usr_lead_1',
+      rank: 1,
+      name: 'Дана Сұлтанова',
+      grade: 'Топ-01',
+      school: 'Zerde Lab',
+      elo: 1680,
+      eloRankLevel: 'Самғау',
+      streakDays: 35,
+      masteredCount: 24,
+      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
+    },
+    {
+      id: 'usr_lead_2',
+      rank: 2,
+      name: 'Аружан Қалиева',
+      grade: 'Топ-01',
+      school: 'Zerde Lab',
+      elo: 1530,
+      eloRankLevel: 'Қыран',
+      streakDays: 21,
+      masteredCount: 22,
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+    },
+    {
+      id: currentId,
+      rank: 3,
+      name: currentName,
+      grade: currentUser?.grade || 'Топ-01',
+      school: currentUser?.school || currentUser?.bio || 'Zerde Platform',
+      elo: currentElo,
+      eloRankLevel: currentRank,
+      streakDays: currentStreak,
+      masteredCount: 0,
+      isCurrentUser: true,
+    },
+    {
+      id: 'usr_lead_4',
+      rank: 4,
+      name: 'Еркебұлан Мұрат',
+      grade: 'Топ-01',
+      school: 'Zerde Lab',
+      elo: 980,
+      eloRankLevel: 'Тұғыр',
+      streakDays: 4,
+      masteredCount: 8,
+      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+    },
+  ];
+
+  return baseList.sort((a, b) => b.elo - a.elo).map((item, idx) => ({
+    ...item,
+    rank: idx + 1,
+  }));
+};
+
+export const mockLeaderboardData = generateLeaderboardData();
+
 
 export const mockSM2MemoryCards: SM2MemoryCard[] = [
   {
@@ -273,7 +277,7 @@ export const generate365DaysHeatmap = (): HeatmapDay[] => {
   return result;
 };
 
-export const generateCurrentWeekStudyDays = (): StudyDay[] => {
+export const generateCurrentWeekStudyDays = (streakDays: number = 0): StudyDay[] => {
   const days: StudyDay[] = [];
   const today = new Date();
   const currentDayIndex = (today.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
@@ -286,8 +290,8 @@ export const generateCurrentWeekStudyDays = (): StudyDay[] => {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const isCompleted = i < currentDayIndex || (i === currentDayIndex);
     const isToday = i === currentDayIndex;
+    const isCompleted = streakDays > 0 && i < currentDayIndex;
     const isFuture = i > currentDayIndex;
 
     days.push({
@@ -297,13 +301,14 @@ export const generateCurrentWeekStudyDays = (): StudyDay[] => {
       isCompleted,
       isToday,
       isFuture,
-      tasksCount: isFuture ? 0 : Math.floor(Math.random() * 4) + 2,
+      tasksCount: isCompleted ? 4 : 0,
       streakActive: isCompleted,
     });
   }
 
   return days;
 };
+
 
 export const mockDefaultRoadmapData: StudentRoadmapData = {
   target_exam: 'ҰБТ / ЕНТ 2026 (Математика + Физика)',
@@ -497,18 +502,19 @@ class StudentService {
     return mockDefaultRoadmapData;
   }
 
-  public async getLeaderboard(): Promise<ClassLeaderboardEntry[]> {
-    return mockLeaderboardData;
+  public async getLeaderboard(currentUser?: any): Promise<ClassLeaderboardEntry[]> {
+    return generateLeaderboardData(currentUser);
   }
 
   public async getSM2Cards(): Promise<SM2MemoryCard[]> {
     return mockSM2MemoryCards;
   }
 
-  public getStudyDays(): StudyDay[] {
-    return generateCurrentWeekStudyDays();
+  public getStudyDays(streakDays: number = 0): StudyDay[] {
+    return generateCurrentWeekStudyDays(streakDays);
   }
 }
 
 export const studentService = new StudentService();
 export default studentService;
+

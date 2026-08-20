@@ -91,9 +91,9 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* ELO Rank Pill */}
           <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-canvas-subtle border border-primer-border-default text-xs font-semibold text-primer-fg-default shadow-primer-xs">
-            <span>{user?.eloRank?.symbol || '🦅'}</span>
+            <span>{user?.eloRank?.symbol || '🌱'}</span>
             <span className="text-primer-success-fg font-mono font-bold">
-              {user?.overallElo || 1420}
+              {user?.overallElo ?? 1000}
             </span>
             <span className="text-primer-fg-subtle text-[10px]">ELO</span>
           </div>
@@ -101,8 +101,9 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Streak Flame Pill */}
           <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-attention-subtle border border-primer-attention-muted/60 text-xs font-bold text-primer-attention-fg shadow-primer-xs">
             <Flame className="w-3.5 h-3.5 text-primer-attention-fg fill-primer-attention-fg" />
-            <span className="font-mono">{user?.streakDays || 14}</span>
+            <span className="font-mono">{user?.streakDays ?? 0}</span>
           </div>
+
 
           {/* Language Switcher Dropdown */}
           <DropdownMenu>

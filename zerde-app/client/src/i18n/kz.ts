@@ -491,11 +491,21 @@ export const kz = {
   'student.full_roadmap_btn': 'Толық Roadmap',
   'student.linear_equations': 'Сызықтық теңдеулер',
   'student.quadratic_inequalities': 'Квадрат теңсіздіктер',
+  'student.rational_equations': 'Бөлшек-рационал теңдеулер',
+
   'student.quarter_topics_desc': 'Екі факторлы зачет пен оқу матрицасы',
   'student.last_3_months': 'Соңғы 3 ай',
   'student.less': 'Аз',
   'student.more': 'Көп',
+  'student.study_rhythm_title': 'Апталық оқу ырғағы (Study Days)',
+  'student.streak_active_label': 'күндік стрик белсенді',
+  'student.streak_start_today': 'Бүгін жаңа стрик бастаңыз!',
+  'student.no_enrolled_courses_title': 'Сіз әлі ешқандай курсқа қосылмадыңыз',
+  'student.no_enrolled_courses_desc': 'Мұғалім берген 6 таңбалы код арқылы немесе каталогтан курсты таңдаңыз',
+  'student.explore_courses_btn': 'Курстарды қарау',
+  'common.tasks_short': 'тап.',
 } as const;
+
 
 
 

@@ -567,11 +567,20 @@ export const en = {
   'student.quadratic_inequalities': 'Quadratic Inequalities',
   'student.rational_equations': 'Rational Equations',
   'student.last_3_months': 'Last 3 months',
+
   'student.less': 'Less',
   'student.more': 'More',
+  'student.study_rhythm_title': 'Weekly Study Rhythm (Study Days)',
+  'student.streak_active_label': 'day streak active',
+  'student.streak_start_today': 'Start your streak today!',
+  'student.no_enrolled_courses_title': 'You are not enrolled in any courses yet',
+  'student.no_enrolled_courses_desc': 'Join using the 6-digit code from your teacher or explore the catalog',
+  'student.explore_courses_btn': 'Explore Courses',
+  'common.tasks_short': 'tasks',
 } as const;
 
 export default en;
+
 
 
 
