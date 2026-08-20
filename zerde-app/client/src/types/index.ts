@@ -10,6 +10,9 @@ export interface User {
   email: string;
   full_name: string;
   role: UserRole;
+  password?: string;
+  org_token?: string;
+  bio?: string;
   grade?: string;
   school?: string;
   language: AppLanguage;
@@ -27,6 +30,7 @@ export interface User {
 
 export interface Course {
   id: string;
+  short_code?: string;
   title: string;
   description: string;
   subject: string;
@@ -40,6 +44,7 @@ export interface Course {
   next_topic?: string;
   enrollment_status?: 'enrolled' | 'pending_approval' | 'none' | 'expelled' | 'completed';
 }
+
 
 export interface Topic {
   id: string;

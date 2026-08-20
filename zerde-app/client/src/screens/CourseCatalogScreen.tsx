@@ -40,10 +40,37 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedGrade, setSelectedGrade] = useState<string>('all');
-
-  // Course Details Modal
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isApplying, setIsApplying] = useState<string | null>(null);
+
+  // Join by Short Code
+  const [joinCode, setJoinCode] = useState('');
+  const [isJoiningCode, setIsJoiningCode] = useState(false);
+
+
+  const handleJoinByCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCode.trim()) return;
+    setIsJoiningCode(true);
+    try {
+      const res = await courseService.joinByShortCode(joinCode.trim());
+      showToast({
+        type: 'success',
+        title: t('courses.join_by_code_title'),
+        message: res.message,
+      });
+      setJoinCode('');
+      await loadCourses();
+    } catch (err: any) {
+      showToast({
+        type: 'danger',
+        title: t('common.error_occurred'),
+        message: err.message,
+      });
+    } finally {
+      setIsJoiningCode(false);
+    }
+  };
 
   const loadCourses = async () => {
     setIsLoading(true);
@@ -71,16 +98,15 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
       const result = await courseService.enroll(course.id);
       showToast({
         type: 'success',
-        title: 'Өтініш жіберілді! 🎉',
+        title: t('common.saved'),
         message: result.message,
       });
-      // Refresh local list
       await loadCourses();
     } catch (e) {
       showToast({
         type: 'attention',
-        title: 'Қате орын алды',
-        message: 'Курсқа жазылу кезінде ақау шықты.',
+        title: t('common.error_occurred'),
+        message: t('common.failed_to_save'),
       });
     } finally {
       setIsApplying(null);
@@ -106,14 +132,14 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold text-primer-fg-default">
-                Курстар каталогы & Оқу бағдарламалары
+                {t('courses.catalog_title')}
               </h2>
               <Badge variant="outline" className="font-mono text-xs">
-                {courses.length} курс
+                {courses.length}
               </Badge>
             </div>
             <p className="text-xs text-primer-fg-muted mt-0.5">
-              Мұғалімдер жасаған динамикалық силлабустар, спецкурстар мен олимпиадалық бағыттар
+              {t('courses.catalog_subtitle')}
             </p>
           </div>
         </div>
@@ -128,7 +154,7 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
                 : 'text-primer-fg-muted hover:text-primer-fg-default'
             }`}
           >
-            Барлық курстар ({courses.length})
+            {t('common.all')} ({courses.length})
           </button>
           <button
             onClick={() => setActiveTab('enrolled')}
@@ -139,7 +165,7 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Менің курстарым ({courses.filter((c) => c.enrollment_status === 'enrolled').length})</span>
+            <span>{t('courses.enrolled_filter')} ({courses.filter((c) => c.enrollment_status === 'enrolled').length})</span>
           </button>
           <button
             onClick={() => setActiveTab('pending')}
@@ -150,10 +176,44 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Өтініштер ({courses.filter((c) => c.enrollment_status === 'pending_approval').length})</span>
+            <span>{t('courses.pending_filter')} ({courses.filter((c) => c.enrollment_status === 'pending_approval').length})</span>
           </button>
         </div>
       </div>
+
+      {/* Join Course by Short Code Bar */}
+      <form
+        onSubmit={handleJoinByCode}
+        className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-primer-canvas-subtle via-primer-canvas-default to-primer-canvas-subtle border border-primer-accent-muted/40 rounded-xl p-3.5 shadow-primer-xs"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-primer-accent-subtle text-primer-accent-fg shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-primer-fg-default">
+              {t('courses.join_by_code_title')}
+            </div>
+            <div className="text-[10px] text-primer-fg-muted">
+              {t('courses.join_by_code_desc')}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <input
+            type="text"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            placeholder={t('courses.join_by_code_placeholder')}
+            maxLength={8}
+            className="px-3 py-1.5 text-xs font-mono font-bold uppercase bg-primer-canvas-inset border border-primer-border-default rounded-md text-primer-fg-default placeholder:text-primer-fg-subtle outline-none focus:border-primer-accent-emphasis w-full sm:w-48 text-center tracking-wider"
+          />
+          <Button type="submit" variant="primary" size="sm" disabled={isJoiningCode || !joinCode.trim()} className="whitespace-nowrap">
+            {isJoiningCode ? '...' : t('courses.join_by_code_btn')}
+          </Button>
+        </div>
+      </form>
 
       {/* Search & Subject Badges Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-primer-canvas-subtle border border-primer-border-default rounded-xl p-3.5 shadow-primer-xs">
@@ -163,7 +223,7 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Курс немесе мұғалім аты бойынша іздеу..."
+            placeholder={t('header.search_placeholder')}
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-primer-canvas-inset border border-primer-border-muted rounded-md text-primer-fg-default placeholder:text-primer-fg-subtle outline-none focus:border-primer-accent-emphasis"
           />
         </div>
@@ -195,7 +255,7 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredCourses.length === 0 ? (
           <div className="col-span-full py-16 text-center text-xs text-primer-fg-muted rounded-xl border border-primer-border-default bg-primer-canvas-subtle">
-            Таңдалған санат бойынша курстар табылмады.
+            {t('common.no_data')}
           </div>
         ) : (
           filteredCourses.map((course) => {
@@ -205,91 +265,91 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
             return (
               <Card
                 key={course.id}
-                className="flex flex-col justify-between border-primer-border-default bg-primer-canvas-subtle hover:border-primer-accent-emphasis/60 transition shadow-primer-xs group"
+                className="flex flex-col justify-between hover:border-primer-border-default transition-all shadow-primer-xs hover:shadow-primer-sm cursor-pointer group"
+                onClick={() => setSelectedCourse(course)}
               >
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge variant="accent" className="text-[10px]">
+                <CardHeader className="p-4 pb-2 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <Badge variant="secondary" className="text-[10px] font-mono">
                       {course.subject}
                     </Badge>
-                    <span className="text-[10px] font-mono text-primer-fg-muted bg-primer-canvas-inset px-2 py-0.5 rounded border border-primer-border-muted">
-                      {course.grade}
-                    </span>
+
+                    {/* Short Code Badge with 1-Click Copy */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(course.short_code || 'ZK-2026');
+                        showToast({
+                          type: 'success',
+                          title: t('courses.code_copied_toast'),
+                          message: course.short_code || '',
+                        });
+                      }}
+                      title={t('courses.copy_code_tooltip')}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded bg-primer-canvas-inset border border-primer-border-muted text-[10px] font-mono font-bold text-primer-accent-fg hover:border-primer-accent-emphasis transition"
+                    >
+                      <span className="text-primer-fg-subtle text-[9px]">{t('courses.short_code_badge')}</span>
+                      <span>{course.short_code || 'ZK-2026'}</span>
+                      <span className="text-[9px]">📋</span>
+                    </div>
                   </div>
 
-                  <CardTitle className="text-sm font-bold mt-2 group-hover:text-primer-accent-fg transition line-clamp-1">
+                  <CardTitle className="text-sm font-bold group-hover:text-primer-accent-fg transition leading-snug line-clamp-2">
                     {course.title}
                   </CardTitle>
-                  <CardDescription className="text-xs line-clamp-2 mt-1 leading-relaxed">
+
+                  <CardDescription className="text-xs line-clamp-2">
                     {course.description}
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="pt-0 space-y-3">
-                  {/* Progress or Next Topic */}
-                  {isEnrolled ? (
-                    <div className="space-y-1.5 p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-primer-fg-muted">Прогресс:</span>
-                        <span className="font-mono font-bold text-primer-success-fg">
-                          {course.progress_percentage || 78}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-primer-canvas-subtle rounded-full h-1.5 overflow-hidden border border-primer-border-muted/50">
-                        <div
-                          className="bg-primer-success-emphasis h-full rounded-full"
-                          style={{ width: `${course.progress_percentage || 78}%` }}
-                        />
-                      </div>
-                      <div className="text-[10px] text-primer-fg-subtle truncate pt-0.5">
-                        Ағымдағы: <strong className="text-primer-fg-default">{course.next_topic || 'Виет теоремасы'}</strong>
-                      </div>
+                <CardContent className="p-4 pt-2 space-y-3">
+                  <div className="flex items-center justify-between text-xs text-primer-fg-muted pt-2 border-t border-primer-border-muted">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{course.teacher_name}</span>
                     </div>
-                  ) : (
-                    <div className="p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted text-[11px] text-primer-fg-muted space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span>Оқытушы:</span>
-                        <strong className="text-primer-fg-default">{course.teacher_name}</strong>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Оқушылар саны:</span>
-                        <span className="font-mono">{course.students_count} оқушы</span>
-                      </div>
+                    <div className="flex items-center gap-1 font-mono text-[11px]">
+                      <Users className="w-3.5 h-3.5" />
+                      <span>{course.students_count || 0}</span>
                     </div>
-                  )}
+                  </div>
 
                   {/* Actions */}
-                  <div className="pt-1 flex items-center gap-2">
+                  <div className="pt-1">
                     {isEnrolled ? (
                       <Button
-                        onClick={() => onStartCourseTopic?.(course.next_topic || course.title)}
                         variant="primary"
                         size="sm"
-                        className="w-full gap-1.5 font-bold shadow-primer-xs text-xs"
+                        className="w-full justify-between"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onStartCourseTopic) {
+                            onStartCourseTopic(course.next_topic || course.title);
+                          }
+                        }}
                       >
-                        <span>Перейти к обучению</span>
+                        <span>{t('student.continue_learning')}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Button>
                     ) : isPending ? (
-                      <Button
-                        disabled
-                        variant="secondary"
-                        size="sm"
-                        className="w-full gap-1.5 text-xs text-primer-attention-fg bg-primer-attention-subtle/40 border-primer-attention-muted/50 font-semibold"
-                      >
+                      <Button variant="secondary" size="sm" className="w-full gap-1.5 cursor-default text-primer-attention-fg" disabled>
                         <Clock className="w-3.5 h-3.5" />
-                        <span>Күтілуде (pending_approval)</span>
+                        <span>{t('courses.enrollment_pending')}</span>
                       </Button>
                     ) : (
                       <Button
-                        onClick={() => handleEnroll(course)}
-                        disabled={isApplying === course.id}
                         variant="secondary"
                         size="sm"
-                        className="w-full gap-1.5 text-xs font-bold hover:bg-primer-accent-emphasis hover:text-white transition"
+                        className="w-full gap-1.5"
+                        disabled={isApplying === course.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEnroll(course);
+                        }}
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>{isApplying === course.id ? 'Жіберілуде...' : 'Подать заявку'}</span>
+                        <span>{isApplying === course.id ? '...' : t('courses.apply_enroll')}</span>
                       </Button>
                     )}
                   </div>
@@ -302,3 +362,5 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
     </div>
   );
 };
+
+

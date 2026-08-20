@@ -39,9 +39,36 @@ export function initDatabase(db: Database.Database = getDb()): void {
   if (!fs.existsSync(SCHEMA_PATH)) {
     throw new Error(`Schema file not found at: ${SCHEMA_PATH}`);
   }
+
+  // Safe column migration for existing database instances
+  try {
+    const courseCols = db.prepare("PRAGMA table_info(courses)").all() as any[];
+    if (courseCols.length > 0 && !courseCols.some(c => c.name === 'short_code')) {
+      db.exec("ALTER TABLE courses ADD COLUMN short_code TEXT DEFAULT ''");
+    }
+    if (courseCols.length > 0 && !courseCols.some(c => c.name === 'organization_id')) {
+      db.exec("ALTER TABLE courses ADD COLUMN organization_id INTEGER");
+    }
+  } catch (e) {
+    // Ignore if table does not exist
+  }
+
+  try {
+    const userCols = db.prepare("PRAGMA table_info(users)").all() as any[];
+    if (userCols.length > 0 && !userCols.some(c => c.name === 'bio')) {
+      db.exec("ALTER TABLE users ADD COLUMN bio TEXT");
+    }
+    if (userCols.length > 0 && !userCols.some(c => c.name === 'organization_id')) {
+      db.exec("ALTER TABLE users ADD COLUMN organization_id INTEGER");
+    }
+  } catch (e) {
+    // Ignore if table does not exist
+  }
+
   const schemaSql = fs.readFileSync(SCHEMA_PATH, 'utf-8');
   db.exec(schemaSql);
 }
+
 
 /**
  * Reset database (drop and re-create)

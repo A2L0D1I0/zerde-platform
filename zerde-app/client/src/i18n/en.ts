@@ -503,13 +503,47 @@ export const en = {
   'course.custom_language_placeholder': 'Enter custom language (e.g. French)...',
   'teacher.slots_title': 'Document Slots (max 5)',
   'teacher.slots_window_open': 'Edit Window Open (Vacation / Days 1-2)',
-  'teacher.slots_window_locked': 'Study Period: Document editing locked',
-  'teacher.delta_diff_title': 'AI Delta-Diff: Change Analysis',
-  'teacher.delta_diff_confirm': 'Approve New Plan',
-  'teacher.delta_diff_dialogue': 'Co-Pilot Dialogue',
   'smartboard.intervention_done_title': '5-minute intervention completed! ⏰',
   'smartboard.intervention_done_desc': 'Analyze student responses and summarize.',
+
+  // ==========================================
+  // 23. AUTH, ORG TOKENS & COURSE CODES
+  // ==========================================
+  'auth.bio_label': 'About You (Bio)',
+  'auth.bio_placeholder': 'Academic interests or specialization...',
+  'auth.org_token_label': 'Organization Security Token',
+  'auth.org_token_placeholder': 'e.g. ORG-8F3K9A or ZK-7492-X',
+  'auth.org_token_hint': 'Official token provided by your school or university',
+  'auth.role_switcher_student': 'Student',
+  'auth.role_switcher_teacher': 'Instructor / Teacher',
+  'courses.join_by_code_title': 'Join Course by Code',
+  'courses.join_by_code_desc': 'Enter the 6-character random code provided by your instructor',
+  'courses.join_by_code_placeholder': '6-character code (e.g. 7X9K2M)...',
+  'courses.join_by_code_btn': 'Join Course',
+  'courses.invite_student_title': 'Invite Student to Group',
+  'courses.invite_student_name': 'Student Full Name',
+  'courses.invite_student_email': 'Student Email Address',
+  'courses.send_invite_btn': 'Send Invitation',
+  'courses.short_code_badge': 'Course Code:',
+
+  'courses.copy_code_tooltip': 'Copy Code',
+  'courses.code_copied_toast': 'Course code copied! 📋',
+  'common.error_occurred': 'An error occurred',
+  'common.name': 'Full Name',
+  'common.failed_to_save': 'Failed to save data',
+  'common.add': 'Add',
+  'common.cancel': 'Cancel',
+  'common.saved': 'Successfully saved!',
+  'courses.catalog_title': 'Course Catalog & Curriculums',
+  'courses.catalog_subtitle': 'Dynamic syllabi, advanced electives and olympiad tracks from instructors',
+  'courses.enrolled_filter': 'My Courses',
+  'courses.pending_filter': 'Applications',
+  'courses.enrollment_pending': 'Pending Review (pending_approval)',
+  'courses.apply_enroll': 'Apply to Enroll',
+  'student.continue_learning': 'Continue Learning',
 } as const;
 
 export default en;
+
+
 

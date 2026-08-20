@@ -13,12 +13,17 @@ import {
   TopicStatus,
   EnrollmentStatus,
   AppLanguage,
-  AppTheme
+  AppTheme,
+  Organization,
+  CourseInvitation
 } from '../types';
+
 
 class DataStore {
   private users: Map<string, User> = new Map();
+  private organizations: Map<string, Organization> = new Map();
   private courses: Map<string, Course> = new Map();
+  private courseInvitations: Map<string, CourseInvitation> = new Map();
   private topics: Map<string, Topic[]> = new Map(); // course_id -> topics
   private enrollments: Map<string, Enrollment> = new Map(); // id -> enrollment
   private notifications: Map<string, NotificationItem[]> = new Map(); // user_id -> notifications
@@ -32,6 +37,32 @@ class DataStore {
     const salt = bcryptjs.genSaltSync(10);
     const defaultPasswordHash = bcryptjs.hashSync('password123', salt);
 
+    // 0. Seed Organizations
+    const org1: Organization = {
+      id: 'org_nis_01',
+      name: 'NIS IB Astana',
+      org_token: 'ORG-8F3K9A',
+      type: 'school',
+      created_at: new Date('2026-01-01T08:00:00Z').toISOString()
+    };
+    const org2: Organization = {
+      id: 'org_kaznu_01',
+      name: 'Әл-Фараби атындағы ҚазҰУ',
+      org_token: 'ZK-7492-X',
+      type: 'university',
+      created_at: new Date('2026-01-01T08:00:00Z').toISOString()
+    };
+    const org3: Organization = {
+      id: 'org_rfmsh_01',
+      name: 'РФМШ Алматы',
+      org_token: 'EDU-9M2X4L',
+      type: 'school',
+      created_at: new Date('2026-01-01T08:00:00Z').toISOString()
+    };
+    this.organizations.set(org1.id, org1);
+    this.organizations.set(org2.id, org2);
+    this.organizations.set(org3.id, org3);
+
     // 1. Seed Users
     const studentUser: User = {
       id: 'usr_student_01',
@@ -39,8 +70,10 @@ class DataStore {
       password_hash: defaultPasswordHash,
       full_name: 'Азамат Темірханов',
       role: 'student',
+      bio: 'Физика-математика бағытындағы оқушы, ҰБТ 2026-ға дайындық',
       grade: '9 «А»',
       school: 'РФМШ Алматы',
+      organization_id: org3.id,
       language: 'kz',
       theme: 'dark',
       avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
@@ -54,8 +87,10 @@ class DataStore {
       password_hash: defaultPasswordHash,
       full_name: 'Азамат Темірханов',
       role: 'student',
+      bio: 'Студент Zerde',
       grade: '9 «А»',
       school: 'РФМШ Алматы',
+      organization_id: org3.id,
       language: 'kz',
       theme: 'dark',
       avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
@@ -69,7 +104,9 @@ class DataStore {
       password_hash: defaultPasswordHash,
       full_name: 'Гульнара Сериковна Алимжанова',
       role: 'teacher',
+      bio: 'Жоғары санатты математика және физика пәнінің оқытушысы',
       school: 'РФМШ Алматы',
+      organization_id: org3.id,
       language: 'kz',
       theme: 'dark',
       avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
@@ -95,7 +132,7 @@ class DataStore {
     this.users.set(teacherUser.id, teacherUser);
     this.users.set(adminUser.id, adminUser);
 
-    // 24 students for 9 «А» class list
+    // 24 students for group list
     const studentNames = [
       'Айгерім Маратқызы', 'Бауыржан Ержанұлы', 'Гүлназ Берікқызы', 'Данияр Саматұлы',
       'Еркебұлан Қайратұлы', 'Жансая Мұратқызы', 'Зере Асқарқызы', 'Ильяс Қанатұлы',
@@ -114,8 +151,10 @@ class DataStore {
         password_hash: defaultPasswordHash,
         full_name: name,
         role: 'student',
+        bio: 'Zerde оқушысы',
         grade: '9 «А»',
         school: 'РФМШ Астана',
+        organization_id: org1.id,
         language: idx % 3 === 0 ? 'kz' : idx % 3 === 1 ? 'ru' : 'en',
         theme: 'dark',
         created_at: new Date(Date.now() - (idx + 1) * 86400000).toISOString(),
@@ -135,9 +174,10 @@ class DataStore {
       last_active: new Date().toISOString()
     });
 
-    // 2. Seed Courses
+    // 2. Seed Courses with Unique Random Short Codes
     const course1: Course = {
       id: 'crs_physics_9',
+      short_code: '7X9K2M',
       title: 'Физика: 9 сынып — Механика және Динамика',
       description: 'Ньютон заңдары, кинематика, күштер векторлары және ZVDSL+ интерактивті схемалары',
       subject: 'Физика',
@@ -153,6 +193,7 @@ class DataStore {
 
     const course2: Course = {
       id: 'crs_kazakh_9',
+      short_code: 'K8F42A',
       title: 'Қазақ тілі: Синтаксис және Морфемика',
       description: 'Сөйлем мүшелері, сөзжасам, морфемдік талдау мен стильдік нормалар',
       subject: 'Қазақ тілі',
@@ -168,6 +209,7 @@ class DataStore {
 
     const course3: Course = {
       id: 'crs_math_ent',
+      short_code: 'M3N9P1',
       title: 'Математика: ҰБТ / ЕНТ 2026 Интенсив',
       description: 'Математикалық сауаттылық, алгебралық теңдеулер, стереометрия және логикалық есептер',
       subject: 'Математика',
@@ -183,6 +225,7 @@ class DataStore {
 
     const course4: Course = {
       id: 'crs_python_robo',
+      short_code: 'W4Q8R2',
       title: 'Python & Robotics: Автоматтандыру негіздері',
       description: 'Алгоритмдер, деректер құрылымы және микроконтроллерлерді бағдарламалау',
       subject: 'Информатика',
@@ -200,6 +243,7 @@ class DataStore {
     this.courses.set(course2.id, course2);
     this.courses.set(course3.id, course3);
     this.courses.set(course4.id, course4);
+
 
     // 3. Seed Topics for Physics
     const physicsTopics: Topic[] = [
@@ -489,7 +533,35 @@ class DataStore {
     return safe;
   }
 
+  // --- Organizations & Security Tokens ---
+  public validateOrgToken(token: string): Organization | null {
+    if (!token) return null;
+    const clean = token.trim().toUpperCase();
+    for (const org of this.organizations.values()) {
+      if (org.org_token.toUpperCase() === clean) {
+        return org;
+      }
+    }
+    return null;
+  }
+
+  public getOrganizationById(id: string): Organization | undefined {
+    return this.organizations.get(id);
+  }
+
   // --- Courses ---
+  public generateShortCourseCode(): string {
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let code = '';
+    do {
+      code = '';
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    } while (Array.from(this.courses.values()).some((c) => c.short_code === code));
+    return code;
+  }
+
   public getAllCourses(filters?: { subject?: string; grade?: string; search?: string; language?: string }): Course[] {
     let list = Array.from(this.courses.values());
     if (filters) {
@@ -504,7 +576,12 @@ class DataStore {
       }
       if (filters.search) {
         const q = filters.search.toLowerCase();
-        list = list.filter(c => c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+        list = list.filter(
+          c =>
+            c.title.toLowerCase().includes(q) ||
+            c.description.toLowerCase().includes(q) ||
+            (c.short_code && c.short_code.toLowerCase().includes(q))
+        );
       }
     }
     return list;
@@ -514,12 +591,25 @@ class DataStore {
     return this.courses.get(id);
   }
 
-  public createCourse(courseData: Omit<Course, 'id' | 'students_count' | 'created_at' | 'updated_at'>): Course {
+  public findCourseByShortCode(code: string): Course | undefined {
+    if (!code) return undefined;
+    const clean = code.trim().toUpperCase();
+    for (const c of this.courses.values()) {
+      if (c.short_code && c.short_code.toUpperCase() === clean) {
+        return c;
+      }
+    }
+    return undefined;
+  }
+
+  public createCourse(courseData: Omit<Course, 'id' | 'short_code' | 'students_count' | 'created_at' | 'updated_at'> & { short_code?: string }): Course {
     const id = `crs_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
+    const short_code = courseData.short_code || this.generateShortCourseCode();
     const newCourse: Course = {
       ...courseData,
       id,
+      short_code,
       students_count: 0,
       created_at: now,
       updated_at: now
@@ -527,6 +617,43 @@ class DataStore {
     this.courses.set(id, newCourse);
     this.topics.set(id, []);
     return newCourse;
+  }
+
+  // --- Course Invitations (Teacher -> Student) ---
+  public createCourseInvitation(courseId: string, teacherId: string, studentName: string, studentEmail: string): CourseInvitation {
+    const id = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const course = this.getCourseById(courseId);
+    const teacher = this.findUserById(teacherId);
+    const invitation: CourseInvitation = {
+      id,
+      course_id: courseId,
+      course_title: course?.title || 'Курс',
+      course_short_code: course?.short_code || '',
+      teacher_id: teacherId,
+      teacher_name: teacher?.full_name || 'Оқытушы',
+      student_name: studentName,
+      student_email: studentEmail.trim().toLowerCase(),
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+    this.courseInvitations.set(id, invitation);
+    return invitation;
+  }
+
+  public getStudentInvitations(email: string): CourseInvitation[] {
+    const clean = email.trim().toLowerCase();
+    return Array.from(this.courseInvitations.values()).filter(
+      (inv) => inv.student_email.toLowerCase() === clean && inv.status === 'pending'
+    );
+  }
+
+  public acceptCourseInvitation(invitationId: string, student: SafeUser | User): Enrollment | null {
+    const inv = this.courseInvitations.get(invitationId);
+    if (!inv || inv.status !== 'pending') return null;
+    inv.status = 'accepted';
+    const enrollment = this.createEnrollment(inv.course_id, student);
+    enrollment.status = 'enrolled';
+    return enrollment;
   }
 
   public updateCourse(id: string, updates: Partial<Course>): Course | undefined {
@@ -573,7 +700,7 @@ class DataStore {
     return undefined;
   }
 
-  public createEnrollment(courseId: string, student: User): Enrollment {
+  public createEnrollment(courseId: string, student: SafeUser | User): Enrollment {
     const existing = this.findEnrollment(courseId, student.id);
     if (existing) {
       if (existing.status === 'expelled') {
@@ -585,6 +712,7 @@ class DataStore {
     }
     const id = `enr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
+
     const newEnrollment: Enrollment = {
       id,
       course_id: courseId,

@@ -397,13 +397,47 @@ export const ru = {
   'course.custom_language_placeholder': 'Впишите свой язык (напр. Французский)...',
   'teacher.slots_title': 'Слоты документов (макс. 5)',
   'teacher.slots_window_open': 'Окно изменений открыто (Каникулы / 1-2 дня)',
-  'teacher.slots_window_locked': 'Учебный период: изменение документов заблокировано',
-  'teacher.delta_diff_title': 'AI Delta-Diff: анализ изменений',
-  'teacher.delta_diff_confirm': 'Утвердить новый план',
-  'teacher.delta_diff_dialogue': 'Диалог с Co-Pilot',
   'smartboard.intervention_done_title': '5-минутная интервенция завершена! ⏰',
   'smartboard.intervention_done_desc': 'Проанализируйте ответы учеников и подведите итоги.',
+
+  // ==========================================
+  // 20. AUTH, ORG TOKENS & COURSE CODES
+  // ==========================================
+  'auth.bio_label': 'О себе (Кратко)',
+  'auth.bio_placeholder': 'Научные интересы или специализация...',
+  'auth.org_token_label': 'Организационный токен доступа (Security Token)',
+  'auth.org_token_placeholder': 'Например: ORG-8F3K9A или ZK-7492-X',
+  'auth.org_token_hint': 'Официальный токен, выданный вашим учебным заведением',
+  'auth.role_switcher_student': 'Ученик / Студент',
+  'auth.role_switcher_teacher': 'Преподаватель / Учитель',
+  'courses.join_by_code_title': 'Присоединиться к курсу по коду',
+  'courses.join_by_code_desc': 'Введите 6-значный случайный код, предоставленный преподавателем',
+  'courses.join_by_code_placeholder': '6-значный код (напр: 7X9K2M)...',
+  'courses.join_by_code_btn': 'Присоединиться к курсу',
+  'courses.invite_student_title': 'Пригласить ученика в группу',
+  'courses.invite_student_name': 'ФИО ученика',
+  'courses.invite_student_email': 'Email ученика',
+  'courses.send_invite_btn': 'Отправить приглашение',
+  'courses.short_code_badge': 'Код курса:',
+
+  'courses.copy_code_tooltip': 'Копировать код',
+  'courses.code_copied_toast': 'Код курса скопирован! 📋',
+  'common.error_occurred': 'Произошла ошибка',
+  'common.name': 'Полное имя',
+  'common.failed_to_save': 'Не удалось сохранить данные',
+  'common.add': 'Добавить',
+  'common.cancel': 'Отмена',
+  'common.saved': 'Успешно сохранено!',
+  'courses.catalog_title': 'Каталог курсов & Учебные программы',
+  'courses.catalog_subtitle': 'Динамические силлабусы, спецкурсы и олимпиадные треки от преподавателей',
+  'courses.enrolled_filter': 'Мои курсы',
+  'courses.pending_filter': 'Заявки',
+  'courses.enrollment_pending': 'На рассмотрении (pending_approval)',
+  'courses.apply_enroll': 'Подать заявку',
+  'student.continue_learning': 'Продолжить обучение',
 } as const;
 
 export default ru;
+
+
 

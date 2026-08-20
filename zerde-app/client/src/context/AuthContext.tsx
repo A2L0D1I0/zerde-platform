@@ -136,35 +136,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (userData: Partial<User>) => {
+  const register = async (userData: Partial<User> & { password?: string; org_token?: string; bio?: string }) => {
     setIsLoading(true);
     try {
-      const newUser: User = {
-        id: 'usr_' + Math.random().toString(36).substring(2, 9),
-        email: userData.email || 'user@zerde.kz',
-        full_name: userData.full_name || 'Жаңа Қолданушы',
-        role: userData.role || 'student',
-        grade: userData.grade || '10-сынып',
-        school: userData.school || 'NIS IB Astana',
-        language: userData.language || 'KZ',
-        theme: userData.theme || 'dark',
-        overallElo: 1200,
-        streakDays: 1,
-        eloRank: {
-          level: 'Өскін',
-          symbol: '🌱',
-          minElo: 1000,
-          maxElo: 1300,
-        },
-      };
-
-      setToken('mock_jwt_session_' + Date.now());
-      setUser(newUser);
-      setRole(newUser.role);
+      try {
+        const response: any = await api.post('/auth/register', {
+          email: userData.email,
+          password: userData.password || 'password123',
+          full_name: userData.full_name,
+          role: userData.role,
+          bio: userData.bio,
+          org_token: userData.org_token,
+          grade: userData.grade,
+          school: userData.school,
+          language: (userData.language || 'kz').toLowerCase(),
+          theme: userData.theme || 'dark'
+        });
+        if (response?.token && response?.user) {
+          setToken(response.token);
+          setUser(response.user);
+          setRole(response.user.role);
+          setIsLoading(false);
+          return;
+        }
+      } catch (apiError: any) {
+        console.warn('[Auth] API register error:', apiError);
+        throw apiError;
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const logout = () => {
     setToken(null);

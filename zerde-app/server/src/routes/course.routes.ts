@@ -27,6 +27,72 @@ const createTopicSchema = z.object({
 });
 
 /**
+ * GET /api/courses/by-code/:shortCode
+ * Find course by short code (e.g. 7X9K2M)
+ */
+router.get('/by-code/:shortCode', (req, res, next) => {
+  try {
+    const { shortCode } = req.params;
+    const course = store.findCourseByShortCode(shortCode);
+    if (!course) {
+      throw new AppError('Бұл кодпен курс табылмады (Course not found with this code)', 404);
+    }
+    const topics = store.getCourseTopics(course.id);
+    res.json({
+      success: true,
+      course,
+      topics
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/courses/invitations/my
+ * Get current student's pending invitations
+ */
+router.get('/invitations/my', authenticate, (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Авторизация қажет', 401);
+    }
+    const invitations = store.getStudentInvitations(req.user.email);
+    res.json({
+      success: true,
+      count: invitations.length,
+      invitations
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/courses/invitations/:id/accept
+ * Accept an invitation and join the course group
+ */
+router.post('/invitations/:id/accept', authenticate, (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Авторизация қажет', 401);
+    }
+    const { id } = req.params;
+    const enrollment = store.acceptCourseInvitation(id, req.user);
+    if (!enrollment) {
+      throw new AppError('Шақыру жарамсыз немесе қабылданып қойған', 400);
+    }
+    res.json({
+      success: true,
+      enrollment,
+      message: 'Курс тобына сәтті қосылдыңыз! 🎉'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/courses
  * List all active courses (with optional filters)
  */
@@ -77,6 +143,50 @@ router.get('/:id', (req, res, next) => {
 });
 
 /**
+ * POST /api/courses/:id/invite
+ * Teacher invites student to course group by email
+ */
+router.post('/:id/invite', authenticate, requireRole('teacher', 'admin'), (req: AuthRequest, res: Response, next) => {
+  try {
+    const { id } = req.params;
+    const { student_name, student_email } = req.body;
+    if (!student_email || !student_name) {
+      throw new AppError('Оқушының аты-жөні мен email поштасын енгізіңіз', 400);
+    }
+
+    const course = store.getCourseById(id);
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    const invitation = store.createCourseInvitation(id, req.user!.id, student_name, student_email);
+
+    // Send in-app notification if student user exists
+    const studentUser = store.findUserByEmail(student_email);
+    if (studentUser) {
+      store.addNotification(studentUser.id, {
+        id: `notif_${Date.now()}`,
+        user_id: studentUser.id,
+        type: 'COURSE_ANNOUNCEMENT',
+        title: 'Жаңа курсқа шақыру 🎓',
+        message: `${req.user!.full_name} сізді «${course.title}» курсына қосылуға шақырды (Код: ${course.short_code})`,
+        is_read: false,
+        created_at: new Date().toISOString()
+      });
+
+    }
+
+    res.status(201).json({
+      success: true,
+      invitation,
+      message: `«${student_name}» (${student_email}) оқушысына шақыру сәтті жіберілді`
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * POST /api/courses
  * Create a new course (Teacher/Admin only)
  */
@@ -103,6 +213,7 @@ router.post('/', authenticate, requireRole('teacher', 'admin'), (req: AuthReques
     next(error);
   }
 });
+
 
 /**
  * POST /api/courses/:id/enroll

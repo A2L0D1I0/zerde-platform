@@ -49,8 +49,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onOpenSmartboard,
   onOpenCourseBuilder,
 }) => {
-  const { t } = useLanguage();
+  const { t, getLocalized } = useLanguage();
   const { user } = useAuth();
+
   const { showToast } = useToast();
 
   // Selected Classroom (9 «А», 9 «Б», 10 «А», 10 «Б»)
@@ -429,7 +430,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
           {enrollmentRequests.length === 0 ? (
             <div className="py-4 text-center text-xs text-primer-fg-muted">
-              Жаңа өтініштер жоқ. Барлығы қабылданды ✅
+              {t('common.no_data')}
             </div>
           ) : (
             <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
@@ -449,7 +450,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       size="icon-xs"
                       onClick={() => handleRejectEnrollment(req)}
                       className="text-primer-danger-fg hover:bg-primer-danger-subtle h-6 w-6"
-                      title="Қайтару"
+                      title={t('teacher.reject_request')}
                     >
                       <X className="w-3 h-3" />
                     </Button>
@@ -460,7 +461,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       className="h-6 px-2 font-bold text-[11px] gap-0.5"
                     >
                       <Check className="w-3 h-3" />
-                      <span>Одобрить</span>
+                      <span>{t('teacher.approve_request')}</span>
                     </Button>
                   </div>
                 </div>
@@ -478,7 +479,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <CardTitle className="text-xs sm:text-sm font-bold">
-                Журнал класса: Тепловая матрица 24 ученика × микронавыки
+                {t('teacher.tab_gradebook')}
               </CardTitle>
               <Badge variant="done" className="text-[9px] font-mono">
                 Live DINA Sync
@@ -495,7 +496,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-primer-fg-muted" />
               <Input
                 type="text"
-                placeholder="Оқушыны іздеу..."
+                placeholder={t('header.search_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 h-7 text-xs w-36 sm:w-44"
@@ -507,9 +508,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="h-7 px-2 bg-primer-canvas-inset border border-primer-border-default rounded text-[11px] text-primer-fg-default font-semibold cursor-pointer"
             >
-              <option value="all">Барлық оқушылар</option>
-              <option value="deficit_only">Тек пробелдері бар 🔴</option>
-              <option value="mastered_only">Тек үздіктер 🟢</option>
+              <option value="all">{t('teacher.filter_all')}</option>
+              <option value="deficit_only">{t('teacher.filter_deficits')} 🔴</option>
+              <option value="mastered_only">{t('teacher.filter_mastered')} 🟢</option>
             </select>
 
             <select
@@ -517,9 +518,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               onChange={(e) => setSortBy(e.target.value as any)}
               className="h-7 px-2 bg-primer-canvas-inset border border-primer-border-default rounded text-[11px] text-primer-fg-default font-semibold cursor-pointer"
             >
-              <option value="elo">ELO бойынша</option>
-              <option value="deficits">Пробелдер санымен</option>
-              <option value="name">Әліпбимен (А-Я)</option>
+              <option value="elo">{t('teacher.sort_by_elo')}</option>
+              <option value="deficits">{t('teacher.sort_by_deficits')}</option>
+              <option value="name">{t('teacher.sort_by_name')}</option>
             </select>
           </div>
         </CardHeader>
@@ -531,7 +532,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <thead className="bg-primer-canvas-inset text-primer-fg-muted text-[10px] uppercase tracking-wider sticky top-0 z-20">
                 <tr className="border-b border-primer-border-default">
                   <th className="px-3 py-2.5 sticky left-0 z-30 bg-primer-canvas-inset font-bold text-primer-fg-default min-w-[160px] border-r border-primer-border-muted">
-                    Оқушы (24)
+                    {t('role.student')} ({filteredStudents.length})
                   </th>
                   <th className="px-2 py-2.5 text-center min-w-[70px] border-r border-primer-border-muted font-mono">
                     ELO
@@ -539,10 +540,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   {classroomData?.skills_header.map((skill) => (
                     <th
                       key={skill.code}
-                      title={`${skill.nameKZ} (${skill.nameRU})`}
+                      title={`${getLocalized(skill, 'name')}`}
                       className="px-2 py-2 text-center min-w-[85px] border-r border-primer-border-muted/60 font-semibold truncate max-w-[110px]"
                     >
-                      <div className="truncate font-bold text-primer-fg-default">{skill.nameKZ}</div>
+                      <div className="truncate font-bold text-primer-fg-default">{getLocalized(skill, 'name')}</div>
                       <div className="text-[9px] text-primer-fg-subtle font-mono">{skill.code.split('_')[0]}</div>
                     </th>
                   ))}
@@ -570,6 +571,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     <td className="px-2 py-2 text-center font-mono font-bold text-primer-success-fg border-r border-primer-border-muted whitespace-nowrap">
                       {std.current_elo}
                     </td>
+
 
                     {/* 16 Micro-skill Heatmap Cells */}
                     {classroomData?.skills_header.map((skill) => {

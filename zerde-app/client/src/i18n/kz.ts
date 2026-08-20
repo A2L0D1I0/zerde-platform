@@ -430,10 +430,45 @@ export const kz = {
   'teacher.delta_diff_title': 'AI Delta-Diff: өзгерістерді талдау',
   'teacher.delta_diff_confirm': 'Жаңа жоспарды бекіту',
   'teacher.delta_diff_dialogue': 'Co-Pilot сұхбаты',
-  'smartboard.intervention_done_title': '5 минуттық интервенция аяқталды! ⏰',
-  'smartboard.intervention_done_desc': 'Оқушылардың жауаптарын талдап, қорытынды шығарыңыз.',
+  // ==========================================
+  // 21. AUTH, ORG TOKENS & COURSE CODES (Жаңа кілттер)
+  // ==========================================
+  'auth.bio_label': 'Өзіңіз туралы (Қысқаша)',
+  'auth.bio_placeholder': 'Ғылыми бағытыңыз немесе қызығушылықтарыңыз...',
+  'auth.org_token_label': 'Ұйымның қауіпсіздік токені (Security Token)',
+  'auth.org_token_placeholder': 'Мысалы: ORG-8F3K9A немесе ZK-7492-X',
+  'auth.org_token_hint': 'Оқу орны (мектеп, университет) берген ресми токен',
+  'auth.role_switcher_student': 'Оқушы / Студент',
+  'auth.role_switcher_teacher': 'Оқытушы / Ұстаз',
+  'courses.join_by_code_title': 'Код арқылы курсқа қосылу',
+  'courses.join_by_code_desc': 'Оқытушы берген 6 таңбалы кездейсоқ кодты енгізіңіз',
+  'courses.join_by_code_placeholder': '6 таңбалы код (мыс: 7X9K2M)...',
+  'courses.join_by_code_btn': 'Курсқа қосылу',
+  'courses.invite_student_title': 'Оқушыны топқа шақыру',
+  'courses.invite_student_name': 'Оқушының аты-жөні',
+  'courses.invite_student_email': 'Оқушының email поштасы',
+  'courses.send_invite_btn': 'Шақыру жіберу',
+  'courses.short_code_badge': 'Курс коды:',
+
+  'courses.copy_code_tooltip': 'Кодты көшіру',
+  'courses.code_copied_toast': 'Курс коды көшірілді! 📋',
+  'common.error_occurred': 'Қате орын алды',
+  'common.name': 'Толық аты-жөні',
+  'common.failed_to_save': 'Деректерді сақтау мүмкін болмады',
+  'common.add': 'Қосу',
+  'common.cancel': 'Бас тарту',
+  'common.saved': 'Сәтті сақталды!',
+  'courses.catalog_title': 'Курстар каталогы & Оқу бағдарламалары',
+  'courses.catalog_subtitle': 'Мұғалімдер жасаған динамикалық силлабустар, спецкурстар мен олимпиадалық бағыттар',
+  'courses.enrolled_filter': 'Менің курстарым',
+  'courses.pending_filter': 'Өтініштер',
+  'courses.enrollment_pending': 'Күтілуде (pending_approval)',
+  'courses.apply_enroll': 'Өтініш беру',
+  'student.continue_learning': 'Оқуды жалғастыру',
 } as const;
+
 
 export type KzTranslationKey = keyof typeof kz;
 export default kz;
+
 

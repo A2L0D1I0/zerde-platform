@@ -182,6 +182,45 @@ class CourseService {
     };
   }
 
+  public async joinByShortCode(shortCode: string): Promise<{ success: boolean; course: Course; message: string }> {
+    try {
+      const response: any = await api.get(`/courses/by-code/${shortCode.trim().toUpperCase()}`);
+      if (response?.course) {
+        await this.enroll(response.course.id);
+        return {
+          success: true,
+          course: response.course,
+          message: 'Курс тобына сәтті қосылдыңыз! 🎉',
+        };
+      }
+    } catch (err: any) {
+      throw new Error(err?.response?.data?.message || 'Бұл кодпен курс табылмады');
+    }
+    throw new Error('Курс табылмады');
+  }
+
+  public async inviteStudent(courseId: string, studentName: string, studentEmail: string): Promise<{ success: boolean; message: string }> {
+    const res: any = await api.post(`/courses/${courseId}/invite`, {
+      student_name: studentName,
+      student_email: studentEmail,
+    });
+    return res;
+  }
+
+  public async getMyInvitations(): Promise<any[]> {
+    try {
+      const res: any = await api.get('/courses/invitations/my');
+      return res?.invitations || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  public async acceptInvitation(invitationId: string): Promise<any> {
+    const res: any = await api.post(`/courses/invitations/${invitationId}/accept`);
+    return res;
+  }
+
   public async enroll(courseId: string): Promise<{ success: boolean; status: 'pending_approval' | 'enrolled'; message: string }> {
     try {
       const response: any = await api.post(`/courses/${courseId}/enroll`);
@@ -214,3 +253,4 @@ class CourseService {
 
 export const courseService = new CourseService();
 export default courseService;
+

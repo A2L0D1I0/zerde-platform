@@ -5,14 +5,24 @@ export type EnrollmentStatus = 'pending_approval' | 'enrolled' | 'expelled' | 'c
 export type EloRank = 'Өскін' | 'Тұғыр' | 'Қыран' | 'Самғау';
 export type TopicStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 
+export interface Organization {
+  id: string;
+  name: string;
+  org_token: string; // e.g. 'ORG-8F3K9A', 'ZK-7492-X'
+  type: 'school' | 'university' | 'college' | 'academy' | 'tutoring';
+  created_at: string;
+}
+
 export interface User {
   id: string;
   email: string;
   password_hash: string;
   full_name: string;
   role: UserRole;
+  bio?: string;
   grade?: string;
   school?: string;
+  organization_id?: string;
   language: AppLanguage;
   theme: AppTheme;
   avatar_url?: string;
@@ -24,6 +34,7 @@ export type SafeUser = Omit<User, 'password_hash'>;
 
 export interface Course {
   id: string;
+  short_code: string; // Unique random short token, e.g. '7X9K2M', 'K8F42A'
   title: string;
   description: string;
   subject: string;
@@ -35,6 +46,19 @@ export interface Course {
   students_count: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface CourseInvitation {
+  id: string;
+  course_id: string;
+  course_title?: string;
+  course_short_code?: string;
+  teacher_id: string;
+  teacher_name: string;
+  student_name: string;
+  student_email: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
 }
 
 export interface Topic {
@@ -58,6 +82,7 @@ export interface Enrollment {
   grade?: string;
   status: EnrollmentStatus;
   applied_at: string;
+
   updated_at: string;
 }
 
@@ -66,10 +91,12 @@ export type NotificationTriggerType =
   | 'AGA_REMINDER' 
   | 'MEMORY_BURN' 
   | 'WEEKLY_DIGEST' 
+  | 'COURSE_ANNOUNCEMENT'
   | 'course_enrollment' 
   | 'teacher_feedback' 
   | 'system'
   | 'streak_saver';
+
 
 export interface NotificationItem {
   id: string;

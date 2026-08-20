@@ -4,8 +4,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, GraduationCap, UserCheck, ArrowRight, ShieldCheck, Flame } from 'lucide-react';
+import { Sparkles, GraduationCap, UserCheck, KeyRound, Info, AlertCircle } from 'lucide-react';
 
 export const AuthScreen: React.FC = () => {
   const { login, register, isLoading } = useAuth();
@@ -13,24 +12,35 @@ export const AuthScreen: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [role, setRole] = useState<'student' | 'teacher'>('student');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('password123');
   const [name, setName] = useState('');
-  const [grade, setGrade] = useState('10 «A»');
+  const [bio, setBio] = useState('');
+  const [orgToken, setOrgToken] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isRegister) {
-      await register({
-        email,
-        full_name: name || (role === 'teacher' ? 'Гульнара Сериковна Алимжанова' : 'Азамат Темірханов'),
-        role,
-        grade,
-      });
-    } else {
-      await login(email || (role === 'teacher' ? 'teacher@zerde.kz' : 'azamat@zerde.kz'), 'password123', role);
+    setErrorMsg(null);
+    try {
+      if (isRegister) {
+        await register({
+          email,
+          password,
+          full_name: name || (role === 'teacher' ? 'Гульнара Сериковна Алимжанова' : 'Азамат Темірханов'),
+          role,
+          bio,
+          org_token: role === 'teacher' ? orgToken : undefined,
+        });
+      } else {
+        await login(email || (role === 'teacher' ? 'teacher@zerde.kz' : 'azamat@zerde.kz'), password, role);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.message || err?.message || t('common.error_occurred'));
     }
   };
 
   const handleQuickDemoLogin = async (targetRole: 'student' | 'teacher') => {
+    setErrorMsg(null);
     if (targetRole === 'student') {
       await login('azamat@zerde.kz', 'password123', 'student');
     } else {
@@ -50,10 +60,10 @@ export const AuthScreen: React.FC = () => {
             </svg>
           </div>
           <h1 className="text-lg font-bold text-primer-fg-default tracking-tight">
-            Zerde білім беру экожүйесіне қош келдіңіз
+            {t('brand.title')} — {t('brand.subtitle')}
           </h1>
           <p className="text-xs text-primer-fg-muted">
-            GitHub Primer негізіндегі Сократикалық білім беру платформасы
+            {t('brand.tagline')}
           </p>
         </div>
 
@@ -62,6 +72,8 @@ export const AuthScreen: React.FC = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>{isRegister ? t('action.register') : t('action.login')}</CardTitle>
+              
+              {/* Universal Role Switcher */}
               <div className="flex gap-1 bg-primer-canvas-inset p-0.5 rounded-md border border-primer-border-muted">
                 <button
                   type="button"
@@ -72,7 +84,7 @@ export const AuthScreen: React.FC = () => {
                       : 'text-primer-fg-muted hover:text-primer-fg-default'
                   }`}
                 >
-                  {t('role.student')}
+                  {t('auth.role_switcher_student')}
                 </button>
                 <button
                   type="button"
@@ -83,23 +95,30 @@ export const AuthScreen: React.FC = () => {
                       : 'text-primer-fg-muted hover:text-primer-fg-default'
                   }`}
                 >
-                  {t('role.teacher')}
+                  {t('auth.role_switcher_teacher')}
                 </button>
               </div>
             </div>
             <CardDescription>
               {role === 'student'
-                ? 'Оқушы ретінде кіріп, «Аға» наставнигімен ELO рейтингіңізді көтеріңіз'
-                : 'Мұғалім ретінде кіріп, курстар құрыңыз және сынып аналитикасын бақылаңыз'}
+                ? t('student.passport_title')
+                : t('teacher.portal_title')}
             </CardDescription>
           </CardHeader>
 
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-3">
+              {errorMsg && (
+                <div className="p-2.5 rounded-md bg-primer-danger-subtle border border-primer-danger-muted text-primer-danger-fg text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
               {isRegister && (
                 <div>
                   <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                    Толық аты-жөні
+                    {t('common.name')}
                   </label>
                   <Input
                     type="text"
@@ -126,27 +145,51 @@ export const AuthScreen: React.FC = () => {
 
               <div>
                 <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                  Құпиясөз
+                  {t('auth.password')}
                 </label>
                 <Input
                   type="password"
-                  defaultValue="password123"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                 />
               </div>
 
-              {isRegister && role === 'student' && (
+              {isRegister && (
                 <div>
                   <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                    Сынып
+                    {t('auth.bio_label')}
                   </label>
                   <Input
                     type="text"
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                    placeholder="9 «A»"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder={t('auth.bio_placeholder')}
                   />
+                </div>
+              )}
+
+              {/* Organization Security Token for Teacher Registration */}
+              {isRegister && role === 'teacher' && (
+                <div className="space-y-1 pt-1 border-t border-primer-border-muted">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-semibold text-primer-fg-default flex items-center gap-1">
+                      <KeyRound className="w-3.5 h-3.5 text-primer-attention-fg" />
+                      {t('auth.org_token_label')}
+                    </label>
+                  </div>
+                  <Input
+                    type="text"
+                    value={orgToken}
+                    onChange={(e) => setOrgToken(e.target.value)}
+                    placeholder={t('auth.org_token_placeholder')}
+                    required
+                  />
+                  <div className="text-[10px] text-primer-fg-muted flex items-center gap-1 mt-1">
+                    <Info className="w-3 h-3 text-primer-accent-fg shrink-0" />
+                    <span>{t('auth.org_token_hint')} (Демо: <code className="bg-primer-canvas-inset px-1 py-0.2 rounded font-mono text-[9px]">ORG-8F3K9A</code> немесе <code className="bg-primer-canvas-inset px-1 py-0.2 rounded font-mono text-[9px]">ZK-7492-X</code>)</span>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -158,7 +201,10 @@ export const AuthScreen: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setIsRegister(!isRegister)}
+                onClick={() => {
+                  setIsRegister(!isRegister);
+                  setErrorMsg(null);
+                }}
                 className="text-xs text-primer-accent-fg hover:underline cursor-pointer"
               >
                 {isRegister
@@ -201,7 +247,7 @@ export const AuthScreen: React.FC = () => {
               <GraduationCap className="w-4 h-4 text-primer-accent-fg shrink-0" />
               <div className="truncate">
                 <div className="font-bold text-[11px]">Мұғалім (Гульнара С.)</div>
-                <div className="text-[9px] text-primer-fg-muted font-mono">24 оқушы • 3 курс</div>
+                <div className="text-[9px] text-primer-fg-muted font-mono">24 оқушы • 4 курс</div>
               </div>
             </Button>
           </div>
@@ -211,3 +257,4 @@ export const AuthScreen: React.FC = () => {
     </div>
   );
 };
+
