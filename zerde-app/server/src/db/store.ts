@@ -1,0 +1,839 @@
+import bcryptjs from 'bcryptjs';
+import {
+  User,
+  SafeUser,
+  Course,
+  Topic,
+  Enrollment,
+  NotificationItem,
+  StudentDashboardData,
+  StudentHeatmapData,
+  StudentRoadmapData,
+  EloRank,
+  TopicStatus,
+  EnrollmentStatus,
+  AppLanguage,
+  AppTheme
+} from '../types';
+
+class DataStore {
+  private users: Map<string, User> = new Map();
+  private courses: Map<string, Course> = new Map();
+  private topics: Map<string, Topic[]> = new Map(); // course_id -> topics
+  private enrollments: Map<string, Enrollment> = new Map(); // id -> enrollment
+  private notifications: Map<string, NotificationItem[]> = new Map(); // user_id -> notifications
+  private studentStats: Map<string, { elo: number; streak_days: number; last_active: string }> = new Map();
+
+  constructor() {
+    this.seedInitialData();
+  }
+
+  private seedInitialData() {
+    const salt = bcryptjs.genSaltSync(10);
+    const defaultPasswordHash = bcryptjs.hashSync('password123', salt);
+
+    // 1. Seed Users
+    const studentUser: User = {
+      id: 'usr_student_01',
+      email: 'azamat@zerde.kz',
+      password_hash: defaultPasswordHash,
+      full_name: 'Азамат Темірханов',
+      role: 'student',
+      grade: '9 «А»',
+      school: 'РФМШ Алматы',
+      language: 'kz',
+      theme: 'dark',
+      avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      created_at: new Date('2026-01-10T08:00:00Z').toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const studentAliasUser: User = {
+      id: 'usr_student_alias',
+      email: 'student@zerde.kz',
+      password_hash: defaultPasswordHash,
+      full_name: 'Азамат Темірханов',
+      role: 'student',
+      grade: '9 «А»',
+      school: 'РФМШ Алматы',
+      language: 'kz',
+      theme: 'dark',
+      avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      created_at: new Date('2026-01-10T08:00:00Z').toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const teacherUser: User = {
+      id: 'usr_teacher_01',
+      email: 'teacher@zerde.kz',
+      password_hash: defaultPasswordHash,
+      full_name: 'Гульнара Сериковна Алимжанова',
+      role: 'teacher',
+      school: 'РФМШ Алматы',
+      language: 'kz',
+      theme: 'dark',
+      avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+      created_at: new Date('2026-01-05T08:00:00Z').toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const adminUser: User = {
+      id: 'usr_admin_01',
+      email: 'admin@zerde.kz',
+      password_hash: defaultPasswordHash,
+      full_name: 'Бас Әкімші (Admin)',
+      role: 'admin',
+      school: 'Zerde HQ',
+      language: 'kz',
+      theme: 'dark',
+      created_at: new Date('2026-01-01T08:00:00Z').toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    this.users.set(studentUser.id, studentUser);
+    this.users.set(studentAliasUser.id, studentAliasUser);
+    this.users.set(teacherUser.id, teacherUser);
+    this.users.set(adminUser.id, adminUser);
+
+    // 24 students for 9 «А» class list
+    const studentNames = [
+      'Айгерім Маратқызы', 'Бауыржан Ержанұлы', 'Гүлназ Берікқызы', 'Данияр Саматұлы',
+      'Еркебұлан Қайратұлы', 'Жансая Мұратқызы', 'Зере Асқарқызы', 'Ильяс Қанатұлы',
+      'Кәусар Дәуренқызы', 'Мадияр Ермекұлы', 'Нұрай Ерланқызы', 'Олжас Болатұлы',
+      'Перизат Бақытқызы', 'Руслан Арманұлы', 'Сабина Серікқызы', 'Темірлан Айдарұлы',
+      'Ұлан Ғаниұлы', 'Фариза Мақсатқызы', 'Хасан Русланұлы', 'Шыңғыс Дәулетұлы',
+      'Ырысгүл Есенқызы', 'Эльдар Бауыржанұлы', 'Юсуф Тимурұлы', 'Ясмина Ринатқызы'
+    ];
+
+    studentNames.forEach((name, idx) => {
+      const sId = `usr_student_batch_${idx + 2}`;
+      const email = `student${idx + 2}@zerde.kz`;
+      const sUser: User = {
+        id: sId,
+        email,
+        password_hash: defaultPasswordHash,
+        full_name: name,
+        role: 'student',
+        grade: '9 «А»',
+        school: 'РФМШ Астана',
+        language: idx % 3 === 0 ? 'kz' : idx % 3 === 1 ? 'ru' : 'en',
+        theme: 'dark',
+        created_at: new Date(Date.now() - (idx + 1) * 86400000).toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      this.users.set(sUser.id, sUser);
+      this.studentStats.set(sUser.id, {
+        elo: 1100 + Math.floor(Math.random() * 500),
+        streak_days: Math.floor(Math.random() * 20) + 1,
+        last_active: new Date().toISOString()
+      });
+    });
+
+    this.studentStats.set(studentUser.id, {
+      elo: 1420,
+      streak_days: 12,
+      last_active: new Date().toISOString()
+    });
+
+    // 2. Seed Courses
+    const course1: Course = {
+      id: 'crs_physics_9',
+      title: 'Физика: 9 сынып — Механика және Динамика',
+      description: 'Ньютон заңдары, кинематика, күштер векторлары және ZVDSL+ интерактивті схемалары',
+      subject: 'Физика',
+      teacher_id: teacherUser.id,
+      teacher_name: teacherUser.full_name,
+      grade: '9 «А»',
+      language: 'kz',
+      is_active: true,
+      students_count: 24,
+      created_at: new Date('2026-01-15T09:00:00Z').toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const course2: Course = {
+      id: 'crs_kazakh_9',
+      title: 'Қазақ тілі: Синтаксис және Морфемика',
+      description: 'Сөйлем мүшелері, сөзжасам, морфемдік талдау мен стильдік нормалар',
+      subject: 'Қазақ тілі',
+      teacher_id: teacherUser.id,
+      teacher_name: teacherUser.full_name,
+      grade: '9 «А»',
+      language: 'kz',
+      is_active: true,
+      students_count: 20,
+      created_at: new Date('2026-01-16T10:00:00Z').toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const course3: Course = {
+      id: 'crs_math_ent',
+      title: 'Математика: ҰБТ / ЕНТ 2026 Интенсив',
+      description: 'Математикалық сауаттылық, алгебралық теңдеулер, стереометрия және логикалық есептер',
+      subject: 'Математика',
+      teacher_id: teacherUser.id,
+      teacher_name: teacherUser.full_name,
+      grade: '11 «Б»',
+      language: 'all',
+      is_active: true,
+      students_count: 18,
+      created_at: new Date('2026-01-20T11:00:00Z').toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const course4: Course = {
+      id: 'crs_python_robo',
+      title: 'Python & Robotics: Автоматтандыру негіздері',
+      description: 'Алгоритмдер, деректер құрылымы және микроконтроллерлерді бағдарламалау',
+      subject: 'Информатика',
+      teacher_id: teacherUser.id,
+      teacher_name: teacherUser.full_name,
+      grade: 'Барлық сыныптар',
+      language: 'all',
+      is_active: true,
+      students_count: 15,
+      created_at: new Date('2026-02-01T12:00:00Z').toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    this.courses.set(course1.id, course1);
+    this.courses.set(course2.id, course2);
+    this.courses.set(course3.id, course3);
+    this.courses.set(course4.id, course4);
+
+    // 3. Seed Topics for Physics
+    const physicsTopics: Topic[] = [
+      {
+        id: 'top_phys_01',
+        course_id: course1.id,
+        title: 'Кинематика: Түзусызықты бірқалыпты және айнымалы қозғалыс',
+        order_index: 1,
+        description: 'Жылдамдық, үдеу, орын ауыстыру және уақыт арасындағы графиктер',
+        quarter: 3,
+        status_theory: 'completed',
+        status_practice: 'completed',
+        mastery_percentage: 95
+      },
+      {
+        id: 'top_phys_02',
+        course_id: course1.id,
+        title: 'Ньютонның екінші заңы және күштер векторлары (Active Canvas)',
+        order_index: 2,
+        description: 'Масса, үдеу, ауырлық күші және серпімділік күштерін векторлық талдау',
+        quarter: 3,
+        status_theory: 'completed',
+        status_practice: 'in_progress',
+        mastery_percentage: 78
+      },
+      {
+        id: 'top_phys_03',
+        course_id: course1.id,
+        title: 'Бүкіләлемдік тартылыс заңы және гравитациялық өріс',
+        order_index: 3,
+        description: 'Ғарыштық жылдамдықтар және планеталар қозғалысы',
+        quarter: 3,
+        status_theory: 'available',
+        status_practice: 'available',
+        mastery_percentage: 45
+      },
+      {
+        id: 'top_phys_04',
+        course_id: course1.id,
+        title: 'Импульс және импульстің сақталу заңы',
+        order_index: 4,
+        description: 'Серпімді және серпімсіз соқтығысулар',
+        quarter: 3,
+        status_theory: 'locked',
+        status_practice: 'locked',
+        mastery_percentage: 0
+      },
+      {
+        id: 'top_phys_05',
+        course_id: course1.id,
+        title: 'Механикалық жұмыс, қуат және энергияның сақталуы',
+        order_index: 5,
+        description: 'Кинетикалық және потенциалдық энергия балансы',
+        quarter: 3,
+        status_theory: 'locked',
+        status_practice: 'locked',
+        mastery_percentage: 0
+      }
+    ];
+
+    const kazakhTopics: Topic[] = [
+      {
+        id: 'top_kz_01',
+        course_id: course2.id,
+        title: 'Морфемика: Түбір мен қосымшаның арақатынасы',
+        order_index: 1,
+        description: 'Жұрнақ пен жалғаудың түрлері және сөз түрлендіру заңдылықтары',
+        quarter: 3,
+        status_theory: 'completed',
+        status_practice: 'completed',
+        mastery_percentage: 90
+      },
+      {
+        id: 'top_kz_02',
+        course_id: course2.id,
+        title: 'Жай сөйлем синтаксисі: Бастауыш пен баяндауыш байланысы',
+        order_index: 2,
+        description: 'Сөйлемнің бірыңғай мүшелері және тыныс белгілері',
+        quarter: 3,
+        status_theory: 'in_progress',
+        status_practice: 'available',
+        mastery_percentage: 65
+      }
+    ];
+
+    this.topics.set(course1.id, physicsTopics);
+    this.topics.set(course2.id, kazakhTopics);
+
+    // 4. Seed Enrollments
+    const enroll1: Enrollment = {
+      id: 'enr_01',
+      course_id: course1.id,
+      student_id: studentUser.id,
+      student_name: studentUser.full_name,
+      student_email: studentUser.email,
+      grade: studentUser.grade,
+      status: 'enrolled',
+      applied_at: new Date('2026-01-16T10:00:00Z').toISOString(),
+      updated_at: new Date('2026-01-16T11:00:00Z').toISOString()
+    };
+
+    const enroll2: Enrollment = {
+      id: 'enr_02',
+      course_id: course2.id,
+      student_id: studentUser.id,
+      student_name: studentUser.full_name,
+      student_email: studentUser.email,
+      grade: studentUser.grade,
+      status: 'enrolled',
+      applied_at: new Date('2026-01-17T12:00:00Z').toISOString(),
+      updated_at: new Date('2026-01-17T14:00:00Z').toISOString()
+    };
+
+    const enroll3Pending: Enrollment = {
+      id: 'enr_03',
+      course_id: course3.id,
+      student_id: 'usr_student_batch_2',
+      student_name: 'Айгерім Маратқызы',
+      student_email: 'student2@zerde.kz',
+      grade: '9 «А»',
+      status: 'pending_approval',
+      applied_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const enroll4Pending: Enrollment = {
+      id: 'enr_04',
+      course_id: course1.id,
+      student_id: 'usr_student_batch_3',
+      student_name: 'Бауыржан Ержанұлы',
+      student_email: 'student3@zerde.kz',
+      grade: '9 «А»',
+      status: 'pending_approval',
+      applied_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    this.enrollments.set(enroll1.id, enroll1);
+    this.enrollments.set(enroll2.id, enroll2);
+    this.enrollments.set(enroll3Pending.id, enroll3Pending);
+    this.enrollments.set(enroll4Pending.id, enroll4Pending);
+
+    // 5. Seed Notifications with 4 Psychological Retention Triggers
+    const studentNotifs: NotificationItem[] = [
+      {
+        id: 'notif_streak_01',
+        user_id: studentUser.id,
+        title: '🔥 Стрикті сақтап қал! (Streak Saver)',
+        message: 'Әлихан, сенің 12 күндік стригің түн ортасында сөнеді! 3 минутта экспресс-жаттығуды орындап, оқу серияңды сақтап қал!',
+        type: 'STREAK_SAVER',
+        trigger_type: 'STREAK_SAVER',
+        priority: 'urgent',
+        is_read: false,
+        action_url: '/trainer',
+        metadata: {
+          streak_days: 12,
+          expires_in_minutes: 180,
+          elo_reward: 15
+        },
+        created_at: new Date(Date.now() - 1800000).toISOString()
+      },
+      {
+        id: 'notif_aga_02',
+        user_id: studentUser.id,
+        title: '🧠 «Аға» наставнигі шақырады',
+        message: '«Аға» саған интервалдар әдісі және Ньютон заңдары бойынша 3-минуттық экспресс-фокус дайындап қойды!',
+        type: 'AGA_REMINDER',
+        trigger_type: 'AGA_REMINDER',
+        priority: 'high',
+        is_read: false,
+        action_url: '/trainer',
+        metadata: {
+          topic_id: 'top_phys_02',
+          topic_title: 'Ньютонның екінші заңы және күштер векторлары',
+          elo_reward: 15
+        },
+        created_at: new Date(Date.now() - 7200000).toISOString()
+      },
+      {
+        id: 'notif_memory_03',
+        user_id: studentUser.id,
+        title: '🎴 Формулалар жадыңнан өшуде! (Memory Burn)',
+        message: '1-тоқсандағы 3 негізгі формула жадыңнан өшуге жақын! Қайталауға небәрі 1 минут жеткілікті.',
+        type: 'MEMORY_BURN',
+        trigger_type: 'MEMORY_BURN',
+        priority: 'high',
+        is_read: false,
+        action_url: '/student',
+        metadata: {
+          formulas_count: 3
+        },
+        created_at: new Date(Date.now() - 14400000).toISOString()
+      },
+      {
+        id: 'notif_digest_04',
+        user_id: studentUser.id,
+        title: '🏆 Апталық оқу дайджесті',
+        message: 'Осы аптада сен +45 ELO жинап, сыныптағы ТОП-3 қатарына ендің! Нәтижеңді тексер.',
+        type: 'WEEKLY_DIGEST',
+        trigger_type: 'WEEKLY_DIGEST',
+        priority: 'normal',
+        is_read: false,
+        action_url: '/student',
+        metadata: {
+          elo_reward: 45,
+          top_rank: 3
+        },
+        created_at: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: 'notif_05',
+        user_id: studentUser.id,
+        title: '✅ Курсқа қабылдандың!',
+        message: 'Асан Серікұлы сені «Физика: 9 сынып» курсына сәтті қабылдады.',
+        type: 'course_enrollment',
+        is_read: true,
+        action_url: '/courses/crs_physics_9',
+        created_at: new Date(Date.now() - 86400000 * 2).toISOString()
+      }
+    ];
+
+    const teacherNotifs: NotificationItem[] = [
+      {
+        id: 'notif_t_01',
+        user_id: teacherUser.id,
+        title: '📩 Жаңа өтініштер түсті',
+        message: 'Бауыржан Ержанұлы «Физика: 9 сынып» курсына жазылуға өтініш жіберді.',
+        type: 'course_enrollment',
+        is_read: false,
+        action_url: '/teacher/courses/crs_physics_9/enrollments',
+        created_at: new Date().toISOString()
+      }
+    ];
+
+    this.notifications.set(studentUser.id, studentNotifs);
+    this.notifications.set(teacherUser.id, teacherNotifs);
+  }
+
+  // --- Users ---
+  public findUserByEmail(email: string): User | undefined {
+    for (const u of this.users.values()) {
+      if (u.email.toLowerCase() === email.toLowerCase()) {
+        return u;
+      }
+    }
+    return undefined;
+  }
+
+  public findUserById(id: string): User | undefined {
+    return this.users.get(id);
+  }
+
+  public createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): User {
+    const id = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const now = new Date().toISOString();
+    const newUser: User = {
+      ...userData,
+      id,
+      created_at: now,
+      updated_at: now
+    };
+    this.users.set(id, newUser);
+    if (userData.role === 'student') {
+      this.studentStats.set(id, {
+        elo: 1000,
+        streak_days: 1,
+        last_active: now
+      });
+    }
+    return newUser;
+  }
+
+  public updateUser(id: string, updates: Partial<User>): User | undefined {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    const updated: User = {
+      ...user,
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  public toSafeUser(user: User): SafeUser {
+    const { password_hash, ...safe } = user;
+    return safe;
+  }
+
+  // --- Courses ---
+  public getAllCourses(filters?: { subject?: string; grade?: string; search?: string; language?: string }): Course[] {
+    let list = Array.from(this.courses.values());
+    if (filters) {
+      if (filters.subject) {
+        list = list.filter(c => c.subject.toLowerCase() === filters.subject!.toLowerCase());
+      }
+      if (filters.grade) {
+        list = list.filter(c => c.grade.toLowerCase().includes(filters.grade!.toLowerCase()));
+      }
+      if (filters.language && filters.language !== 'all') {
+        list = list.filter(c => c.language === 'all' || c.language === filters.language);
+      }
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        list = list.filter(c => c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+      }
+    }
+    return list;
+  }
+
+  public getCourseById(id: string): Course | undefined {
+    return this.courses.get(id);
+  }
+
+  public createCourse(courseData: Omit<Course, 'id' | 'students_count' | 'created_at' | 'updated_at'>): Course {
+    const id = `crs_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const now = new Date().toISOString();
+    const newCourse: Course = {
+      ...courseData,
+      id,
+      students_count: 0,
+      created_at: now,
+      updated_at: now
+    };
+    this.courses.set(id, newCourse);
+    this.topics.set(id, []);
+    return newCourse;
+  }
+
+  public updateCourse(id: string, updates: Partial<Course>): Course | undefined {
+    const course = this.courses.get(id);
+    if (!course) return undefined;
+    const updated: Course = {
+      ...course,
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+    this.courses.set(id, updated);
+    return updated;
+  }
+
+  // --- Topics ---
+  public getCourseTopics(courseId: string): Topic[] {
+    return this.topics.get(courseId) || [];
+  }
+
+  public addTopic(topicData: Omit<Topic, 'id'>): Topic {
+    const id = `top_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const topic: Topic = { ...topicData, id };
+    const list = this.topics.get(topicData.course_id) || [];
+    list.push(topic);
+    this.topics.set(topicData.course_id, list);
+    return topic;
+  }
+
+  // --- Enrollments ---
+  public getEnrollmentsByCourse(courseId: string): Enrollment[] {
+    return Array.from(this.enrollments.values()).filter(e => e.course_id === courseId);
+  }
+
+  public getStudentEnrollments(studentId: string): Enrollment[] {
+    return Array.from(this.enrollments.values()).filter(e => e.student_id === studentId);
+  }
+
+  public findEnrollment(courseId: string, studentId: string): Enrollment | undefined {
+    for (const e of this.enrollments.values()) {
+      if (e.course_id === courseId && e.student_id === studentId) {
+        return e;
+      }
+    }
+    return undefined;
+  }
+
+  public createEnrollment(courseId: string, student: User): Enrollment {
+    const existing = this.findEnrollment(courseId, student.id);
+    if (existing) {
+      if (existing.status === 'expelled') {
+        existing.status = 'pending_approval';
+        existing.updated_at = new Date().toISOString();
+        return existing;
+      }
+      return existing;
+    }
+    const id = `enr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const now = new Date().toISOString();
+    const newEnrollment: Enrollment = {
+      id,
+      course_id: courseId,
+      student_id: student.id,
+      student_name: student.full_name,
+      student_email: student.email,
+      grade: student.grade,
+      status: 'pending_approval',
+      applied_at: now,
+      updated_at: now
+    };
+    this.enrollments.set(id, newEnrollment);
+    return newEnrollment;
+  }
+
+  public updateEnrollmentStatus(courseId: string, studentId: string, status: EnrollmentStatus): Enrollment | undefined {
+    const enrollment = this.findEnrollment(courseId, studentId);
+    if (!enrollment) return undefined;
+
+    const prevStatus = enrollment.status;
+    enrollment.status = status;
+    enrollment.updated_at = new Date().toISOString();
+
+    const course = this.courses.get(courseId);
+    if (course) {
+      if (status === 'enrolled' && prevStatus !== 'enrolled') {
+        course.students_count = Math.max(0, course.students_count + 1);
+      } else if (status === 'expelled' && prevStatus === 'enrolled') {
+        course.students_count = Math.max(0, course.students_count - 1);
+      }
+      course.updated_at = new Date().toISOString();
+    }
+
+    // Add notification to student
+    const studentNotifs = this.notifications.get(studentId) || [];
+    const notifId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
+    let title = 'Курс мәртебесі жаңартылды';
+    let message = `Сіздің «${course?.title || 'Курс'}» курсы бойынша өтінішіңіз қаралды: ${status}`;
+
+    if (status === 'enrolled') {
+      title = '🎉 Курсқа қабылдандыңыз!';
+      message = `Мұғалім сіздің «${course?.title || 'Курс'}» курсына өтінішіңізді мақұлдады. Оқуды бастаңыз!`;
+    } else if (status === 'expelled') {
+      title = '⚠️ Курстан шығарылдыңыз';
+      message = `Мұғалім сізді «${course?.title || 'Курс'}» курсынан шығарды.`;
+    }
+
+    studentNotifs.unshift({
+      id: notifId,
+      user_id: studentId,
+      title,
+      message,
+      type: 'course_enrollment',
+      is_read: false,
+      action_url: `/courses/${courseId}`,
+      created_at: new Date().toISOString()
+    });
+    this.notifications.set(studentId, studentNotifs);
+
+    return enrollment;
+  }
+
+  // --- Student Dashboard & Metrics ---
+  public getEloRank(elo: number): { rank: EloRank; badge: string } {
+    if (elo >= 1600) return { rank: 'Самғау', badge: '🚀 Самғау (Master)' };
+    if (elo >= 1350) return { rank: 'Қыран', badge: '🦅 Қыран (Expert)' };
+    if (elo >= 1150) return { rank: 'Тұғыр', badge: '🏔️ Тұғыр (Advanced)' };
+    return { rank: 'Өскін', badge: '🌱 Өскін (Beginner)' };
+  }
+
+  public getStudentDashboard(studentId: string): StudentDashboardData | null {
+    const user = this.users.get(studentId);
+    if (!user) return null;
+
+    const stats = this.studentStats.get(studentId) || { elo: 1200, streak_days: 5, last_active: new Date().toISOString() };
+    const { rank, badge } = this.getEloRank(stats.elo);
+
+    // Find pinned course (first enrolled course)
+    const studentEnrs = this.getStudentEnrollments(studentId).filter(e => e.status === 'enrolled');
+    let pinnedCourse: (Course & { progress_percentage: number; next_topic: string }) | null = null;
+
+    if (studentEnrs.length > 0) {
+      const course = this.courses.get(studentEnrs[0].course_id);
+      if (course) {
+        const topics = this.getCourseTopics(course.id);
+        const completedCount = topics.filter(t => t.status_practice === 'completed').length;
+        const progress = topics.length > 0 ? Math.round((completedCount / topics.length) * 100) : 40;
+        const nextTopic = topics.find(t => t.status_practice !== 'completed')?.title || 'Барлық тақырыптар орындалды';
+        pinnedCourse = {
+          ...course,
+          progress_percentage: progress,
+          next_topic: nextTopic
+        };
+      }
+    }
+
+    if (!pinnedCourse) {
+      const defaultCourse = Array.from(this.courses.values())[0];
+      if (defaultCourse) {
+        pinnedCourse = {
+          ...defaultCourse,
+          progress_percentage: 65,
+          next_topic: 'Ньютонның екінші заңы және күштер векторлары'
+        };
+      }
+    }
+
+    const defaultTopics = this.topics.get('crs_physics_9') || [];
+
+    return {
+      user: this.toSafeUser(user),
+      elo: stats.elo,
+      rank,
+      rank_badge: badge,
+      streak_days: stats.streak_days,
+      streak_freeze_available: true,
+      pinned_course: pinnedCourse,
+      recent_topics: defaultTopics.slice(0, 3),
+      memory_cards: {
+        due_today: 14,
+        total_reviewed: 180,
+        retention_rate: 94
+      },
+      daily_focus: {
+        title: '3-минуттық экспресс-жаттығу: Векторлық күштердің проекциясы',
+        duration_minutes: 3,
+        topic_id: 'top_phys_02',
+        elo_reward: 15
+      }
+    };
+  }
+
+  public getStudentHeatmap(studentId: string): StudentHeatmapData {
+    const stats = this.studentStats.get(studentId) || { elo: 1200, streak_days: 12, last_active: new Date().toISOString() };
+    const matrix = [];
+    const now = new Date();
+    let totalContributions = 0;
+
+    // Generate 365 days of activity
+    for (let i = 364; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 86400000);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayOfWeek = d.getDay(); // 0 = Sun, 6 = Sat
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+      // Realistic learning pattern with high recent streak
+      let count = 0;
+      let level: 0 | 1 | 2 | 3 | 4 = 0;
+
+      if (i < stats.streak_days) {
+        // Active in current streak
+        count = Math.floor(Math.random() * 8) + 4;
+      } else if (Math.random() > 0.35) {
+        count = isWeekend ? Math.floor(Math.random() * 5) : Math.floor(Math.random() * 12) + 1;
+      }
+
+      if (count > 8) level = 4;
+      else if (count > 5) level = 3;
+      else if (count > 2) level = 2;
+      else if (count > 0) level = 1;
+      else level = 0;
+
+      totalContributions += count;
+      matrix.push({ date: dateStr, count, level });
+    }
+
+    return {
+      year: now.getFullYear(),
+      total_contributions: totalContributions,
+      current_streak: stats.streak_days,
+      longest_streak: Math.max(stats.streak_days, 24),
+      matrix
+    };
+  }
+
+  public getStudentRoadmap(studentId: string): StudentRoadmapData {
+    const stats = this.studentStats.get(studentId) || { elo: 1420, streak_days: 12, last_active: new Date().toISOString() };
+
+    return {
+      target_exam: 'ҰБТ / ЕНТ 2026 (Математика + Физика)',
+      target_date: '2026-06-15',
+      days_remaining: 115,
+      predicted_score: 128,
+      target_score: 135,
+      current_elo: stats.elo,
+      milestones: [
+        {
+          id: 'ms_01',
+          title: '3-тоқсан СОР №1: Кинематика және Динамика',
+          deadline: '2026-02-28',
+          status: 'completed',
+          mastery: 92
+        },
+        {
+          id: 'ms_02',
+          title: '3-тоқсан СОЧ: Механика және Сақталу заңдары',
+          deadline: '2026-03-20',
+          status: 'in_progress',
+          mastery: 78
+        },
+        {
+          id: 'ms_03',
+          title: 'Пробное тестирование ҰБТ №3 (Математикалық сауаттылық)',
+          deadline: '2026-04-10',
+          status: 'upcoming',
+          mastery: 65
+        },
+        {
+          id: 'ms_04',
+          title: 'ҰБТ 2026 Негізгі емтихан',
+          deadline: '2026-06-15',
+          status: 'upcoming',
+          mastery: 40
+        }
+      ]
+    };
+  }
+
+  // --- Notifications ---
+  public getNotifications(userId: string): NotificationItem[] {
+    return this.notifications.get(userId) || [];
+  }
+
+  public addNotification(userId: string, item: NotificationItem): NotificationItem {
+    const list = this.notifications.get(userId) || [];
+    list.unshift(item);
+    this.notifications.set(userId, list);
+    return item;
+  }
+
+  public markNotificationRead(userId: string, notificationId: string): NotificationItem | null {
+    const list = this.notifications.get(userId) || [];
+    const notif = list.find(n => n.id === notificationId);
+    if (!notif) return null;
+    notif.is_read = true;
+    return notif;
+  }
+
+  public markAllNotificationsRead(userId: string): number {
+    const list = this.notifications.get(userId) || [];
+    let count = 0;
+    list.forEach(n => {
+      if (!n.is_read) {
+        n.is_read = true;
+        count++;
+      }
+    });
+    return count;
+  }
+}
+
+export const store = new DataStore();

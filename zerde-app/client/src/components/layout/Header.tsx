@@ -1,0 +1,216 @@
+import React, { useState } from 'react';
+import {
+  Flame,
+  Globe,
+  Bell,
+  Search,
+  CheckCircle2,
+  Sparkles,
+  Sun,
+  Moon,
+  LogOut,
+  UserCheck,
+  GraduationCap,
+  Shield,
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
+import { AppLanguage } from '@/types';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+
+interface HeaderProps {
+  onOpenCommandPalette: () => void;
+  onOpenTrainer?: (topicId?: string) => void;
+  onOpenStreakSaver?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({
+  onOpenCommandPalette,
+  onOpenTrainer,
+  onOpenStreakSaver,
+}) => {
+  const { user, role, switchRole, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <header className="sticky top-0 z-30 bg-primer-canvas-default/95 backdrop-blur border-b border-primer-border-default px-3.5 sm:px-6 py-2.5 transition-colors">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        
+        {/* Left: Brand & Search */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          {/* Logo */}
+          <div className="flex items-center gap-2 cursor-pointer select-none">
+            <div className="w-8 h-8 rounded-full bg-primer-canvas-subtle border border-primer-border-default flex items-center justify-center font-bold text-xs text-primer-fg-default shadow-primer-xs shrink-0">
+              <svg height="20" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="20" fill="currentColor">
+                <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
+              </svg>
+            </div>
+            <div className="hidden xs:flex flex-col">
+              <div className="flex items-center gap-1.5 leading-none">
+                <span className="text-sm font-bold tracking-tight text-primer-fg-default">
+                  {t('brand.title')}
+                </span>
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-primer-canvas-subtle text-primer-fg-muted border border-primer-border-default">
+                  v1.0
+                </span>
+              </div>
+              <span className="text-[10px] text-primer-fg-subtle mt-0.5">
+                {role === 'teacher' ? t('role.teacher') : t('role.student')}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Search / Command Palette Button */}
+          <button
+            onClick={onOpenCommandPalette}
+            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-primer-fg-muted bg-primer-canvas-subtle hover:bg-primer-border-default/30 border border-primer-border-default rounded-md transition cursor-pointer"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">{t('header.search_placeholder')}</span>
+            <span className="md:hidden">Іздеу</span>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1 py-0.2 text-[9px] font-mono bg-primer-canvas-inset border border-primer-border-default rounded text-primer-fg-subtle">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+
+        {/* Right: Badges & Controls */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          
+          {/* ELO Rank Pill */}
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-canvas-subtle border border-primer-border-default text-xs font-semibold text-primer-fg-default shadow-primer-xs">
+            <span>{user?.eloRank?.symbol || '🦅'}</span>
+            <span className="text-primer-success-fg font-mono font-bold">
+              {user?.overallElo || 1420}
+            </span>
+            <span className="text-primer-fg-subtle text-[10px]">ELO</span>
+          </div>
+
+          {/* Streak Flame Pill */}
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-attention-subtle border border-primer-attention-muted/60 text-xs font-bold text-primer-attention-fg shadow-primer-xs">
+            <Flame className="w-3.5 h-3.5 text-primer-attention-fg fill-primer-attention-fg" />
+            <span className="font-mono">{user?.streakDays || 14}</span>
+          </div>
+
+          {/* Language Switcher Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm" className="gap-1 px-2 h-7">
+                <Globe className="w-3.5 h-3.5 text-primer-fg-muted" />
+                <span className="font-mono text-xs">{language}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">Тіл / Язык</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLanguage('KZ')} className="justify-between">
+                <span>Қазақша</span>
+                {language === 'KZ' && <CheckCircle2 className="w-3.5 h-3.5 text-primer-success-fg" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLanguage('RU')} className="justify-between">
+                <span>Русский</span>
+                {language === 'RU' && <CheckCircle2 className="w-3.5 h-3.5 text-primer-success-fg" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLanguage('EN')} className="justify-between">
+                <span>English</span>
+                {language === 'EN' && <CheckCircle2 className="w-3.5 h-3.5 text-primer-success-fg" />}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Duolingo Notification Center */}
+          <NotificationCenter
+            onOpenTrainer={onOpenTrainer}
+            onOpenStreakSaver={onOpenStreakSaver}
+          />
+
+          {/* User Profile Avatar & Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 rounded-full hover:bg-primer-canvas-subtle border border-primer-border-default/50 transition cursor-pointer">
+                <div className="w-6 h-6 rounded-full bg-primer-accent-emphasis text-white flex items-center justify-center font-bold text-[10px]">
+                  {user?.full_name?.charAt(0) || 'Ә'}
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2.5 py-2">
+                <div className="text-xs font-bold text-primer-fg-default truncate">
+                  {user?.full_name || 'Әлихан Нұрғалиев'}
+                </div>
+                <div className="text-[11px] text-primer-fg-muted truncate">{user?.email}</div>
+                <div className="mt-1 flex items-center gap-1">
+                  <Badge variant={role === 'teacher' ? 'done' : 'accent'} className="text-[9px] py-0">
+                    {role === 'teacher' ? t('role.teacher') : t('role.student')}
+                  </Badge>
+                  {user?.grade && (
+                    <Badge variant="outline" className="text-[9px] py-0 font-mono">
+                      {user.grade}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <DropdownMenuSeparator />
+
+              {/* Switch Role */}
+              <DropdownMenuItem
+                onClick={() => switchRole(role === 'student' ? 'teacher' : 'student')}
+                className="gap-2 cursor-pointer"
+              >
+                {role === 'student' ? (
+                  <>
+                    <GraduationCap className="w-3.5 h-3.5 text-primer-accent-fg" />
+                    <span>{t('palette.switch_to_teacher')}</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-3.5 h-3.5 text-primer-success-fg" />
+                    <span>{t('palette.switch_to_student')}</span>
+                  </>
+                )}
+              </DropdownMenuItem>
+
+              {/* Theme Toggle */}
+              <DropdownMenuItem onClick={toggleTheme} className="gap-2 cursor-pointer">
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-primer-attention-fg" />
+                    <span>Ашық тақырып (Light)</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-primer-accent-fg" />
+                    <span>Күңгірт тақырып (Dark)</span>
+                  </>
+                )}
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              {/* Logout */}
+              <DropdownMenuItem onClick={logout} className="gap-2 text-primer-danger-fg cursor-pointer">
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{t('header.logout')}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+        </div>
+
+      </div>
+    </header>
+  );
+};

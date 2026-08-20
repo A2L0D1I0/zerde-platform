@@ -1,0 +1,190 @@
+@import 'katex/dist/katex.min.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* GitHub Primer Light Theme */
+    --color-canvas-default: #ffffff;
+    --color-canvas-subtle: #f6f8fa;
+    --color-canvas-inset: #f6f8fa;
+    --color-canvas-overlay: #ffffff;
+
+    --color-border-default: #d0d7de;
+    --color-border-muted: #d8dee4;
+    --color-border-subtle: rgba(31, 35, 40, 0.15);
+
+    --color-fg-default: #1f2328;
+    --color-fg-muted: #656d76;
+    --color-fg-subtle: #8c959f;
+    --color-fg-onEmphasis: #ffffff;
+
+    --color-accent-fg: #0969da;
+    --color-accent-emphasis: #0969da;
+    --color-accent-muted: rgba(84, 174, 255, 0.4);
+    --color-accent-subtle: #ddf4ff;
+
+    --color-success-fg: #1a7f37;
+    --color-success-emphasis: #1f883d;
+    --color-success-hover: #1a7f37;
+    --color-success-muted: rgba(74, 194, 107, 0.4);
+    --color-success-subtle: #dafbe1;
+
+    --color-attention-fg: #9a6700;
+    --color-attention-emphasis: #9a6700;
+    --color-attention-muted: rgba(212, 167, 44, 0.4);
+    --color-attention-subtle: #fff8c5;
+
+    --color-danger-fg: #cf222e;
+    --color-danger-emphasis: #cf222e;
+    --color-danger-muted: rgba(255, 129, 130, 0.4);
+    --color-danger-subtle: #ffebe9;
+
+    --color-done-fg: #8250df;
+    --color-done-emphasis: #8250df;
+    --color-done-muted: rgba(194, 151, 255, 0.4);
+    --color-done-subtle: #fbefff;
+
+    --color-heatmap-0: #ebedf0;
+    --color-heatmap-1: #9be9a8;
+    --color-heatmap-2: #40c463;
+    --color-heatmap-3: #30a14e;
+    --color-heatmap-4: #216e39;
+
+    /* Shadcn Semantic Mappings (Light) */
+    --background: #ffffff;
+    --foreground: #1f2328;
+    --card: #ffffff;
+    --card-foreground: #1f2328;
+    --popover: #ffffff;
+    --popover-foreground: #1f2328;
+    --primary: #1f883d;
+    --primary-foreground: #ffffff;
+    --secondary: #f6f8fa;
+    --secondary-foreground: #1f2328;
+    --muted: #f6f8fa;
+    --muted-foreground: #656d76;
+    --accent: #f6f8fa;
+    --accent-foreground: #0969da;
+    --destructive: #cf222e;
+    --destructive-foreground: #ffffff;
+    --border: #d0d7de;
+    --input: #d0d7de;
+    --ring: #0969da;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* GitHub Primer Dark Theme */
+    --color-canvas-default: #0d1117;
+    --color-canvas-subtle: #161b22;
+    --color-canvas-inset: #010409;
+    --color-canvas-overlay: #1f242c;
+
+    --color-border-default: #30363d;
+    --color-border-muted: #21262d;
+    --color-border-subtle: rgba(240, 246, 252, 0.1);
+
+    --color-fg-default: #f0f6fc;
+    --color-fg-muted: #8b949e;
+    --color-fg-subtle: #6e7681;
+    --color-fg-onEmphasis: #ffffff;
+
+    --color-accent-fg: #58a6ff;
+    --color-accent-emphasis: #1f6feb;
+    --color-accent-muted: rgba(56, 139, 253, 0.4);
+    --color-accent-subtle: rgba(56, 139, 253, 0.15);
+
+    --color-success-fg: #3fb950;
+    --color-success-emphasis: #238636;
+    --color-success-hover: #2ea043;
+    --color-success-muted: rgba(46, 160, 67, 0.4);
+    --color-success-subtle: rgba(46, 160, 67, 0.15);
+
+    --color-attention-fg: #d29922;
+    --color-attention-emphasis: #9e6a03;
+    --color-attention-muted: rgba(187, 128, 9, 0.4);
+    --color-attention-subtle: rgba(187, 128, 9, 0.15);
+
+    --color-danger-fg: #f85149;
+    --color-danger-emphasis: #da3633;
+    --color-danger-muted: rgba(248, 81, 73, 0.4);
+    --color-danger-subtle: rgba(248, 81, 73, 0.15);
+
+    --color-done-fg: #a371f7;
+    --color-done-emphasis: #8957e5;
+    --color-done-muted: rgba(163, 113, 247, 0.4);
+    --color-done-subtle: rgba(163, 113, 247, 0.15);
+
+    --color-heatmap-0: #161b22;
+    --color-heatmap-1: #0e4429;
+    --color-heatmap-2: #006d32;
+    --color-heatmap-3: #26a641;
+    --color-heatmap-4: #39d353;
+
+    /* Shadcn Semantic Mappings (Dark) */
+    --background: #0d1117;
+    --foreground: #f0f6fc;
+    --card: #161b22;
+    --card-foreground: #f0f6fc;
+    --popover: #1f242c;
+    --popover-foreground: #f0f6fc;
+    --primary: #238636;
+    --primary-foreground: #ffffff;
+    --secondary: #21262d;
+    --secondary-foreground: #f0f6fc;
+    --muted: #21262d;
+    --muted-foreground: #8b949e;
+    --accent: #1f6feb;
+    --accent-foreground: #ffffff;
+    --destructive: #da3633;
+    --destructive-foreground: #ffffff;
+    --border: #30363d;
+    --input: #30363d;
+    --ring: #58a6ff;
+    --radius: 0.5rem;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+}
+
+/* Custom Primer Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Sound Wave Animation for AudioPlayerButton */
+@keyframes soundwave {
+  0%, 100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
