@@ -566,9 +566,13 @@ export const en = {
   'student.linear_equations': 'Linear Equations',
   'student.quadratic_inequalities': 'Quadratic Inequalities',
   'student.rational_equations': 'Rational Equations',
+  'student.last_3_months': 'Last 3 months',
+  'student.less': 'Less',
+  'student.more': 'More',
 } as const;
 
 export default en;
+
 
 
 

@@ -9,8 +9,8 @@ interface ActivityHeatmapProps {
   longestStreak?: number;
 }
 
-// Generate realistic 90 days heatmap data if not passed
-export const generateDefaultHeatmapData = (): HeatmapDay[] => {
+// Generate realistic 90 days heatmap data based on actual user streak
+export const generateDefaultHeatmapData = (streak: number = 0): HeatmapDay[] => {
   const result: HeatmapDay[] = [];
   const today = new Date();
 
@@ -19,17 +19,11 @@ export const generateDefaultHeatmapData = (): HeatmapDay[] => {
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
 
-    // realistic distribution
     let level: 0 | 1 | 2 | 3 | 4 = 0;
     let count = 0;
-    const rand = Math.random();
 
-    if (i < 14) {
-      // recent streak
-      level = (Math.floor(Math.random() * 3) + 2) as 2 | 3 | 4;
-      count = level * 2 + 1;
-    } else if (rand > 0.35) {
-      level = (Math.floor(Math.random() * 4) + 1) as 1 | 2 | 3 | 4;
+    if (streak > 0 && i < streak) {
+      level = Math.min(4, Math.max(1, (i % 3) + 1)) as 1 | 2 | 3 | 4;
       count = level * 2;
     }
 
@@ -44,12 +38,14 @@ export const generateDefaultHeatmapData = (): HeatmapDay[] => {
 };
 
 export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
-  data = generateDefaultHeatmapData(),
-  currentStreak = 14,
-  longestStreak = 28,
+  data,
+  currentStreak = 0,
+  longestStreak = 0,
 }) => {
   const { t } = useLanguage();
-  const totalCompleted = data.reduce((sum, d) => sum + d.tasksCompleted, 0);
+  const heatmapData = data && data.length > 0 ? data : generateDefaultHeatmapData(currentStreak);
+  const totalCompleted = heatmapData.reduce((sum, d) => sum + d.tasksCompleted, 0);
+
 
   const levelColors: Record<number, string> = {
     0: 'bg-primer-heatmap-0 border-transparent',
@@ -88,10 +84,10 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
       {/* Heatmap Grid */}
       <div className="overflow-x-auto pb-1">
         <div className="inline-grid grid-flow-col grid-rows-7 gap-1 min-w-[280px]">
-          {data.map((day, idx) => (
+          {heatmapData.map((day, idx) => (
             <div
               key={idx}
-              title={`${day.date}: ${day.tasksCompleted} тапсырма`}
+              title={`${day.date}: ${day.tasksCompleted}`}
               className={`w-3 h-3 rounded-xs border transition-transform hover:scale-125 cursor-pointer ${
                 levelColors[day.level] || levelColors[0]
               }`}
@@ -102,19 +98,20 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({
 
       {/* Legend */}
       <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-primer-border-muted/40 text-[10px] text-primer-fg-muted">
-        <span>Соңғы 3 ай</span>
+        <span>{t('student.last_3_months')}</span>
         <div className="flex items-center gap-1">
-          <span>Аз</span>
+          <span>{t('student.less')}</span>
           <div className="flex gap-1">
             <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-0" />
-            <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-1" />
-            <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-2" />
-            <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-3" />
-            <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-4" />
+            <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-1 border border-primer-success-muted/30" />
+            <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-2 border border-primer-success-muted/50" />
+            <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-3 border border-primer-success-muted/70" />
+            <div className="w-2.5 h-2.5 rounded-xs bg-primer-heatmap-4 border border-primer-success-muted" />
           </div>
-          <span>Көп</span>
+          <span>{t('student.more')}</span>
         </div>
       </div>
+
     </div>
   );
 };

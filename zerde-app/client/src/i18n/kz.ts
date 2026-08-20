@@ -491,9 +491,12 @@ export const kz = {
   'student.full_roadmap_btn': 'Толық Roadmap',
   'student.linear_equations': 'Сызықтық теңдеулер',
   'student.quadratic_inequalities': 'Квадрат теңсіздіктер',
-  'student.rational_equations': 'Бөлшек-рационал теңдеулер',
   'student.quarter_topics_desc': 'Екі факторлы зачет пен оқу матрицасы',
+  'student.last_3_months': 'Соңғы 3 ай',
+  'student.less': 'Аз',
+  'student.more': 'Көп',
 } as const;
+
 
 
 

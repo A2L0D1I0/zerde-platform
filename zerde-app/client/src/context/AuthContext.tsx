@@ -56,7 +56,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('zerde_token') || 'mock_jwt_token_zerde_prod';
+    return localStorage.getItem('zerde_token') || null;
   });
 
   const [user, setUser] = useState<User | null>(() => {
@@ -68,17 +68,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // fallback
       }
     }
-    return mockStudentUser;
+    return null;
   });
 
   const [role, setRole] = useState<UserRole>(() => {
     const savedRole = localStorage.getItem('zerde_role') as UserRole;
     return savedRole && ['student', 'teacher', 'admin'].includes(savedRole)
       ? savedRole
-      : user?.role || 'student';
+      : 'student';
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
 
   // Sync token & user to localStorage
   useEffect(() => {

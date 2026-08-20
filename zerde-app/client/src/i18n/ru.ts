@@ -460,11 +460,14 @@ export const ru = {
   'student.full_roadmap_btn': 'Полный Roadmap',
   'student.linear_equations': 'Линейные уравнения',
   'student.quadratic_inequalities': 'Квадратные неравенства',
-  'student.rational_equations': 'Дробно-рациональные уравнения',
   'student.quarter_topics_desc': 'Двухфакторный зачет и учебная матрица',
+  'student.last_3_months': 'Последние 3 месяца',
+  'student.less': 'Меньше',
+  'student.more': 'Больше',
 } as const;
 
 export default ru;
+
 
 
 

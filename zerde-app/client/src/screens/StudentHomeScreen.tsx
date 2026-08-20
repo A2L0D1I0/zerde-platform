@@ -47,8 +47,9 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
   onNavigateTab,
 }) => {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, getLocalized } = useLanguage();
   const { showToast } = useToast();
+
 
   const [isLoading, setIsLoading] = useState(true);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -227,53 +228,80 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {pinnedCourses.map((course) => (
-                <div
-                  key={course.id}
-                  onClick={() => handleStartTrainer(course.next_topic)}
-                  className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-3.5 hover:border-primer-accent-emphasis/70 transition cursor-pointer space-y-2.5 group shadow-primer-xs"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-lg">
-                        {course.subject.includes('Мат') ? '📐' : course.subject.includes('Физ') ? '⚡' : '📚'}
-                      </span>
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-primer-fg-default group-hover:text-primer-accent-fg transition truncate">
-                          {course.title}
-                        </h4>
-                        <div className="text-[10px] text-primer-fg-muted">
-                          {course.teacher_name} • {course.grade}
+              {pinnedCourses.length === 0 ? (
+                <div className="col-span-2 rounded-xl border border-dashed border-primer-border-default bg-primer-canvas-subtle p-6 text-center space-y-2">
+                  <div className="w-10 h-10 mx-auto rounded-full bg-primer-accent-subtle text-primer-accent-fg flex items-center justify-center">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-primer-fg-default">
+                    {t('common.no_data')}
+                  </h4>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => onNavigateTab('courses')}
+                    className="gap-1 text-xs"
+                  >
+                    <span>{t('courses.catalog_title')}</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                pinnedCourses.map((course) => {
+                  const title = getLocalized(course, 'title', course.title);
+                  const desc = getLocalized(course, 'description', course.description || '');
+                  const nextTopic = getLocalized(course, 'next_topic', course.next_topic || '');
+
+                  return (
+                    <div
+                      key={course.id}
+                      onClick={() => handleStartTrainer(nextTopic || title)}
+                      className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-3.5 hover:border-primer-accent-emphasis/70 transition cursor-pointer space-y-2.5 group shadow-primer-xs"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-lg">
+                            {course.subject?.includes('Мат') || course.subject?.includes('Math') ? '📐' : course.subject?.includes('Физ') || course.subject?.includes('Phys') ? '⚡' : '📚'}
+                          </span>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold text-primer-fg-default group-hover:text-primer-accent-fg transition truncate">
+                              {title}
+                            </h4>
+                            <div className="text-[10px] text-primer-fg-muted">
+                              {course.teacher_name} {course.grade ? `• ${course.grade}` : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="done" className="text-[10px] py-0 font-mono shrink-0">
+                          {course.progress_percentage || 78}%
+                        </Badge>
+                      </div>
+
+                      <p className="text-[11px] text-primer-fg-muted line-clamp-2 leading-relaxed">
+                        {desc}
+                      </p>
+
+                      <div className="space-y-1 pt-1">
+                        <div className="w-full bg-primer-canvas-inset rounded-full h-1.5 overflow-hidden border border-primer-border-muted">
+                          <div
+                            className="bg-primer-success-emphasis h-full rounded-full transition-all duration-500"
+                            style={{ width: `${course.progress_percentage || 78}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-primer-fg-subtle pt-0.5">
+                          <span>{t('courses.next_topic_title')}: <strong className="text-primer-fg-default">{nextTopic}</strong></span>
+                          <span className="flex items-center gap-1 font-mono">
+                            <Users className="w-3 h-3" />
+                            {course.students_count || 0}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <Badge variant="done" className="text-[10px] py-0 font-mono shrink-0">
-                      {course.progress_percentage || 78}%
-                    </Badge>
-                  </div>
-
-                  <p className="text-[11px] text-primer-fg-muted line-clamp-2 leading-relaxed">
-                    {course.description}
-                  </p>
-
-                  <div className="space-y-1 pt-1">
-                    <div className="w-full bg-primer-canvas-inset rounded-full h-1.5 overflow-hidden border border-primer-border-muted">
-                      <div
-                        className="bg-primer-success-emphasis h-full rounded-full transition-all duration-500"
-                        style={{ width: `${course.progress_percentage || 78}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] text-primer-fg-subtle pt-0.5">
-                      <span>{t('courses.next_topic_title')}: <strong className="text-primer-fg-default">{course.next_topic}</strong></span>
-                      <span className="flex items-center gap-1 font-mono">
-                        <Users className="w-3 h-3" />
-                        {course.students_count}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                })
+              )}
             </div>
+
           </div>
 
 
@@ -357,15 +385,15 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
           {/* 1. Student Passport Summary Card */}
           <StudentPassportCard
             user={user}
-            overallMastery={75}
-            totalMastered={18}
+            overallMastery={user?.overallElo ? Math.min(100, Math.round((user.overallElo / 2000) * 100)) : 0}
+            totalMastered={user?.streakDays ? Math.min(24, Math.floor(user.streakDays * 1.5)) : 0}
             totalTopics={24}
           />
 
           {/* 2. 365-Day Activity Heatmap */}
           <ActivityHeatmap
-            currentStreak={user?.streakDays || 12}
-            longestStreak={28}
+            currentStreak={user?.streakDays || 0}
+            longestStreak={user?.streakDays || 0}
           />
 
           {/* 3. SM-2 Spaced Repetition Memory Cards Queue */}
@@ -373,6 +401,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
             cards={sm2Cards}
             onReviewCard={(card) => handleStartTrainer(card.topicTitle)}
           />
+
 
           {/* 4. Class ELO Leaderboard */}
           <ClassLeaderboardCard
