@@ -14,6 +14,11 @@ export const AuthScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('password123');
   const [name, setName] = useState('');
+  const [school, setSchool] = useState('');
+  const [grade, setGrade] = useState('9-сынып');
+  const [city, setCity] = useState('');
+  const [targetGoal, setTargetGoal] = useState('ҰБТ / ЕНТ 2026');
+  const [subject, setSubject] = useState('Математика');
   const [bio, setBio] = useState('');
   const [orgToken, setOrgToken] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -28,7 +33,9 @@ export const AuthScreen: React.FC = () => {
           password,
           full_name: name || (role === 'teacher' ? 'Гульнара Сериковна Алимжанова' : 'Азамат Темірханов'),
           role,
-          bio,
+          school: school || (role === 'teacher' ? 'Zerde Lab' : ''),
+          grade: role === 'student' ? grade : undefined,
+          bio: bio || (targetGoal ? `${city ? city + ' • ' : ''}${targetGoal}` : ''),
           org_token: role === 'teacher' ? orgToken : undefined,
         });
       } else {
@@ -118,13 +125,13 @@ export const AuthScreen: React.FC = () => {
               {isRegister && (
                 <div>
                   <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                    {t('common.name')}
+                    {t('common.name')} *
                   </label>
                   <Input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder={role === 'student' ? 'Азамат Темірханов' : 'Гульнара Сериковна Алимжанова'}
+                    placeholder={role === 'student' ? 'Алдияр Саржанов' : 'Гульнара Сериковна Алимжанова'}
                     required
                   />
                 </div>
@@ -132,20 +139,20 @@ export const AuthScreen: React.FC = () => {
 
               <div>
                 <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                  Email
+                  Email *
                 </label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={role === 'student' ? 'azamat@zerde.kz' : 'teacher@zerde.kz'}
+                  placeholder={role === 'student' ? 'student@zerde.kz' : 'teacher@zerde.kz'}
                   required
                 />
               </div>
 
               <div>
                 <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                  {t('auth.password')}
+                  {t('auth.password')} *
                 </label>
                 <Input
                   type="password"
@@ -156,41 +163,127 @@ export const AuthScreen: React.FC = () => {
                 />
               </div>
 
-              {isRegister && (
-                <div>
-                  <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                    {t('auth.bio_label')}
-                  </label>
-                  <Input
-                    type="text"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder={t('auth.bio_placeholder')}
-                  />
-                </div>
+              {/* Extended Profile Fields on Registration */}
+              {isRegister && role === 'student' && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
+                        {t('auth.grade_label')}
+                      </label>
+                      <select
+                        value={grade}
+                        onChange={(e) => setGrade(e.target.value)}
+                        className="w-full h-8 px-2 rounded-md border border-primer-border-default bg-primer-canvas-inset text-xs text-primer-fg-default focus:outline-none focus:ring-1 focus:ring-primer-accent-emphasis"
+                      >
+                        <option value="7-сынып">7-сынып</option>
+                        <option value="8-сынып">8-сынып</option>
+                        <option value="9-сынып">9-сынып</option>
+                        <option value="10-сынып">10-сынып</option>
+                        <option value="11-сынып">11-сынып</option>
+                        <option value="Студент">Студент</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
+                        {t('auth.city_label')}
+                      </label>
+                      <Input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder={t('auth.city_placeholder')}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
+                      {t('auth.school_label')}
+                    </label>
+                    <Input
+                      type="text"
+                      value={school}
+                      onChange={(e) => setSchool(e.target.value)}
+                      placeholder={t('auth.school_placeholder')}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
+                      {t('auth.target_exam_label')}
+                    </label>
+                    <Input
+                      type="text"
+                      value={targetGoal}
+                      onChange={(e) => setTargetGoal(e.target.value)}
+                      placeholder={t('auth.target_exam_placeholder')}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
+                      {t('auth.bio_label')}
+                    </label>
+                    <Input
+                      type="text"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder={t('auth.bio_placeholder')}
+                    />
+                  </div>
+                </>
               )}
 
-              {/* Organization Security Token for Teacher Registration */}
+              {/* Extended Profile Fields for Teacher Registration */}
               {isRegister && role === 'teacher' && (
-                <div className="space-y-1 pt-1 border-t border-primer-border-muted">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-semibold text-primer-fg-default flex items-center gap-1">
-                      <KeyRound className="w-3.5 h-3.5 text-primer-attention-fg" />
-                      {t('auth.org_token_label')}
+                <>
+                  <div>
+                    <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
+                      {t('auth.subject_label')}
                     </label>
+                    <Input
+                      type="text"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder={t('auth.subject_placeholder')}
+                    />
                   </div>
-                  <Input
-                    type="text"
-                    value={orgToken}
-                    onChange={(e) => setOrgToken(e.target.value)}
-                    placeholder={t('auth.org_token_placeholder')}
-                    required
-                  />
-                  <div className="text-[10px] text-primer-fg-muted flex items-center gap-1 mt-1">
-                    <Info className="w-3 h-3 text-primer-accent-fg shrink-0" />
-                    <span>{t('auth.org_token_hint')} (Демо: <code className="bg-primer-canvas-inset px-1 py-0.2 rounded font-mono text-[9px]">ORG-8F3K9A</code> немесе <code className="bg-primer-canvas-inset px-1 py-0.2 rounded font-mono text-[9px]">ZK-7492-X</code>)</span>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
+                      {t('auth.school_label')}
+                    </label>
+                    <Input
+                      type="text"
+                      value={school}
+                      onChange={(e) => setSchool(e.target.value)}
+                      placeholder="РФМШ, NIS, Гимназия..."
+                    />
                   </div>
-                </div>
+
+                  {/* Organization Security Token for Teacher Registration */}
+                  <div className="space-y-1 pt-1 border-t border-primer-border-muted">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-primer-fg-default flex items-center gap-1">
+                        <KeyRound className="w-3.5 h-3.5 text-primer-attention-fg" />
+                        {t('auth.org_token_label')} *
+                      </label>
+                    </div>
+                    <Input
+                      type="text"
+                      value={orgToken}
+                      onChange={(e) => setOrgToken(e.target.value)}
+                      placeholder={t('auth.org_token_placeholder')}
+                      required
+                    />
+                    <div className="text-[10px] text-primer-fg-muted flex items-center gap-1 mt-1">
+                      <Info className="w-3 h-3 text-primer-accent-fg shrink-0" />
+                      <span>{t('auth.org_token_hint')} (Демо: <code className="bg-primer-canvas-inset px-1 py-0.2 rounded font-mono text-[9px]">ORG-8F3K9A</code> немесе <code className="bg-primer-canvas-inset px-1 py-0.2 rounded font-mono text-[9px]">ZK-7492-X</code>)</span>
+                    </div>
+                  </div>
+                </>
               )}
             </CardContent>
 
@@ -208,12 +301,13 @@ export const AuthScreen: React.FC = () => {
                 className="text-xs text-primer-accent-fg hover:underline cursor-pointer"
               >
                 {isRegister
-                  ? 'Аккаунтыңыз бар ма? Кіру'
-                  : 'Аккаунтыңыз жоқ па? Тіркелу'}
+                  ? t('auth.has_account')
+                  : t('auth.no_account')}
               </button>
             </CardFooter>
           </form>
         </Card>
+
 
         {/* Quick Demo Logins Box */}
         <div className="rounded-lg border border-primer-border-muted bg-primer-canvas-subtle p-3 space-y-2">

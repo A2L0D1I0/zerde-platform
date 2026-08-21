@@ -129,16 +129,18 @@ export const SocraticTrainerModal: React.FC<SocraticTrainerModalProps> = ({
       });
 
       if (user) {
+        const newElo = (user.overallElo ?? 1000) + 15;
         updateUser({
-          overallElo: (user.overallElo || 1420) + 15,
+          overallElo: newElo,
+        });
+
+        showToast({
+          type: 'success',
+          title: 'Eureka Moment! 🎉',
+          message: '+15 ELO! ' + newElo,
         });
       }
 
-      showToast({
-        type: 'success',
-        title: 'Eureka Moment! 🎉',
-        message: '+15 ELO қосылды! Жаңа рейтинг: ' + ((user?.overallElo || 1420) + 15),
-      });
     } else {
       showToast({
         type: 'attention',

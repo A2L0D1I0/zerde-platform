@@ -471,11 +471,40 @@ export const ru = {
   'student.active_streak_label': 'дн. активный стрик',
   'student.tasks_unit': 'зад.',
   'student.no_enrolled_courses_title': 'Вы еще не записаны ни на один курс',
+
   'student.no_enrolled_courses_desc': 'Введите 6-значный код курса или выберите курс в каталоге',
+  'auth.city_label': 'Город / Регион',
+  'auth.city_placeholder': 'e.g. Алматы, Астана, Шымкент',
+  'auth.target_exam_label': 'Основная цель / Экзамен',
+  'auth.target_exam_placeholder': 'e.g. ЕНТ 2026, Олимпиада, СОР / СОЧ',
+  'auth.subject_label': 'Преподаваемый предмет',
+  'auth.subject_placeholder': 'e.g. Математика, Физика, Казахский язык',
+  'auth.has_account': 'Уже есть аккаунт? Войти',
+  'trainer.question_label': 'Вопрос',
+  'trainer.select_option': 'Выбор варианта',
+  'trainer.full_solution': 'Полное решение / Фото',
+  'trainer.socratic_hint_title': 'Сократическая подсказка наставника «Аға»:',
+  'trainer.eureka_toast_msg': 'Новый рейтинг',
+  'trainer.hint_title': 'Совет наставника «Аға»',
+  'trainer.hint_msg': 'Проанализируйте ошибку и попробуйте выйти из когнитивной ловушки.',
+  'roadmap.exam_selected': 'Выбран целевой экзамен',
+  'roadmap.time_until_exam': 'До начала экзамена:',
+  'roadmap.daily_required_time': 'Ежедневный темп:',
+  'roadmap.ai_confidence': 'Надежность прогноза ИИ',
+  'roadmap.target_score_grant': 'Целевой балл (Порог гранта)',
+  'roadmap.intermediate_milestone': 'Промежуточная цель',
+  'roadmap.target': 'Цель',
+  'courses.search_placeholder': 'Поиск по названию курса или предмету...',
   'student.explore_courses_btn': 'Записаться на курс',
+  'trainer.socratic_title': 'Сократический тренажер «Аға»',
+  'trainer.mode': 'Режим',
 } as const;
 
+
+
 export default ru;
+
+
 
 
 

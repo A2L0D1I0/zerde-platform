@@ -574,11 +574,41 @@ export const en = {
   'student.active_streak_label': 'day active streak',
   'student.tasks_unit': 'tasks',
   'student.no_enrolled_courses_title': 'You are not enrolled in any courses yet',
+
   'student.no_enrolled_courses_desc': 'Enter a 6-digit course code or explore the catalog',
+  'auth.city_label': 'City / Region',
+  'auth.city_placeholder': 'e.g. Almaty, Astana, Shymkent',
+  'auth.target_exam_label': 'Target Goal / Exam',
+  'auth.target_exam_placeholder': 'e.g. ENT 2026, Olympiad, Formative Assessment',
+  'auth.subject_label': 'Teaching Subject',
+  'auth.subject_placeholder': 'e.g. Mathematics, Physics, Kazakh Language',
+  'auth.has_account': 'Already have an account? Sign in',
+  'auth.no_account': "Don't have an account? Sign up",
+  'trainer.question_label': 'Question',
+  'trainer.select_option': 'Multiple Choice',
+  'trainer.full_solution': 'Full Solution / Photo',
+  'trainer.socratic_hint_title': '«Aga» Socratic Pedagogical Guidance:',
+  'trainer.listen_aga': 'Listen to Aga',
+  'trainer.hint_title': '«Aga» Mentor Advice',
+  'trainer.hint_msg': 'Analyze the misconception and try the cognitive escape step.',
+  'roadmap.exam_selected': 'Target exam selected',
+  'roadmap.time_until_exam': 'Time remaining until exam:',
+  'roadmap.daily_required_time': 'Daily study pace:',
+  'roadmap.ai_confidence': 'AI confidence',
+  'roadmap.target_score_grant': 'Target score (Grant threshold)',
+  'roadmap.intermediate_milestone': 'Intermediate goal',
+  'roadmap.target': 'Target',
+  'courses.search_placeholder': 'Search by course title or subject...',
   'student.explore_courses_btn': 'Join Course',
+  'trainer.socratic_title': '«Aga» Socratic Trainer',
+  'trainer.mode': 'Mode',
 } as const;
 
+
+
 export default en;
+
+
 
 
 

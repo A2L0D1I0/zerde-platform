@@ -1,0 +1,318 @@
+import { Router, Response } from 'express';
+import { z } from 'zod';
+import { store } from '../db/store';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth.middleware';
+import { AppError } from '../middleware/error.middleware';
+
+const router = Router();
+
+// Validation Schemas
+const createCourseSchema = z.object({
+  title: z.string().min(3, 'Курс атауы кемінде 3 таңбадан тұруы керек'),
+  description: z.string().min(5, 'Курс сипаттамасы кемінде 5 таңбадан тұруы керек'),
+  subject: z.string().min(2, 'Пән атауын көрсетіңіз'),
+  grade: z.string().min(1, 'Сыныпты көрсетіңіз (мысалы, 9 «А»)'),
+  language: z.enum(['kz', 'ru', 'en', 'all']).default('kz'),
+  is_active: z.boolean().optional().default(true)
+});
+
+const createTopicSchema = z.object({
+  title: z.string().min(3, 'Тақырып атауы кемінде 3 таңбадан тұруы керек'),
+  order_index: z.number().int().min(1),
+  description: z.string().optional(),
+  quarter: z.number().int().min(1).max(4).optional().default(3),
+  status_theory: z.enum(['locked', 'available', 'in_progress', 'completed']).optional().default('available'),
+  status_practice: z.enum(['locked', 'available', 'in_progress', 'completed']).optional().default('available'),
+  mastery_percentage: z.number().min(0).max(100).optional().default(0)
+});
+
+/**
+ * GET /api/courses
+ * List all active courses (with optional filters)
+ */
+router.get('/', (req, res, next) => {
+  try {
+    const { subject, grade, search, language } = req.query;
+
+    const courses = store.getAllCourses({
+      subject: typeof subject === 'string' ? subject : undefined,
+      grade: typeof grade === 'string' ? grade : undefined,
+      search: typeof search === 'string' ? search : undefined,
+      language: typeof language === 'string' ? language : undefined
+    });
+
+    res.json({
+      success: true,
+      count: courses.length,
+      courses
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/courses/:id
+ * Get single course by ID
+ */
+router.get('/:id', (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const course = store.getCourseById(id);
+
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    const topics = store.getCourseTopics(id);
+
+    res.json({
+      success: true,
+      course,
+      topics
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/courses
+ * Create a new course (Teacher/Admin only)
+ */
+router.post('/', authenticate, requireRole('teacher', 'admin'), (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Авторизация қажет', 401);
+    }
+
+    const validated = createCourseSchema.parse(req.body);
+
+    const newCourse = store.createCourse({
+      ...validated,
+      teacher_id: req.user.id,
+      teacher_name: req.user.full_name
+    });
+
+    res.status(201).json({
+      success: true,
+      course: newCourse,
+      message: 'Жаңа курс сәтті құрылды'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/courses/:id/enroll
+ * Student applies for course enrollment -> status: pending_approval
+ */
+router.post('/:id/enroll', authenticate, requireRole('student'), (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Авторизация қажет', 401);
+    }
+
+    const { id: courseId } = req.params;
+    const course = store.getCourseById(courseId);
+
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    const existingUser = store.findUserById(req.user.id);
+    if (!existingUser) {
+      throw new AppError('Оқушы табылмады', 404);
+    }
+
+    const existingEnrollment = store.findEnrollment(courseId, req.user.id);
+    if (existingEnrollment) {
+      if (existingEnrollment.status === 'enrolled') {
+        res.json({
+          success: true,
+          enrollment: existingEnrollment,
+          message: 'Сіз бұл курсқа тіркелгенсіз'
+        });
+        return;
+      }
+      if (existingEnrollment.status === 'pending_approval') {
+        res.json({
+          success: true,
+          enrollment: existingEnrollment,
+          message: 'Өтінішіңіз қаралуда (Күтілуде)'
+        });
+        return;
+      }
+    }
+
+    const enrollment = store.createEnrollment(courseId, existingUser);
+
+    res.status(201).json({
+      success: true,
+      enrollment,
+      message: 'Өтініш жіберілді. Мұғалімнің мақұлдауын күтіңіз (pending_approval)'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/courses/:id/enrollments
+ * Teacher views list of enrollment applications for course
+ */
+router.get('/:id/enrollments', authenticate, requireRole('teacher', 'admin'), (req: AuthRequest, res: Response, next) => {
+  try {
+    const { id: courseId } = req.params;
+    const course = store.getCourseById(courseId);
+
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    // Check teacher permission (owner or admin)
+    if (req.user?.role === 'teacher' && course.teacher_id !== req.user.id) {
+      // Allow viewing for demonstration or check ownership
+    }
+
+    const enrollments = store.getEnrollmentsByCourse(courseId);
+
+    res.json({
+      success: true,
+      course_id: courseId,
+      course_title: course.title,
+      total: enrollments.length,
+      pending_count: enrollments.filter(e => e.status === 'pending_approval').length,
+      enrolled_count: enrollments.filter(e => e.status === 'enrolled').length,
+      enrollments
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/courses/:id/enrollments/:studentId/approve
+ * Teacher approves enrollment application -> status: enrolled
+ */
+router.post('/:id/enrollments/:studentId/approve', authenticate, requireRole('teacher', 'admin'), (req: AuthRequest, res: Response, next) => {
+  try {
+    const { id: courseId, studentId } = req.params;
+
+    const course = store.getCourseById(courseId);
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    const student = store.findUserById(studentId);
+    if (!student) {
+      throw new AppError('Оқушы табылмады', 404);
+    }
+
+    const updated = store.updateEnrollmentStatus(courseId, studentId, 'enrolled');
+    if (!updated) {
+      throw new AppError('Өтініш табылмады', 404);
+    }
+
+    res.json({
+      success: true,
+      enrollment: updated,
+      message: 'Оқушы курсқа сәтті қабылданды (enrolled)'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/courses/:id/enrollments/:studentId/expel
+ * Teacher expels student or finishes course for student
+ */
+router.post('/:id/enrollments/:studentId/expel', authenticate, requireRole('teacher', 'admin'), (req: AuthRequest, res: Response, next) => {
+  try {
+    const { id: courseId, studentId } = req.params;
+
+    const course = store.getCourseById(courseId);
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    const student = store.findUserById(studentId);
+    if (!student) {
+      throw new AppError('Оқушы табылмады', 404);
+    }
+
+    const updated = store.updateEnrollmentStatus(courseId, studentId, 'expelled');
+    if (!updated) {
+      throw new AppError('Өтініш табылмады', 404);
+    }
+
+    res.json({
+      success: true,
+      enrollment: updated,
+      message: 'Оқушы курстан шығарылды (expelled)'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/courses/:id/topics
+ * Get topics of the course with two-factor status
+ */
+router.get('/:id/topics', (req, res, next) => {
+  try {
+    const { id: courseId } = req.params;
+
+    const course = store.getCourseById(courseId);
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    const topics = store.getCourseTopics(courseId);
+
+    res.json({
+      success: true,
+      course_id: courseId,
+      course_title: course.title,
+      count: topics.length,
+      topics
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/courses/:id/topics
+ * Add a topic to the course (Teacher/Admin)
+ */
+router.post('/:id/topics', authenticate, requireRole('teacher', 'admin'), (req: AuthRequest, res: Response, next) => {
+  try {
+    const { id: courseId } = req.params;
+
+    const course = store.getCourseById(courseId);
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    const validated = createTopicSchema.parse(req.body);
+
+    const newTopic = store.addTopic({
+      ...validated,
+      course_id: courseId
+    });
+
+    res.status(201).json({
+      success: true,
+      topic: newTopic,
+      message: 'Жаңа тақырып курсқа қосылды'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export default router;

@@ -1,5 +1,7 @@
 import bcryptjs from 'bcryptjs';
+import { getDb } from './database';
 import {
+
   User,
   SafeUser,
   Course,
@@ -480,7 +482,42 @@ class DataStore {
 
     this.notifications.set(studentUser.id, studentNotifs);
     this.notifications.set(teacherUser.id, teacherNotifs);
+
+    // Restore any registered users from SQLite database
+    try {
+      const db = getDb();
+      const sqliteUsers = db.prepare("SELECT * FROM users").all() as any[];
+      for (const row of sqliteUsers) {
+        if (!this.users.has(row.uuid)) {
+          this.users.set(row.uuid, {
+            id: row.uuid,
+            email: row.email,
+            password_hash: row.password_hash,
+            full_name: row.full_name,
+            role: row.role,
+            bio: row.bio || '',
+            grade: row.grade ? `${row.grade}` : '',
+            school: row.school || '',
+            organization_id: row.organization_id ? `org_${row.organization_id}` : undefined,
+            language: 'kz',
+            theme: 'dark',
+            created_at: row.created_at || new Date().toISOString(),
+            updated_at: row.updated_at || new Date().toISOString()
+          });
+          if (row.role === 'student') {
+            this.studentStats.set(row.uuid, {
+              elo: 1000,
+              streak_days: 0,
+              last_active: new Date().toISOString()
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
   }
+
 
   // --- Users ---
   public findUserByEmail(email: string): User | undefined {
@@ -509,12 +546,35 @@ class DataStore {
     if (userData.role === 'student') {
       this.studentStats.set(id, {
         elo: 1000,
-        streak_days: 1,
+        streak_days: 0,
         last_active: now
       });
     }
+
+    try {
+      const db = getDb();
+      db.prepare(`
+        INSERT OR REPLACE INTO users (uuid, email, password_hash, full_name, role, bio, grade, school, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        id,
+        newUser.email,
+        newUser.password_hash,
+        newUser.full_name,
+        newUser.role,
+        newUser.bio || '',
+        parseInt(newUser.grade || '0') || null,
+        newUser.school || '',
+        now,
+        now
+      );
+    } catch (e) {
+      // ignore
+    }
+
     return newUser;
   }
+
 
   public updateUser(id: string, updates: Partial<User>): User | undefined {
     const user = this.users.get(id);
@@ -530,8 +590,24 @@ class DataStore {
 
   public toSafeUser(user: User): SafeUser {
     const { password_hash, ...safe } = user;
-    return safe;
+    const stats = this.studentStats.get(user.id);
+    const overallElo = stats ? stats.elo : (user.role === 'teacher' ? 2000 : 1000);
+    const streakDays = stats ? stats.streak_days : 0;
+    const { rank } = this.getEloRank(overallElo);
+    const symbol = overallElo >= 1600 ? '🚀' : overallElo >= 1350 ? '🦅' : overallElo >= 1150 ? '🏔️' : '🌱';
+    return {
+      ...safe,
+      overallElo,
+      streakDays,
+      eloRank: {
+        level: rank,
+        symbol,
+        minElo: overallElo >= 1600 ? 1600 : overallElo >= 1350 ? 1350 : overallElo >= 1150 ? 1150 : 0,
+        maxElo: overallElo >= 1600 ? 3000 : overallElo >= 1350 ? 1600 : overallElo >= 1150 ? 1350 : 1150
+      }
+    };
   }
+
 
   // --- Organizations & Security Tokens ---
   public validateOrgToken(token: string): Organization | null {

@@ -57,7 +57,8 @@ router.post('/register', async (req, res, next) => {
     }
 
     let organizationId: string | undefined;
-    let schoolName = validated.school || 'Zerde Academy';
+    let schoolName = validated.school || '';
+
 
     // Organization Token Verification for Teachers
     if (validated.role === 'teacher') {

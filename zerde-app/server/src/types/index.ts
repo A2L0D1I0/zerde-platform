@@ -30,7 +30,17 @@ export interface User {
   updated_at: string;
 }
 
-export type SafeUser = Omit<User, 'password_hash'>;
+export interface SafeUser extends Omit<User, 'password_hash'> {
+  overallElo?: number;
+  streakDays?: number;
+  eloRank?: {
+    level: EloRank;
+    symbol: string;
+    minElo: number;
+    maxElo: number;
+  };
+}
+
 
 export interface Course {
   id: string;

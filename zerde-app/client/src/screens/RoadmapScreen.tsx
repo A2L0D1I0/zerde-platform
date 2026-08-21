@@ -29,8 +29,9 @@ import {
 export type ExamType = 'ent' | 'sor_soch' | 'olympiad';
 
 export const RoadmapScreen: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
+
   const { showToast } = useToast();
 
   const [selectedExam, setSelectedExam] = useState<ExamType>('ent');
@@ -158,14 +159,14 @@ export const RoadmapScreen: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold text-primer-fg-default">
-                Персоналды Интерактивті Roadmap
+                {t('roadmap.title') || 'Персоналды Интерактивті Roadmap'}
               </h2>
               <Badge variant="accent" className="font-mono text-xs">
                 AI Trajectory Engine
               </Badge>
             </div>
             <p className="text-xs text-primer-fg-muted mt-0.5">
-              Емтиханға дейінгі жеке дайындық траекториясы мен микронавыктар тізбегі
+              {t('roadmap.subtitle') || 'Емтиханға дейінгі жеке дайындық траекториясы мен микронавыктар тізбегі'}
             </p>
           </div>
         </div>
@@ -179,8 +180,8 @@ export const RoadmapScreen: React.FC = () => {
                 setSelectedExam(opt.id);
                 showToast({
                   type: 'info',
-                  title: `Мақсатты емтихан таңдалды: ${opt.title}`,
-                  message: `Мақсат: ${opt.targetScore} балл (${opt.days} күн қалды)`,
+                  title: `${t('roadmap.exam_selected') || 'Мақсатты емтихан таңдалды'}: ${opt.title}`,
+                  message: `${t('roadmap.target') || 'Мақсат'}: ${opt.targetScore} (${opt.days} ${t('common.days') || 'күн қалды'})`,
                 });
               }}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition whitespace-nowrap cursor-pointer ${
@@ -204,14 +205,14 @@ export const RoadmapScreen: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-primer-fg-muted flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-primer-attention-fg" />
-                <span>Кері санақ таймері</span>
+                <span>{t('roadmap.countdown_title') || (language === 'EN' ? 'Countdown Timer' : language === 'RU' ? 'Таймер отсчета' : 'Кері санақ таймері')}</span>
               </span>
               <Badge variant="attention" className="text-[10px] font-mono">
                 {currentExamConfig.title}
               </Badge>
             </div>
             <h3 className="text-sm font-bold text-primer-fg-default mt-1">
-              Емтихан басталуына дейін:
+              {t('roadmap.time_until_exam') || (language === 'EN' ? 'Time remaining until exam:' : language === 'RU' ? 'До начала экзамена:' : 'Емтихан басталуына дейін:')}
             </h3>
           </div>
 
@@ -221,31 +222,39 @@ export const RoadmapScreen: React.FC = () => {
               <div className="text-xl sm:text-2xl font-bold font-mono text-primer-attention-fg">
                 {timeLeft.days}
               </div>
-              <div className="text-[9px] text-primer-fg-muted uppercase tracking-wider mt-0.5">Күн</div>
+              <div className="text-[9px] text-primer-fg-muted uppercase tracking-wider mt-0.5">
+                {language === 'EN' ? 'DAYS' : language === 'RU' ? 'ДНЕЙ' : 'КҮН'}
+              </div>
             </div>
             <div className="bg-primer-canvas-default border border-primer-border-default rounded-lg p-2 shadow-xs">
               <div className="text-xl sm:text-2xl font-bold font-mono text-primer-fg-default">
                 {timeLeft.hours.toString().padStart(2, '0')}
               </div>
-              <div className="text-[9px] text-primer-fg-muted uppercase tracking-wider mt-0.5">Сағат</div>
+              <div className="text-[9px] text-primer-fg-muted uppercase tracking-wider mt-0.5">
+                {language === 'EN' ? 'HOURS' : language === 'RU' ? 'ЧАСОВ' : 'САҒАТ'}
+              </div>
             </div>
             <div className="bg-primer-canvas-default border border-primer-border-default rounded-lg p-2 shadow-xs">
               <div className="text-xl sm:text-2xl font-bold font-mono text-primer-fg-default">
                 {timeLeft.minutes.toString().padStart(2, '0')}
               </div>
-              <div className="text-[9px] text-primer-fg-muted uppercase tracking-wider mt-0.5">Мин</div>
+              <div className="text-[9px] text-primer-fg-muted uppercase tracking-wider mt-0.5">
+                {language === 'EN' ? 'MIN' : language === 'RU' ? 'МИН' : 'МИН'}
+              </div>
             </div>
             <div className="bg-primer-canvas-default border border-primer-border-default rounded-lg p-2 shadow-xs">
               <div className="text-xl sm:text-2xl font-bold font-mono text-primer-accent-fg">
                 {timeLeft.seconds.toString().padStart(2, '0')}
               </div>
-              <div className="text-[9px] text-primer-fg-muted uppercase tracking-wider mt-0.5">Сек</div>
+              <div className="text-[9px] text-primer-fg-muted uppercase tracking-wider mt-0.5">
+                {language === 'EN' ? 'SEC' : language === 'RU' ? 'СЕК' : 'СЕК'}
+              </div>
             </div>
           </div>
 
           <div className="text-[11px] text-primer-fg-muted flex items-center justify-between pt-1 border-t border-primer-border-muted/50">
-            <span>Күнделікті қажетті уақыт:</span>
-            <strong className="text-primer-success-fg font-mono">15-20 мин/күн</strong>
+            <span>{t('roadmap.daily_required_time') || (language === 'EN' ? 'Daily study pace:' : language === 'RU' ? 'Ежедневный темп:' : 'Күнделікті қажетті уақыт:')}</span>
+            <strong className="text-primer-success-fg font-mono">15-20 {language === 'EN' ? 'min/day' : language === 'RU' ? 'мин/день' : 'мин/күн'}</strong>
           </div>
         </div>
 
@@ -255,12 +264,12 @@ export const RoadmapScreen: React.FC = () => {
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primer-success-fg" />
               <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-                Балл траекториясы: {currentExamConfig.currentScore} → {currentExamConfig.targetScore} балл
+                {t('roadmap.score_trajectory') || (language === 'EN' ? 'Score Trajectory' : language === 'RU' ? 'Траектория баллов' : 'Балл траекториясы')}: {currentExamConfig.currentScore} → {currentExamConfig.targetScore} {t('common.points') || 'балл'}
               </h3>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-primer-fg-muted font-mono">
-                ИИ болжам сенімділігі: <strong className="text-primer-success-fg">94%</strong>
+                {t('roadmap.ai_confidence') || (language === 'EN' ? 'AI confidence' : language === 'RU' ? 'Точность ИИ' : 'ИИ болжам сенімділігі')}: <strong className="text-primer-success-fg">94%</strong>
               </span>
             </div>
           </div>
@@ -270,14 +279,15 @@ export const RoadmapScreen: React.FC = () => {
             {/* Target & Grant Threshold Dashed Lines */}
             <div className="absolute top-4 left-0 right-0 border-b border-dashed border-primer-success-emphasis/60 flex items-center justify-end px-2">
               <span className="text-[9px] font-mono text-primer-success-fg bg-primer-canvas-default px-1.5 py-0.5 rounded border border-primer-border-muted">
-                Мақсатты балл: {currentExamConfig.targetScore} (Грант шегі)
+                {t('roadmap.target_score_grant') || (language === 'EN' ? 'Target score (Grant threshold)' : language === 'RU' ? 'Целевой балл (Порог гранта)' : 'Мақсатты балл (Грант шегі)')}: {currentExamConfig.targetScore}
               </span>
             </div>
             <div className="absolute top-14 left-0 right-0 border-b border-dashed border-primer-attention-emphasis/40 flex items-center justify-end px-2">
               <span className="text-[9px] font-mono text-primer-attention-fg bg-primer-canvas-default px-1.5 py-0.5 rounded border border-primer-border-muted">
-                Аралық меже: 110 балл
+                {t('roadmap.intermediate_milestone') || (language === 'EN' ? 'Intermediate goal' : language === 'RU' ? 'Промежуточная цель' : 'Аралық меже')}: 110
               </span>
             </div>
+
 
             {/* Trajectory Points & Polyline */}
             <svg className="w-full h-full overflow-visible" viewBox="0 0 500 100" preserveAspectRatio="none">

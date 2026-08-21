@@ -503,9 +503,40 @@ export const kz = {
   'student.active_streak_label': 'күндік стрик белсенді',
   'student.tasks_unit': 'тап.',
   'student.no_enrolled_courses_title': 'Сіз әлі ешқандай курсқа қосылмадыңыз',
+
   'student.no_enrolled_courses_desc': '6 таңбалы код арқылы немесе каталогтан курсты таңдаңыз',
+  'auth.city_label': 'Қала / Өңір',
+  'auth.city_placeholder': 'e.g. Алматы, Астана, Шымкент',
+  'auth.target_exam_label': 'Негізгі мақсат / Емтихан',
+  'auth.target_exam_placeholder': 'e.g. ҰБТ / ЕНТ 2026, Олимпиада, СОР / СОЧ',
+  'auth.subject_label': 'Оқытатын пән',
+  'auth.subject_placeholder': 'e.g. Математика, Физика, Қазақ тілі',
+  'auth.has_account': 'Аккаунтыңыз бар ма? Кіру',
+  'auth.no_account': 'Аккаунтыңыз жоқ па? Тіркелу',
+  'trainer.question_label': 'Сұрақ',
+  'trainer.select_option': 'Вариант таңдау',
+  'trainer.full_solution': 'Толық шешім / Фото',
+  'trainer.socratic_hint_title': '«Аға» наставнигінің сократикалық наводкасы:',
+  'trainer.listen_aga': 'Ағаны тыңдау',
+  'trainer.eureka_toast_msg': 'Жаңа рейтинг',
+  'trainer.hint_title': '«Аға» наставнигінің кеңесі',
+  'trainer.hint_msg': 'Қатені талдап, когнитивтік тұзақтан шығу қадамын көріңіз.',
+  'roadmap.exam_selected': 'Мақсатты емтихан таңдалды',
+  'roadmap.countdown_title': 'Кері санақ таймері',
+  'roadmap.time_until_exam': 'Емтихан басталуына дейін:',
+  'roadmap.daily_required_time': 'Күнделікті қажетті уақыт:',
+  'roadmap.ai_confidence': 'ИИ болжам сенімділігі',
+  'roadmap.target_score_grant': 'Мақсатты балл (Грант шегі)',
+  'roadmap.intermediate_milestone': 'Аралық меже',
+  'roadmap.target': 'Мақсат',
+  'courses.search_placeholder': 'Курс атауы немесе пән бойынша іздеу...',
   'student.explore_courses_btn': 'Курсқа қосылу',
+  'trainer.socratic_title': 'Сократикалық тренажер «Аға»',
+  'trainer.mode': 'Режим',
 } as const;
+
+
+
 
 
 

@@ -62,28 +62,29 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
 
   // Socratic Trainer Modal State
   const [isTrainerModalOpen, setIsTrainerModalOpen] = useState(false);
-  const [activeTopicTitle, setActiveTopicTitle] = useState('Квадраттық теңсіздіктер (Интервалдар әдісі)');
+  const [activeTopicTitle, setActiveTopicTitle] = useState('Кіріспе жаттығу');
 
-  const mockPinnedSubject: SubjectFocus = {
-    id: 'subj_math',
-    title: 'Алгебра',
-    titleKZ: 'Алгебра (Тереңдетілген курс)',
-    titleRU: 'Алгебра (Углубленный курс)',
-    titleEN: 'Algebra (Advanced Elective)',
+  const currentElo = user?.overallElo ?? 1000;
+  const pinnedSubject: SubjectFocus | null = pinnedCourses.length > 0 ? {
+    id: pinnedCourses[0].id,
+    title: pinnedCourses[0].title,
+    titleKZ: pinnedCourses[0].title,
+    titleRU: pinnedCourses[0].title,
+    titleEN: pinnedCourses[0].title,
     icon: '📐',
-    subjectElo: 1435,
-    predictedScore: '38/40',
-    focusTopic: 'Квадраттық теңсіздіктер (Интервалдар әдісі)',
-    focusTopicKZ: 'Квадраттық теңсіздіктер (Интервалдар әдісі)',
-    focusTopicRU: 'Квадратные неравенства (Метод интервалов)',
-    focusTopicEN: 'Quadratic Inequalities (Interval Method)',
-    focusReason: '💡 Осы 1 ережені бекітсек емтихан болжамыңыз өседі.',
-    focusReasonKZ: '💡 Кеше таңбаларды анықтаудан қателестіңіз. Осы 1 ережені бекітсек емтихан болжамыңыз өседі.',
-    focusReasonRU: '💡 Вчера возникло затруднение со знаками интервалов. Закрепив это правило, ваш прогноз вырастет.',
-    focusReasonEN: '💡 Yesterday you had friction with sign transitions. Fixing this will boost your exam forecast.',
+    subjectElo: currentElo,
+    predictedScore: `${Math.min(40, Math.round((currentElo / 2000) * 40))}/40`,
+    focusTopic: pinnedCourses[0].next_topic || (language === 'EN' ? 'Topic 1' : '1-тақырып'),
+    focusTopicKZ: pinnedCourses[0].next_topic || '1-тақырып',
+    focusTopicRU: pinnedCourses[0].next_topic || 'Тема 1',
+    focusTopicEN: pinnedCourses[0].next_topic || 'Topic 1',
+    focusReason: language === 'EN' ? '💡 Practice this topic to increase your predicted score.' : language === 'RU' ? '💡 Закрепите тему для роста прогноза.' : '💡 Осы тақырыпты бекітсеңіз емтихан болжамыңыз өседі.',
+    focusReasonKZ: '💡 Осы тақырыпты бекітсеңіз емтихан болжамыңыз өседі.',
+    focusReasonRU: '💡 Закрепите тему для роста прогноза.',
+    focusReasonEN: '💡 Practice this topic to increase your predicted score.',
     durationMinutes: 3,
     ctaLabel: '3 мин',
-  };
+  } : null;
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -130,7 +131,6 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
     loadDashboardData();
   }, [user, language]);
 
-
   const handleStartTrainer = (topicTitle?: string) => {
     if (topicTitle) setActiveTopicTitle(topicTitle);
     setIsTrainerModalOpen(true);
@@ -163,11 +163,36 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
           }}
         />
 
-        {/* Pinned Focus Card (3-min session + Big Green Action Button) */}
-        <PinnedSubjectCard
-          subject={mockPinnedSubject}
-          onStartFocus={() => handleStartTrainer(mockPinnedSubject.focusTopic)}
-        />
+        {/* Pinned Focus Card (3-min session or Onboarding) */}
+        {pinnedSubject ? (
+          <PinnedSubjectCard
+            subject={pinnedSubject}
+            onStartFocus={() => handleStartTrainer(pinnedSubject.focusTopic)}
+          />
+        ) : (
+          <div className="rounded-xl border border-dashed border-primer-border-default bg-primer-canvas-subtle p-4 text-center space-y-2.5">
+            <div className="w-9 h-9 rounded-full bg-primer-accent-subtle text-primer-accent-fg flex items-center justify-center mx-auto">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-primer-fg-default">
+                {t('student.no_enrolled_courses_title')}
+              </h3>
+              <p className="text-[11px] text-primer-fg-muted mt-0.5 max-w-xs mx-auto">
+                {t('student.no_enrolled_courses_desc')}
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => onNavigateTab('courses')}
+              className="gap-1 text-xs font-bold"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{t('student.explore_courses_btn')}</span>
+            </Button>
+          </div>
+        )}
 
         {/* Quarter Topics Lifecycle (GitHub Issues Style) */}
         <QuarterTopicsList
@@ -175,11 +200,11 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
           onSelectTopic={handleSelectTopic}
         />
 
-        {/* Spaced Repetition Callout Card (> [!NOTE]) */}
+        {/* Spaced Repetition Callout Card */}
         <SpacedRepetitionCard
           item={{
             available: true,
-            cardsCount: sm2Cards.filter((c) => c.isDueToday).length || 3,
+            cardsCount: sm2Cards.length,
             timeEstimate: `1 ${t('common.minutes')}`,
             title: t('student.spaced_repetition_title'),
             description: t('student.spaced_repetition_desc'),
@@ -201,7 +226,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
                 {t('student.exam_countdown')}
               </div>
               <div className="text-[10px] text-primer-fg-muted">
-                {t('student.predicted_grade_label')}: <strong className="text-primer-success-fg">118/140</strong>
+                {t('student.predicted_grade_label')}: <strong className="text-primer-success-fg">{Math.min(140, Math.round((currentElo / 2000) * 140))}/140</strong>
               </div>
             </div>
           </div>
@@ -211,6 +236,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
 
       {/* ========================================================================= */}
       {/* 2. DESKTOP VIEW (Visible on >= md screens: 2 Columns 65% / 35%)            */}
+
       {/* ========================================================================= */}
       <div className="hidden md:grid grid-cols-12 gap-5 items-start animate-in fade-in duration-150">
         {/* ----------------------------------------------------------------------- */}
@@ -321,10 +347,11 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
 
           {/* B. Active Simulator / Trainer Block (Desmos & Active Canvas) */}
           <ActiveTrainerBlock
-            onStartTrainer={() => handleStartTrainer(mockPinnedSubject.focusTopic)}
-            topicTitle={mockPinnedSubject.focusTopic}
-            subjectTitle={mockPinnedSubject.title}
+            onStartTrainer={() => handleStartTrainer(pinnedSubject?.focusTopic || 'Кіріспе жаттығу')}
+            topicTitle={pinnedSubject?.focusTopic || (language === 'EN' ? 'Introduction Practice' : language === 'RU' ? 'Вводная практика' : 'Кіріспе жаттығу')}
+            subjectTitle={pinnedSubject?.title || (language === 'EN' ? 'General Subject' : language === 'RU' ? 'Общий предмет' : 'Жалпы пән')}
           />
+
 
           {/* C. Quarter Topics Table with Filters */}
           <QuarterTopicsTable

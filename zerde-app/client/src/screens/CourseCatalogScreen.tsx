@@ -30,8 +30,9 @@ interface CourseCatalogScreenProps {
 export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
   onStartCourseTopic,
 }) => {
-  const { t } = useLanguage();
+  const { t, language, getLocalized } = useLanguage();
   const { user } = useAuth();
+
   const { showToast } = useToast();
 
   const [courses, setCourses] = useState<(Course & { enrollment_status?: 'enrolled' | 'pending_approval' | 'none' })[]>([]);
@@ -119,7 +120,33 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
     return true;
   });
 
-  const subjects = ['Барлығы', 'Математика', 'Физика', 'Қазақ тілі', 'Химия', 'Информатика'];
+  const subjectList: Record<string, { label: string; key: string }[]> = {
+    KZ: [
+      { label: 'Барлығы', key: 'all' },
+      { label: 'Математика', key: 'algebra' },
+      { label: 'Физика', key: 'physics' },
+      { label: 'Қазақ тілі', key: 'kazakh_lang' },
+      { label: 'Химия', key: 'chemistry' },
+      { label: 'Информатика', key: 'cs' },
+    ],
+    RU: [
+      { label: 'Все', key: 'all' },
+      { label: 'Математика', key: 'algebra' },
+      { label: 'Физика', key: 'physics' },
+      { label: 'Казахский язык', key: 'kazakh_lang' },
+      { label: 'Химия', key: 'chemistry' },
+      { label: 'Информатика', key: 'cs' },
+    ],
+    EN: [
+      { label: 'All', key: 'all' },
+      { label: 'Mathematics', key: 'algebra' },
+      { label: 'Physics', key: 'physics' },
+      { label: 'Kazakh Language', key: 'kazakh_lang' },
+      { label: 'Chemistry', key: 'chemistry' },
+      { label: 'Computer Science', key: 'cs' },
+    ],
+  };
+  const subjects = subjectList[language] || subjectList.KZ;
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-5 space-y-4 animate-in fade-in duration-150">
@@ -209,7 +236,7 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
             maxLength={8}
             className="px-3 py-1.5 text-xs font-mono font-bold uppercase bg-primer-canvas-inset border border-primer-border-default rounded-md text-primer-fg-default placeholder:text-primer-fg-subtle outline-none focus:border-primer-accent-emphasis w-full sm:w-48 text-center tracking-wider"
           />
-          <Button type="submit" variant="primary" size="sm" disabled={isJoiningCode || !joinCode.trim()} className="whitespace-nowrap">
+          <Button type="submit" variant="primary" size="sm" disabled={isJoiningCode || !joinCode.trim()} className="whitespace-nowrap font-bold">
             {isJoiningCode ? '...' : t('courses.join_by_code_btn')}
           </Button>
         </div>
@@ -218,33 +245,31 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
       {/* Search & Subject Badges Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-primer-canvas-subtle border border-primer-border-default rounded-xl p-3.5 shadow-primer-xs">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-primer-fg-muted absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-primer-fg-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('header.search_placeholder')}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-primer-canvas-inset border border-primer-border-muted rounded-md text-primer-fg-default placeholder:text-primer-fg-subtle outline-none focus:border-primer-accent-emphasis"
+            placeholder={t('courses.search_placeholder')}
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-primer-canvas-inset border border-primer-border-default rounded-md text-primer-fg-default placeholder:text-primer-fg-subtle outline-none focus:border-primer-accent-emphasis"
           />
         </div>
 
-        {/* Subject Pills */}
+        {/* Subjects Horizontal Bar */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {subjects.map((subj) => {
-            const key = subj === 'Барлығы' ? 'all' : subj;
-            const isSelected = selectedSubject === key;
-
+          {subjects.map((item) => {
+            const isSelected = selectedSubject === item.key;
             return (
               <button
-                key={subj}
-                onClick={() => setSelectedSubject(key)}
+                key={item.key}
+                onClick={() => setSelectedSubject(item.key)}
                 className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                   isSelected
                     ? 'bg-primer-accent-emphasis text-white'
                     : 'bg-primer-canvas-inset text-primer-fg-muted hover:text-primer-fg-default border border-primer-border-muted'
                 }`}
               >
-                {subj}
+                {item.label}
               </button>
             );
           })}
@@ -261,8 +286,11 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
           filteredCourses.map((course) => {
             const isEnrolled = course.enrollment_status === 'enrolled';
             const isPending = course.enrollment_status === 'pending_approval';
+            const title = getLocalized(course, 'title', course.title);
+            const desc = getLocalized(course, 'description', course.description || '');
 
             return (
+
               <Card
                 key={course.id}
                 className="flex flex-col justify-between hover:border-primer-border-default transition-all shadow-primer-xs hover:shadow-primer-sm cursor-pointer group"
@@ -295,13 +323,14 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
                   </div>
 
                   <CardTitle className="text-sm font-bold group-hover:text-primer-accent-fg transition leading-snug line-clamp-2">
-                    {course.title}
+                    {title}
                   </CardTitle>
 
                   <CardDescription className="text-xs line-clamp-2">
-                    {course.description}
+                    {desc}
                   </CardDescription>
                 </CardHeader>
+
 
                 <CardContent className="p-4 pt-2 space-y-3">
                   <div className="flex items-center justify-between text-xs text-primer-fg-muted pt-2 border-t border-primer-border-muted">

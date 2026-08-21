@@ -1,0 +1,44 @@
+{
+  "name": "zerde-server",
+  "version": "1.0.0",
+  "description": "Zerde Platform Backend API Server & Database",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test:api": "ts-node src/test-api.ts",
+    "test:ai": "ts-node src/test-ai.ts",
+    "test:math": "ts-node src/test-math-engine.ts",
+    "test:i18n": "ts-node src/test-i18n-coverage.ts",
+    "test:content": "ts-node src/test-content-contracts.ts",
+    "test:smartmix": "ts-node src/test-socratic-smartmix.ts",
+    "test:slots": "ts-node src/test-teacher-slots.ts",
+    "test:e2e": "ts-node src/test-e2e.ts",
+    "test:all": "ts-node src/test-math-engine.ts && ts-node src/test-i18n-coverage.ts && ts-node src/test-content-contracts.ts && ts-node src/test-socratic-smartmix.ts && ts-node src/test-teacher-slots.ts && ts-node src/test-e2e.ts",
+    "test": "npm run test:all",
+    "db:init": "ts-node -e \"import('./src/db/database').then(m => m.initDatabase())\"",
+    "db:seed": "ts-node src/db/seed.ts"
+
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.8.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}

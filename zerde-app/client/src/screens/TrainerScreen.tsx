@@ -583,24 +583,26 @@ export const TrainerScreen: React.FC = () => {
       });
 
       if (user) {
+        const newElo = (user.overallElo ?? 1000) + 15;
         updateUser({
-          overallElo: (user.overallElo || 1420) + 15,
+          overallElo: newElo,
+        });
+
+        showToast({
+          type: 'success',
+          title: 'Eureka Moment! 🎉 +15 ELO',
+          message: `${t('trainer.eureka_toast_msg') || 'Жаңа рейтинг'}: ${newElo}`,
         });
       }
-
-      showToast({
-        type: 'success',
-        title: 'Eureka Moment! 🎉 +15 ELO',
-        message: 'Логикалық қадам дұрыс орындалды! Жаңа рейтинг: ' + ((user?.overallElo || 1420) + 15),
-      });
     } else {
       showToast({
         type: 'attention',
-        title: '«Аға» наставнигінің кеңесі',
-        message: 'Қатені талдап, когнитивтік тұзақтан шығу қадамын көріңіз.',
+        title: t('trainer.hint_title') || '«Аға» наставнигінің кеңесі',
+        message: t('trainer.hint_msg') || 'Қатені талдап, когнитивтік тұзақтан шығу қадамын көріңіз.',
       });
     }
   };
+
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questionBank.length - 1) {
@@ -628,6 +630,58 @@ export const TrainerScreen: React.FC = () => {
     }
   };
 
+  const getSubjectName = (subj: string) => {
+    if (language === 'RU') {
+      if (subj.includes('Алгебра')) return 'Алгебра';
+      if (subj.includes('Физика')) return 'Физика';
+      if (subj.includes('Қазақ')) return 'Казахский язык';
+      if (subj.includes('Химия')) return 'Химия';
+    }
+    if (language === 'EN') {
+      if (subj.includes('Алгебра')) return 'Algebra';
+      if (subj.includes('Физика')) return 'Physics';
+      if (subj.includes('Қазақ')) return 'Kazakh Language';
+      if (subj.includes('Химия')) return 'Chemistry';
+    }
+    return subj;
+  };
+
+  const getTopicName = (q: QuestionItem) => {
+    if (language === 'RU') {
+      if (q.id === 1) return 'Метод интервалов и квадратные неравенства';
+      if (q.id === 2) return 'Векторы сил и второй закон Ньютона';
+      if (q.id === 3) return 'Морфологический разбор и состав слова';
+      if (q.id === 4) return 'Тригонометрическая окружность и радианы';
+      if (q.id === 5) return 'Координатная плоскость и функция параболы';
+      if (q.id === 6) return 'Кинематика: график скорости и ускорения';
+      if (q.id === 7) return 'Химическая кинетика и скорость реакции';
+      if (q.id === 8) return 'Теорема Пифагора и геометрия треугольника';
+    }
+    if (language === 'EN') {
+      if (q.id === 1) return 'Interval Method & Quadratic Inequalities';
+      if (q.id === 2) return 'Force Vectors & Newton\'s Second Law';
+      if (q.id === 3) return 'Morphological Analysis & Word Structure';
+      if (q.id === 4) return 'Unit Trigonometric Circle & Radians';
+      if (q.id === 5) return 'Coordinate Plane & Parabola Function';
+      if (q.id === 6) return 'Kinematics: Velocity-Time Graph';
+      if (q.id === 7) return 'Chemical Kinetics & Reaction Rates';
+      if (q.id === 8) return 'Pythagorean Theorem & Triangle Geometry';
+    }
+    return q.topic_title;
+  };
+
+  const getQuestionText = (q: QuestionItem) => {
+    if (language === 'RU') return q.question_ru || q.question_kz;
+    if (language === 'EN') return q.question_en || q.question_kz;
+    return q.question_kz;
+  };
+
+  const getExplanationText = (q: QuestionItem) => {
+    if (language === 'RU') return q.explanation_ru || q.explanation_kz;
+    if (language === 'EN') return q.explanation_en || q.explanation_kz;
+    return q.explanation_kz;
+  };
+
   const handleReset = () => {
     setSelectedOptionId(null);
     setSelectedForkId(null);
@@ -647,20 +701,21 @@ export const TrainerScreen: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm sm:text-base font-bold text-primer-fg-default">
-                Сократикалық тренажер «Аға»
+                {t('trainer.socratic_title') || 'Сократикалық тренажер «Аға»'}
               </h2>
               <Badge variant="accent" className="text-[10px] font-mono">
-                {currentQ.subject}
+                {getSubjectName(currentQ.subject)}
               </Badge>
               <Badge variant={currentQ.mode === 'A' ? 'secondary' : 'attention'} className="text-[10px] font-mono">
-                Режим {currentQ.mode}
+                {t('trainer.mode') || 'Режим'} {currentQ.mode}
               </Badge>
             </div>
             <p className="text-xs text-primer-fg-muted mt-0.5">
-              {currentQ.topic_title}
+              {getTopicName(currentQ)}
             </p>
           </div>
         </div>
+
 
         {/* Question Switcher & ELO Badge */}
         <div className="flex items-center gap-2">
@@ -699,8 +754,8 @@ export const TrainerScreen: React.FC = () => {
       <ActiveCanvasInspector
         zvdslSchema={activeSchemaOverride || currentQ.zvdsl_canvas_json}
         desmosState={currentQ.desmos_state}
-        title={`Active Canvas: ${currentQ.topic_title}`}
-        topicTitle={currentQ.subject}
+        title={`Active Canvas: ${getTopicName(currentQ)}`}
+        topicTitle={getSubjectName(currentQ.subject)}
       />
 
       {/* 2. Question Prompt Card */}
@@ -709,21 +764,21 @@ export const TrainerScreen: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-primer-accent-fg">
-                Сұрақ #{currentQuestionIndex + 1}:
+                {t('trainer.question_label') || 'Сұрақ'} #{currentQuestionIndex + 1}:
               </span>
               <AudioPlayerButton
-                text={language === 'KZ' ? currentQ.question_kz : language === 'RU' ? currentQ.question_ru : currentQ.question_en}
-                lang={language}
+                text={getQuestionText(currentQ)}
+                lang={language.toLowerCase() as any}
                 variant="pill"
                 size="sm"
               />
             </div>
             <span className="text-[11px] font-mono text-primer-fg-muted">
-              {currentQ.mode === 'A' ? 'Вариантты таңдау' : 'Толық шешім / Фото'}
+              {currentQ.mode === 'A' ? (t('trainer.select_option') || 'Вариант таңдау') : (t('trainer.full_solution') || 'Толық шешім / Фото')}
             </span>
           </div>
           <CardTitle className="text-sm sm:text-base font-semibold leading-relaxed mt-1">
-            <MathText>{currentQ.question_kz}</MathText>
+            <MathText>{getQuestionText(currentQ)}</MathText>
           </CardTitle>
         </CardHeader>
 
@@ -733,16 +788,17 @@ export const TrainerScreen: React.FC = () => {
             <div className="flex items-center justify-between gap-1.5 mb-1">
               <div className="flex items-center gap-1.5 font-bold text-primer-attention-fg">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>«Аға» наставнигінің сократикалық наводкасы:</span>
+                <span>{t('trainer.socratic_hint_title') || '«Аға» наставнигінің сократикалық наводкасы:'}</span>
               </div>
               <AudioPlayerButton
-                text="Дайын жауапты қоюға асықпаңыз. Сызбадағы байланысты ойлау развилкасымен тексеріңіз!"
-                lang="kz"
+                text={language === 'KZ' ? 'Дайын жауапты қоюға асықпаңыз. Сызбадағы байланысты ойлау развилкасымен тексеріңіз!' : language === 'RU' ? 'Не спешите ставить готовый ответ. Проверьте логику по схеме разветвления!' : 'Do not rush to enter a solution. Verify the logic with the thought-forks!'}
+                lang={language.toLowerCase() as any}
                 variant="ghost"
                 size="sm"
-                label="Ағаны тыңдау"
+                label={t('trainer.listen_aga') || 'Ағаны тыңдау'}
               />
             </div>
+
             <p className="text-primer-fg-default font-medium">
               «Дайын жауапты қоюға асықпаңыз. Сызбадағы геометриялық/векторлық байланысты ойлау развилкасымен тексеріңіз!»
             </p>
