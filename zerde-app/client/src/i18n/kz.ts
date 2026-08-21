@@ -129,14 +129,15 @@ export const kz = {
   // ==========================================
   // 7. STATUSES (Тақырыптар мен тапсырмалар күйі)
   // ==========================================
-  'status.mastered': 'Усвоено (✓ Жабық)',
+  'status.mastered': 'Игерілді (✓ Жабық)',
   'status.mastered_short': '✓ Жабық',
-  'status.pending': 'Ожидает (⏳ Мұғалімде)',
+  'status.pending': 'Күтілуде (⏳ Мұғалімде)',
   'status.pending_short': '⏳ Мұғалімде',
-  'status.in_progress': 'В работе (● Ашық)',
+  'status.in_progress': 'Пысықтауда (● Ашық)',
   'status.in_progress_short': '● Ашық',
-  'status.queued': 'В очереди (○ Кезекте)',
+  'status.queued': 'Кезекте (○ Кезекте)',
   'status.queued_short': '○ Кезекте',
+
   'status.locked': 'Құлыпталған 🔒',
   'status.locked_short': 'Құлыпталған',
   'status.completed': 'Аяқталды',
@@ -491,19 +492,19 @@ export const kz = {
   'student.full_roadmap_btn': 'Толық Roadmap',
   'student.linear_equations': 'Сызықтық теңдеулер',
   'student.quadratic_inequalities': 'Квадрат теңсіздіктер',
-  'student.rational_equations': 'Бөлшек-рационал теңдеулер',
 
+  'student.rational_equations': 'Бөлшек-рационал теңдеулер',
   'student.quarter_topics_desc': 'Екі факторлы зачет пен оқу матрицасы',
   'student.last_3_months': 'Соңғы 3 ай',
   'student.less': 'Аз',
   'student.more': 'Көп',
-  'student.study_rhythm_title': 'Апталық оқу ырғағы (Study Days)',
-  'student.streak_active_label': 'күндік стрик белсенді',
-  'student.streak_start_today': 'Бүгін жаңа стрик бастаңыз!',
+  'common.topics': 'тақырып',
+  'student.study_days_title': 'Апталық оқу ырғағы',
+  'student.active_streak_label': 'күндік стрик белсенді',
+  'student.tasks_unit': 'тап.',
   'student.no_enrolled_courses_title': 'Сіз әлі ешқандай курсқа қосылмадыңыз',
-  'student.no_enrolled_courses_desc': 'Мұғалім берген 6 таңбалы код арқылы немесе каталогтан курсты таңдаңыз',
-  'student.explore_courses_btn': 'Курстарды қарау',
-  'common.tasks_short': 'тап.',
+  'student.no_enrolled_courses_desc': '6 таңбалы код арқылы немесе каталогтан курсты таңдаңыз',
+  'student.explore_courses_btn': 'Курсқа қосылу',
 } as const;
 
 

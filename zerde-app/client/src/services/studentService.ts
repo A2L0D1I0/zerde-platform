@@ -120,72 +120,68 @@ export const mockTopicsList: (Topic & {
 ];
 
 
-export const generateLeaderboardData = (currentUser?: any): ClassLeaderboardEntry[] => {
-  const currentId = currentUser?.id || 'usr_current';
-  const currentName = currentUser?.full_name || 'Сіз';
-  const currentElo = currentUser?.overallElo ?? 1000;
-  const currentStreak = currentUser?.streakDays ?? 0;
-  const currentRank = currentUser?.eloRank?.level || (currentElo >= 1600 ? 'Самғау' : currentElo >= 1300 ? 'Қыран' : currentElo >= 1000 ? 'Тұғыр' : 'Өскін');
+export const mockLeaderboardData: ClassLeaderboardEntry[] = [
+  {
+    id: 'usr_lead_1',
+    rank: 1,
+    name: 'Дана Сұлтанова',
+    grade: '9 «А»',
+    school: 'NIS IB Astana',
+    elo: 1680,
+    eloRankLevel: 'Самғау',
+    streakDays: 35,
+    masteredCount: 24,
+    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
+  },
+  {
+    id: 'usr_lead_2',
+    rank: 2,
+    name: 'Аружан Қалиева',
+    grade: '9 «А»',
+    school: 'NIS IB Astana',
+    elo: 1530,
+    eloRankLevel: 'Қыран',
+    streakDays: 21,
+    masteredCount: 22,
+    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+  },
+  {
+    id: 'usr_lead_3',
+    rank: 3,
+    name: 'Мұрат Серік',
+    grade: '',
+    school: 'Zerde Lab',
+    elo: 1420,
+    eloRankLevel: 'Қыран',
+    streakDays: 12,
+    masteredCount: 18,
+  },
 
-  const baseList: ClassLeaderboardEntry[] = [
-    {
-      id: 'usr_lead_1',
-      rank: 1,
-      name: 'Дана Сұлтанова',
-      grade: 'Топ-01',
-      school: 'Zerde Lab',
-      elo: 1680,
-      eloRankLevel: 'Самғау',
-      streakDays: 35,
-      masteredCount: 24,
-      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
-    },
-    {
-      id: 'usr_lead_2',
-      rank: 2,
-      name: 'Аружан Қалиева',
-      grade: 'Топ-01',
-      school: 'Zerde Lab',
-      elo: 1530,
-      eloRankLevel: 'Қыран',
-      streakDays: 21,
-      masteredCount: 22,
-      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-    },
-    {
-      id: currentId,
-      rank: 3,
-      name: currentName,
-      grade: currentUser?.grade || 'Топ-01',
-      school: currentUser?.school || currentUser?.bio || 'Zerde Platform',
-      elo: currentElo,
-      eloRankLevel: currentRank,
-      streakDays: currentStreak,
-      masteredCount: 0,
-      isCurrentUser: true,
-    },
-    {
-      id: 'usr_lead_4',
-      rank: 4,
-      name: 'Еркебұлан Мұрат',
-      grade: 'Топ-01',
-      school: 'Zerde Lab',
-      elo: 980,
-      eloRankLevel: 'Тұғыр',
-      streakDays: 4,
-      masteredCount: 8,
-      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-    },
-  ];
-
-  return baseList.sort((a, b) => b.elo - a.elo).map((item, idx) => ({
-    ...item,
-    rank: idx + 1,
-  }));
-};
-
-export const mockLeaderboardData = generateLeaderboardData();
-
+  {
+    id: 'usr_lead_4',
+    rank: 4,
+    name: 'Еркебұлан Мұрат',
+    grade: '9 «А»',
+    school: 'NIS IB Astana',
+    elo: 1350,
+    eloRankLevel: 'Тұғыр',
+    streakDays: 9,
+    masteredCount: 16,
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+  },
+  {
+    id: 'usr_lead_5',
+    rank: 5,
+    name: 'Бақытжан Есенов',
+    grade: '9 «А»',
+    school: 'NIS IB Astana',
+    elo: 1210,
+    eloRankLevel: 'Тұғыр',
+    streakDays: 5,
+    masteredCount: 12,
+    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
+  },
+];
 
 export const mockSM2MemoryCards: SM2MemoryCard[] = [
   {
@@ -277,11 +273,17 @@ export const generate365DaysHeatmap = (): HeatmapDay[] => {
   return result;
 };
 
-export const generateCurrentWeekStudyDays = (streakDays: number = 0): StudyDay[] => {
+export const generateCurrentWeekStudyDays = (streak: number = 0, lang: string = 'KZ'): StudyDay[] => {
   const days: StudyDay[] = [];
   const today = new Date();
   const currentDayIndex = (today.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
-  const dayNamesKZ = ['Дс', 'Сс', 'Ср', 'Бс', 'Жм', 'Сб', 'Жс'];
+  
+  const dayNames: Record<string, string[]> = {
+    KZ: ['Дс', 'Сс', 'Ср', 'Бс', 'Жм', 'Сб', 'Жс'],
+    RU: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+    EN: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  };
+  const localizedDays = dayNames[lang.toUpperCase()] || dayNames.KZ;
 
   // Start from Monday of this week
   const monday = new Date(today);
@@ -291,17 +293,20 @@ export const generateCurrentWeekStudyDays = (streakDays: number = 0): StudyDay[]
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const isToday = i === currentDayIndex;
-    const isCompleted = streakDays > 0 && i < currentDayIndex;
     const isFuture = i > currentDayIndex;
+    
+    // Day is only completed if within active streak
+    const isCompleted = streak > 0 && i <= currentDayIndex && (currentDayIndex - i < streak);
+    const tasksCount = isCompleted ? Math.floor(Math.random() * 3) + 2 : (isToday && streak > 0 ? 1 : 0);
 
     days.push({
       date: d.toISOString().split('T')[0],
-      dayOfWeek: dayNamesKZ[i],
+      dayOfWeek: localizedDays[i],
       dayNumber: d.getDate(),
       isCompleted,
       isToday,
       isFuture,
-      tasksCount: isCompleted ? 4 : 0,
+      tasksCount,
       streakActive: isCompleted,
     });
   }
@@ -418,50 +423,37 @@ class StudentService {
 
     return {
       user: {
-        id: studentId || 'usr_student_01',
+        id: studentId || 'usr_clean',
         email: 'student@zerde.kz',
-        full_name: 'Әлихан Нұрғалиев',
+        full_name: 'Оқушы',
         role: 'student',
-        grade: '9 «А»',
-        school: 'NIS IB Astana',
+        grade: '',
+        school: '',
         language: 'KZ',
         theme: 'dark',
-        overallElo: 1420,
-        streakDays: 12,
+        overallElo: 1000,
+        streakDays: 0,
         eloRank: {
-          level: 'Қыран',
-          symbol: '🦅',
-          minElo: 1300,
-          maxElo: 1600,
+          level: 'Өскін',
+          symbol: '🌱',
+          minElo: 0,
+          maxElo: 1200,
         },
       },
-      elo: 1420,
-      rank: 'Қыран',
-      rank_badge: '🦅 Қыран (Expert)',
-      streak_days: 12,
-      streak_freeze_available: true,
-      pinned_course: {
-        id: 'crs_math_9',
-        title: 'Алгебра және анализ бастамалары (9-сынып)',
-        subject: 'Математика',
-        description: 'Квадрат теңдеулер, теңсіздіктер және функциялар',
-        teacher_id: 'usr_teacher_01',
-        teacher_name: 'Айгүл Серікқызы',
-        grade: '9 «А»',
-        language: 'KZ',
-        is_active: true,
-        students_count: 24,
-        progress_percentage: 78,
-        next_topic: 'Квадраттық теңсіздіктер (Интервалдар әдісі)',
-      },
-      recent_topics: mockTopicsList.slice(0, 4),
+      elo: 1000,
+      rank: 'Өскін',
+      rank_badge: '🌱 Өскін (Beginner)',
+      streak_days: 0,
+      streak_freeze_available: false,
+      pinned_course: null,
+      recent_topics: [],
       memory_cards: {
-        due_today: 3,
-        total_reviewed: 180,
-        retention_rate: 94,
+        due_today: 0,
+        total_reviewed: 0,
+        retention_rate: 100,
       },
       daily_focus: {
-        title: 'Квадраттық теңсіздіктер (Интервалдар әдісі)',
+        title: 'Интерактивті кіріспе жаттығу',
         duration_minutes: 3,
         topic_id: 'top_1',
         elo_reward: 15,
@@ -484,11 +476,12 @@ class StudentService {
     return {
       year: new Date().getFullYear(),
       total_contributions: totalContributions,
-      current_streak: 12,
-      longest_streak: 28,
+      current_streak: 0,
+      longest_streak: 0,
       matrix,
     };
   }
+
 
   public async getRoadmap(studentId?: string): Promise<StudentRoadmapData> {
     try {
@@ -502,19 +495,19 @@ class StudentService {
     return mockDefaultRoadmapData;
   }
 
-  public async getLeaderboard(currentUser?: any): Promise<ClassLeaderboardEntry[]> {
-    return generateLeaderboardData(currentUser);
+  public async getLeaderboard(): Promise<ClassLeaderboardEntry[]> {
+    return mockLeaderboardData;
   }
 
   public async getSM2Cards(): Promise<SM2MemoryCard[]> {
     return mockSM2MemoryCards;
   }
 
-  public getStudyDays(streakDays: number = 0): StudyDay[] {
-    return generateCurrentWeekStudyDays(streakDays);
+  public getStudyDays(streak: number = 0, lang: string = 'KZ'): StudyDay[] {
+    return generateCurrentWeekStudyDays(streak, lang);
   }
 }
 
+
 export const studentService = new StudentService();
 export default studentService;
-

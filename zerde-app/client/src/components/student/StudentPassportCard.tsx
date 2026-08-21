@@ -15,13 +15,13 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
   user,
   overallMastery = 0,
   totalMastered = 0,
-  totalTopics = 0,
+  totalTopics = 24,
 }) => {
   const { t } = useLanguage();
   const elo = user?.overallElo ?? 1000;
   const streak = user?.streakDays ?? 0;
-  const rankLevel = user?.eloRank?.level || (elo >= 1600 ? 'Самғау' : elo >= 1300 ? 'Қыран' : elo >= 1000 ? 'Тұғыр' : 'Өскін');
-  const rankSymbol = user?.eloRank?.symbol || (elo >= 1600 ? '🚀' : elo >= 1300 ? '🦅' : elo >= 1000 ? '🏔️' : '🌱');
+  const rankLevel = user?.eloRank?.level || (elo >= 1600 ? 'Самғау' : elo >= 1300 ? 'Қыран' : elo >= 1200 ? 'Тұғыр' : 'Өскін');
+  const rankSymbol = user?.eloRank?.symbol || (elo >= 1600 ? '🚀' : elo >= 1300 ? '🦅' : elo >= 1200 ? '🏔️' : '🌱');
 
   return (
     <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3.5 relative overflow-hidden">
@@ -42,7 +42,7 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <h3 className="text-sm font-bold text-primer-fg-default truncate">
-              {user?.full_name || 'Оқушы'}
+              {user?.full_name || t('role.student')}
             </h3>
             {user?.grade && (
               <Badge variant="accent" className="text-[10px] py-0 font-mono">

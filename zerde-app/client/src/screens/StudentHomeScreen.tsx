@@ -47,8 +47,9 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
   onNavigateTab,
 }) => {
   const { user } = useAuth();
-  const { t, getLocalized } = useLanguage();
+  const { t, getLocalized, language } = useLanguage();
   const { showToast } = useToast();
+
 
 
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +92,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
         const [dash, heatmap, lboard, cards, courses] = await Promise.all([
           studentService.getDashboard(user?.id),
           studentService.getHeatmap(user?.id),
-          studentService.getLeaderboard(user),
+          studentService.getLeaderboard(),
           studentService.getSM2Cards(),
           courseService.getAllCourses(),
         ]);
@@ -99,16 +100,27 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
         if (dash?.recent_topics && dash.recent_topics.length > 0) {
           setTopics(dash.recent_topics);
         } else {
-          setTopics(mockTopicsList.slice(0, 3));
+          setTopics([]);
         }
 
         setHeatmapMatrix(heatmap?.matrix || []);
-        setLeaderboard(lboard || []);
-        setSm2Cards(cards || []);
-        setStudyDays(studentService.getStudyDays(user?.streakDays ?? 0));
-        setPinnedCourses(courses.filter((c) => c.is_enrolled || c.enrollment_status === 'enrolled'));
-      } catch (err) {
+        
+        // Map leaderboard to correctly identify current user
+        const mappedLeaderboard = (lboard || []).map((entry) => ({
+          ...entry,
+          isCurrentUser: user?.id ? entry.id === user.id || entry.name === user.full_name : false,
+        }));
+        setLeaderboard(mappedLeaderboard);
 
+        setSm2Cards(user?.streakDays ? (cards || []) : []);
+        setStudyDays(studentService.getStudyDays(user?.streakDays || 0, language));
+        
+        if (dash?.pinned_course) {
+          setPinnedCourses([dash.pinned_course]);
+        } else {
+          setPinnedCourses([]);
+        }
+      } catch (err) {
         console.warn('Dashboard data loaded with fallback', err);
       } finally {
         setIsLoading(false);
@@ -116,7 +128,8 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
     };
 
     loadDashboardData();
-  }, [user]);
+  }, [user, language]);
+
 
   const handleStartTrainer = (topicTitle?: string) => {
     if (topicTitle) setActiveTopicTitle(topicTitle);
@@ -137,7 +150,6 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
         {/* Weekday Study Days Horizontal Swipe */}
         <WeekdayStudyCarousel
           days={studyDays}
-          streakDays={user?.streakDays ?? 0}
           onSelectDay={(day) => {
             showToast({
               type: 'info',
@@ -207,11 +219,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
         <div className="col-span-12 lg:col-span-8 space-y-4">
           
           {/* Weekday Study Carousel (Desktop Header Component) */}
-          <WeekdayStudyCarousel
-            days={studyDays}
-            streakDays={user?.streakDays ?? 0}
-          />
-
+          <WeekdayStudyCarousel days={studyDays} />
 
           {/* A. Pinned Courses Grid (Pinned Repos Style) */}
           <div className="space-y-2.5">

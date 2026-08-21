@@ -570,13 +570,12 @@ export const en = {
 
   'student.less': 'Less',
   'student.more': 'More',
-  'student.study_rhythm_title': 'Weekly Study Rhythm (Study Days)',
-  'student.streak_active_label': 'day streak active',
-  'student.streak_start_today': 'Start your streak today!',
+  'student.study_days_title': 'Weekly Study Rhythm',
+  'student.active_streak_label': 'day active streak',
+  'student.tasks_unit': 'tasks',
   'student.no_enrolled_courses_title': 'You are not enrolled in any courses yet',
-  'student.no_enrolled_courses_desc': 'Join using the 6-digit code from your teacher or explore the catalog',
-  'student.explore_courses_btn': 'Explore Courses',
-  'common.tasks_short': 'tasks',
+  'student.no_enrolled_courses_desc': 'Enter a 6-digit course code or explore the catalog',
+  'student.explore_courses_btn': 'Join Course',
 } as const;
 
 export default en;

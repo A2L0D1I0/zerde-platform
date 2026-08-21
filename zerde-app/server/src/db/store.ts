@@ -787,40 +787,29 @@ class DataStore {
     const user = this.users.get(studentId);
     if (!user) return null;
 
-    const stats = this.studentStats.get(studentId) || { elo: 1200, streak_days: 5, last_active: new Date().toISOString() };
+    const stats = this.studentStats.get(studentId) || { elo: 1000, streak_days: 0, last_active: new Date().toISOString() };
     const { rank, badge } = this.getEloRank(stats.elo);
 
     // Find pinned course (first enrolled course)
     const studentEnrs = this.getStudentEnrollments(studentId).filter(e => e.status === 'enrolled');
     let pinnedCourse: (Course & { progress_percentage: number; next_topic: string }) | null = null;
+    let recentTopics: Topic[] = [];
 
     if (studentEnrs.length > 0) {
       const course = this.courses.get(studentEnrs[0].course_id);
       if (course) {
         const topics = this.getCourseTopics(course.id);
         const completedCount = topics.filter(t => t.status_practice === 'completed').length;
-        const progress = topics.length > 0 ? Math.round((completedCount / topics.length) * 100) : 40;
+        const progress = topics.length > 0 ? Math.round((completedCount / topics.length) * 100) : 0;
         const nextTopic = topics.find(t => t.status_practice !== 'completed')?.title || 'Барлық тақырыптар орындалды';
         pinnedCourse = {
           ...course,
           progress_percentage: progress,
           next_topic: nextTopic
         };
+        recentTopics = topics.slice(0, 4);
       }
     }
-
-    if (!pinnedCourse) {
-      const defaultCourse = Array.from(this.courses.values())[0];
-      if (defaultCourse) {
-        pinnedCourse = {
-          ...defaultCourse,
-          progress_percentage: 65,
-          next_topic: 'Ньютонның екінші заңы және күштер векторлары'
-        };
-      }
-    }
-
-    const defaultTopics = this.topics.get('crs_physics_9') || [];
 
     return {
       user: this.toSafeUser(user),
@@ -828,25 +817,25 @@ class DataStore {
       rank,
       rank_badge: badge,
       streak_days: stats.streak_days,
-      streak_freeze_available: true,
+      streak_freeze_available: false,
       pinned_course: pinnedCourse,
-      recent_topics: defaultTopics.slice(0, 3),
+      recent_topics: recentTopics,
       memory_cards: {
-        due_today: 14,
-        total_reviewed: 180,
-        retention_rate: 94
+        due_today: stats.streak_days > 0 ? 3 : 0,
+        total_reviewed: stats.streak_days > 0 ? 15 : 0,
+        retention_rate: 100
       },
       daily_focus: {
-        title: '3-минуттық экспресс-жаттығу: Векторлық күштердің проекциясы',
+        title: pinnedCourse ? `3-минуттық экспресс: ${pinnedCourse.next_topic}` : 'Интерактивті кіріспе жаттығу',
         duration_minutes: 3,
-        topic_id: 'top_phys_02',
+        topic_id: 'top_focus_01',
         elo_reward: 15
       }
     };
   }
 
   public getStudentHeatmap(studentId: string): StudentHeatmapData {
-    const stats = this.studentStats.get(studentId) || { elo: 1200, streak_days: 12, last_active: new Date().toISOString() };
+    const stats = this.studentStats.get(studentId) || { elo: 1000, streak_days: 0, last_active: new Date().toISOString() };
     const matrix = [];
     const now = new Date();
     let totalContributions = 0;
@@ -855,25 +844,14 @@ class DataStore {
     for (let i = 364; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 86400000);
       const dateStr = d.toISOString().split('T')[0];
-      const dayOfWeek = d.getDay(); // 0 = Sun, 6 = Sat
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-      // Realistic learning pattern with high recent streak
       let count = 0;
       let level: 0 | 1 | 2 | 3 | 4 = 0;
 
-      if (i < stats.streak_days) {
-        // Active in current streak
-        count = Math.floor(Math.random() * 8) + 4;
-      } else if (Math.random() > 0.35) {
-        count = isWeekend ? Math.floor(Math.random() * 5) : Math.floor(Math.random() * 12) + 1;
+      if (stats.streak_days > 0 && i < stats.streak_days) {
+        count = Math.floor(Math.random() * 4) + 2;
+        level = Math.min(4, Math.max(1, count)) as 1 | 2 | 3 | 4;
       }
-
-      if (count > 8) level = 4;
-      else if (count > 5) level = 3;
-      else if (count > 2) level = 2;
-      else if (count > 0) level = 1;
-      else level = 0;
 
       totalContributions += count;
       matrix.push({ date: dateStr, count, level });
@@ -883,55 +861,50 @@ class DataStore {
       year: now.getFullYear(),
       total_contributions: totalContributions,
       current_streak: stats.streak_days,
-      longest_streak: Math.max(stats.streak_days, 24),
+      longest_streak: stats.streak_days,
       matrix
     };
   }
 
   public getStudentRoadmap(studentId: string): StudentRoadmapData {
-    const stats = this.studentStats.get(studentId) || { elo: 1420, streak_days: 12, last_active: new Date().toISOString() };
+    const stats = this.studentStats.get(studentId) || { elo: 1000, streak_days: 0, last_active: new Date().toISOString() };
 
     return {
-      target_exam: 'ҰБТ / ЕНТ 2026 (Математика + Физика)',
+      target_exam: 'ҰБТ / ЕНТ 2026',
       target_date: '2026-06-15',
       days_remaining: 115,
-      predicted_score: 128,
+      predicted_score: Math.min(140, Math.round((stats.elo / 2000) * 140)),
       target_score: 135,
       current_elo: stats.elo,
       milestones: [
         {
           id: 'ms_01',
-          title: '3-тоқсан СОР №1: Кинематика және Динамика',
-          deadline: '2026-02-28',
-          status: 'completed',
-          mastery: 92
+          title: 'Сызықтық теңдеулер жүйесі',
+          deadline: '2026-03-01',
+          status: stats.elo >= 1200 ? 'completed' : 'in_progress',
+          mastery: stats.elo >= 1200 ? 100 : 40
         },
         {
           id: 'ms_02',
-          title: '3-тоқсан СОЧ: Механика және Сақталу заңдары',
+          title: 'Квадрат теңсіздіктер',
           deadline: '2026-03-20',
-          status: 'in_progress',
-          mastery: 78
+          status: stats.elo >= 1400 ? 'completed' : 'in_progress',
+          mastery: stats.elo >= 1400 ? 100 : 20
         },
         {
           id: 'ms_03',
-          title: 'Пробное тестирование ҰБТ №3 (Математикалық сауаттылық)',
+          title: 'Бөлшек-рационал теңдеулер',
           deadline: '2026-04-10',
           status: 'upcoming',
-          mastery: 65
-        },
-        {
-          id: 'ms_04',
-          title: 'ҰБТ 2026 Негізгі емтихан',
-          deadline: '2026-06-15',
-          status: 'upcoming',
-          mastery: 40
+          mastery: 0
         }
       ]
     };
   }
 
+
   // --- Notifications ---
+
   public getNotifications(userId: string): NotificationItem[] {
     return this.notifications.get(userId) || [];
   }

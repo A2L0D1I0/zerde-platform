@@ -1,36 +1,37 @@
 import React from 'react';
 import { StudyDay } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { CheckCircle2, Flame, Lock, Sparkles } from 'lucide-react';
 
 interface WeekdayStudyCarouselProps {
   days: StudyDay[];
-  streakDays?: number;
   selectedDate?: string;
   onSelectDay?: (day: StudyDay) => void;
 }
 
 export const WeekdayStudyCarousel: React.FC<WeekdayStudyCarouselProps> = ({
   days,
-  streakDays = 0,
   selectedDate,
   onSelectDay,
 }) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const streak = user?.streakDays || 0;
 
   return (
     <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-3 sm:p-3.5 shadow-primer-xs">
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-primer-border-muted/60">
         <div className="flex items-center gap-1.5 text-xs font-bold text-primer-fg-default">
           <Sparkles className="w-3.5 h-3.5 text-primer-attention-fg" />
-          <span>{t('student.study_rhythm_title')}</span>
+          <span>{t('student.study_days_title')}</span>
         </div>
         <div className="flex items-center gap-1 text-[11px] font-mono text-primer-success-fg">
           <Flame className="w-3.5 h-3.5 fill-current text-primer-attention-fg" />
           <span>
-            {streakDays > 0
-              ? `${streakDays} ${t('student.streak_active_label')}`
-              : t('student.streak_start_today')}
+            {streak > 0
+              ? `${streak} ${t('student.active_streak_label')}`
+              : `${t('header.streak')}: 0`}
           </span>
         </div>
       </div>
@@ -82,7 +83,7 @@ export const WeekdayStudyCarousel: React.FC<WeekdayStudyCarouselProps> = ({
               </div>
 
               <span className="text-[9px] font-mono text-primer-fg-subtle mt-0.5">
-                {day.tasksCount > 0 ? `${day.tasksCount} ${t('common.tasks_short')}` : '—'}
+                {day.tasksCount > 0 ? `${day.tasksCount} ${t('student.tasks_unit')}` : '—'}
               </span>
             </button>
           );

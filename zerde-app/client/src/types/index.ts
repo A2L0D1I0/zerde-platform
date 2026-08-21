@@ -42,10 +42,8 @@ export interface Course {
   students_count: number;
   progress_percentage?: number;
   next_topic?: string;
-  is_enrolled?: boolean;
   enrollment_status?: 'enrolled' | 'pending_approval' | 'none' | 'expelled' | 'completed';
 }
-
 
 
 export interface Topic {

@@ -460,18 +460,19 @@ export const ru = {
   'student.full_roadmap_btn': 'Полный Roadmap',
   'student.linear_equations': 'Линейные уравнения',
   'student.quadratic_inequalities': 'Квадратные неравенства',
+
   'student.rational_equations': 'Дробно-рациональные уравнения',
   'student.quarter_topics_desc': 'Двухфакторный зачет и учебная матрица',
   'student.last_3_months': 'Последние 3 месяца',
   'student.less': 'Меньше',
   'student.more': 'Больше',
-  'student.study_rhythm_title': 'Недельный ритм обучения (Study Days)',
-  'student.streak_active_label': 'дней стрик активен',
-  'student.streak_start_today': 'Начните новый стрик сегодня!',
-  'student.no_enrolled_courses_title': 'Вы пока не записаны на курсы',
-  'student.no_enrolled_courses_desc': 'Присоединяйтесь по 6-значному коду от учителя или выберите курс в каталоге',
-  'student.explore_courses_btn': 'Смотреть курсы',
-  'common.tasks_short': 'зад.',
+  'common.topics': 'тем',
+  'student.study_days_title': 'Недельный ритм обучения',
+  'student.active_streak_label': 'дн. активный стрик',
+  'student.tasks_unit': 'зад.',
+  'student.no_enrolled_courses_title': 'Вы еще не записаны ни на один курс',
+  'student.no_enrolled_courses_desc': 'Введите 6-значный код курса или выберите курс в каталоге',
+  'student.explore_courses_btn': 'Записаться на курс',
 } as const;
 
 export default ru;

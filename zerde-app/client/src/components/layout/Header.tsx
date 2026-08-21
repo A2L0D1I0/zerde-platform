@@ -93,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-canvas-subtle border border-primer-border-default text-xs font-semibold text-primer-fg-default shadow-primer-xs">
             <span>{user?.eloRank?.symbol || '🌱'}</span>
             <span className="text-primer-success-fg font-mono font-bold">
-              {user?.overallElo ?? 1000}
+              {user?.overallElo ?? (role === 'teacher' ? 2000 : 1000)}
             </span>
             <span className="text-primer-fg-subtle text-[10px]">ELO</span>
           </div>
