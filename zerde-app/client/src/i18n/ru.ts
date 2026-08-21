@@ -432,7 +432,9 @@ export const ru = {
   'courses.catalog_subtitle': 'Динамические силлабусы, спецкурсы и олимпиадные треки от преподавателей',
   'courses.enrolled_filter': 'Мои курсы',
   'courses.pending_filter': 'Заявки',
+  'courses.enrollment_pending': 'На рассмотрении',
   'courses.apply_enroll': 'Подать заявку',
+
   'student.continue_learning': 'Продолжить обучение',
   'trainer.mentor_name': 'Наставник «Аға»',
   'trainer.active_canvas_hint': 'Изменяйте ветви параболы и корни, чтобы исследовать чередование знаков интервалов!',

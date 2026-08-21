@@ -463,8 +463,9 @@ export const kz = {
   'courses.catalog_subtitle': 'Мұғалімдер жасаған динамикалық силлабустар, спецкурстар мен олимпиадалық бағыттар',
   'courses.enrolled_filter': 'Менің курстарым',
   'courses.pending_filter': 'Өтініштер',
-  'courses.enrollment_pending': 'Күтілуде (pending_approval)',
+  'courses.enrollment_pending': 'Күтілуде',
   'courses.apply_enroll': 'Өтініш беру',
+
   'student.continue_learning': 'Оқуды жалғастыру',
   'trainer.mentor_name': '«Аға» наставнигі',
   'trainer.active_canvas_hint': 'Парабола тармақтары мен нөлдерін өзгертіп, таңбалардың ауысу заңдылығын зерттеңіз!',

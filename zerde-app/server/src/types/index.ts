@@ -46,17 +46,33 @@ export interface Course {
   id: string;
   short_code: string; // Unique random short token, e.g. '7X9K2M', 'K8F42A'
   title: string;
+  title_kz?: string;
+  title_ru?: string;
+  title_en?: string;
   description: string;
+  description_kz?: string;
+  description_ru?: string;
+  description_en?: string;
   subject: string;
+  subject_kz?: string;
+  subject_ru?: string;
+  subject_en?: string;
   teacher_id: string;
   teacher_name: string;
   grade: string;
   language: AppLanguage | 'all';
   is_active: boolean;
   students_count: number;
+  progress_percentage?: number;
+  next_topic?: string;
+  next_topic_kz?: string;
+  next_topic_ru?: string;
+  next_topic_en?: string;
+  enrollment_status?: 'enrolled' | 'pending_approval' | 'none' | 'expelled' | 'completed';
   created_at: string;
   updated_at: string;
 }
+
 
 export interface CourseInvitation {
   id: string;

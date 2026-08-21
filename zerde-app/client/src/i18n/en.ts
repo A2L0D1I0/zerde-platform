@@ -537,7 +537,10 @@ export const en = {
   'courses.catalog_title': 'Course Catalog & Curriculums',
   'courses.catalog_subtitle': 'Dynamic syllabi, advanced electives and olympiad tracks from instructors',
   'courses.enrolled_filter': 'My Courses',
+  'courses.pending_filter': 'Applications',
+  'courses.enrollment_pending': 'Pending Approval',
   'courses.apply_enroll': 'Apply to Enroll',
+
   'student.continue_learning': 'Continue Learning',
   'trainer.mentor_name': '"Aga" Mentor',
   'trainer.active_canvas_hint': 'Adjust the parabola branches and roots to explore interval sign alternations!',

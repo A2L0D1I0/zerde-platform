@@ -299,8 +299,9 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
                 <CardHeader className="p-4 pb-2 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <Badge variant="secondary" className="text-[10px] font-mono">
-                      {course.subject}
+                      {getLocalized(course, 'subject', course.subject)}
                     </Badge>
+
 
                     {/* Short Code Badge with 1-Click Copy */}
                     <div

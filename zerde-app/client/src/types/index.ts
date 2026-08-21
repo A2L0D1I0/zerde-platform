@@ -32,18 +32,31 @@ export interface Course {
   id: string;
   short_code?: string;
   title: string;
+  title_kz?: string;
+  title_ru?: string;
+  title_en?: string;
   description: string;
+  description_kz?: string;
+  description_ru?: string;
+  description_en?: string;
   subject: string;
+  subject_kz?: string;
+  subject_ru?: string;
+  subject_en?: string;
   teacher_id: string;
   teacher_name: string;
   grade: string;
-  language: AppLanguage | 'ALL';
+  language: AppLanguage | 'ALL' | 'all' | 'kz' | 'ru' | 'en';
   is_active: boolean;
   students_count: number;
   progress_percentage?: number;
   next_topic?: string;
+  next_topic_kz?: string;
+  next_topic_ru?: string;
+  next_topic_en?: string;
   enrollment_status?: 'enrolled' | 'pending_approval' | 'none' | 'expelled' | 'completed';
 }
+
 
 
 export interface Topic {
