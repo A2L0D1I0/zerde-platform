@@ -63,9 +63,19 @@ class DataStore {
       type: 'school',
       created_at: new Date('2026-01-01T08:00:00Z').toISOString()
     };
+    const org4: Organization = {
+      id: 'org_ekiboston_01',
+      name: 'Ekiboston Education',
+      org_token: 'EKB-8491-T',
+      type: 'tutoring',
+      created_at: new Date('2026-01-01T08:00:00Z').toISOString()
+    };
+
     this.organizations.set(org1.id, org1);
     this.organizations.set(org2.id, org2);
     this.organizations.set(org3.id, org3);
+    this.organizations.set(org4.id, org4);
+
 
     // 1. Seed Users
     const studentUser: User = {
