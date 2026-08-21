@@ -19,6 +19,7 @@ import {
   BookPlus,
   HelpCircle,
   Clock,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +40,8 @@ import {
 } from '@/api/teacherApi';
 import { StudentSkillDetailModal } from '@/components/teacher/StudentSkillDetailModal';
 import { KundelikExportModal } from '@/components/teacher/KundelikExportModal';
+import { GroupRoadmapModal } from '@/components/teacher/GroupRoadmapModal';
+import { calendarService } from '@/services/calendarService';
 
 interface TeacherDashboardProps {
   onOpenSmartboard?: (classroomId: string) => void;
@@ -74,6 +77,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
   // Kundelik Export Modal State
   const [isKundelikModalOpen, setIsKundelikModalOpen] = useState<boolean>(false);
+
+  // Group Roadmap Modal State
+  const [isGroupRoadmapOpen, setIsGroupRoadmapOpen] = useState<boolean>(false);
 
   // Load Data
   const loadDashboardData = useCallback(async () => {
@@ -260,6 +266,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <option value="4">10 «Б» (25 оқушы)</option>
             </select>
           </div>
+
+          {/* Group Roadmap Management Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsGroupRoadmapOpen(true)}
+            className="gap-1.5 text-xs font-semibold text-primer-accent-fg border-primer-accent-muted/40 hover:bg-primer-accent-subtle/30"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>📅 {classroomData?.classroom_name || '9 «А»'} Роадмапы</span>
+          </Button>
 
           {/* 1-Click Kundelik Export Button */}
           <Button
@@ -660,10 +677,34 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         skillMeta={selectedSkillMeta}
         skillData={selectedSkillData}
         onAssignDrill={(studentName, skillName) => {
+          if (selectedStudent) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            calendarService.addEvent({
+              title: `Жеке жаттығу: ${skillName}`,
+              description: `Мұғалім ${user?.full_name || 'Айнұр Серікқызы'} тағайындаған экспресс-жаттығу`,
+              date: todayStr,
+              time: '16:00',
+              type: 'teacher_student',
+              authorId: user?.id || 'tch_01',
+              authorName: user?.full_name || 'Мұғалім',
+              authorRole: 'teacher',
+              targetStudentId: String(selectedStudent.student_id),
+              targetStudentName: studentName,
+              targetGroupId: selectedClassroomId,
+              targetGroupName: classroomData?.classroom_name || '9 «А»',
+              isCompleted: false,
+              categoryId: 'practice',
+              colorTag: 'amber',
+              vectorIcons: ['Sparkles', 'Target', 'Zap'],
+              eloReward: 15,
+              verificationStatus: 'pending',
+            });
+          }
+
           showToast({
             type: 'success',
             title: 'Экспресс-жаттығу тағайындалды! 🚀',
-            message: `${studentName} үшін «${skillName}» бойынша 3 минуттық Сократикалық жаттығу жіберілді.`,
+            message: `${studentName} үшін «${skillName}» роадмапына жеке тапсырма ретінде қосылды (+15 ELO).`,
           });
         }}
         onAddToSmartboard={(skillName) => {
@@ -673,6 +714,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             message: `«${skillName}» тақырыбы интерактивті тақта кезегіне қойылды.`,
           });
         }}
+      />
+
+      {/* Group Roadmap Management Modal */}
+      <GroupRoadmapModal
+        isOpen={isGroupRoadmapOpen}
+        onClose={() => setIsGroupRoadmapOpen(false)}
+        groupId={selectedClassroomId}
+        groupName={classroomData?.classroom_name || '9 «А»'}
       />
 
       {/* 1-Click Kundelik Export Modal */}

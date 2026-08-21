@@ -27,7 +27,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { NotificationItem, WeeklyDigestData } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/toast';
+import { userProgressService } from '@/services/userProgressService';
 import api from '@/api/client';
 
 interface NotificationCenterProps {
@@ -39,6 +41,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onOpenTrainer,
   onOpenStreakSaver,
 }) => {
+  const { user } = useAuth();
   const { t, language } = useLanguage();
   const { showToast } = useToast();
 
@@ -164,26 +167,21 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         setDigestData(res);
       }
     } catch (err) {
-      console.warn('[NotificationCenter] Using local mock weekly digest');
+      const p = userProgressService.getState();
       setDigestData({
-        user_id: 'usr_student_01',
-        student_name: 'Әлихан Нұрланұлы',
-        week_range: '13.02.2026 — 20.02.2026',
-        elo_earned: 45,
-        current_elo: 1420,
-        class_rank: 3,
-        total_students: 24,
-        streak_maintained: 14,
-        tasks_completed: 18,
-        retention_rate: 94,
-        mastered_skills: [
-          'Ньютонның 2-заңы және үйкеліс күші векторлары',
-          'Интервалдар әдісі және квадрат теңсіздіктер',
-          'Фенол мен бензол сақинасының құрылымы',
-          'Қазақ тіліндегі шартты бағыныңқы сабақтас сөйлемдер',
-        ],
-        focus_next_week: 'Бөлшек-рационал теңсіздіктердің ОДЗ есебі және Атомдағы кванттық ұяшықтар',
-        mentor_quote: '«Табандылық пен күнделікті 3 минуттық фокус — үлкен жеңістердің баспалдағы. Стрикті үзбей алға ұмтыл!» — «Аға» наставнигі',
+        user_id: user?.id || 'current_user',
+        student_name: user?.full_name || 'Оқушы',
+        week_range: new Date().toLocaleDateString(),
+        elo_earned: 10,
+        current_elo: p.elo || 1000,
+        class_rank: 1,
+        total_students: 1,
+        streak_maintained: p.streakDays || 0,
+        tasks_completed: p.solvedTasksCount || 0,
+        retention_rate: 100,
+        mastered_skills: p.masteredTopicIds.length > 0 ? p.masteredTopicIds : ['Негізгі академиялық дағдылар'],
+        focus_next_week: 'Академиялық оқу бағдарламасының жаңа тақырыптары',
+        mentor_quote: '«Табандылық пен күнделікті 3 минуттық фокус — үлкен жеңістердің баспалдағы. Алға ұмтыл!» — «Аға» наставнигі',
         html_template: '',
       });
     } finally {
@@ -556,7 +554,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     <span>Осы аптада толық меңгерілген дағдылар:</span>
                   </div>
                   <ul className="list-disc list-inside space-y-1 text-primer-fg-default pl-1">
-                    {digestData.mastered_skills.map((s, i) => (
+                    {digestData.mastered_skills.map((s: string, i: number) => (
                       <li key={i}>{s}</li>
                     ))}
                   </ul>

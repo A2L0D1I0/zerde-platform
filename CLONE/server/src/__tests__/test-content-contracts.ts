@@ -1,5 +1,5 @@
-import { getDb } from './db/database';
-import { store } from './db/store';
+import { getDb } from '../db/database';
+import { store } from '../db/store';
 
 /**
  * ============================================================================

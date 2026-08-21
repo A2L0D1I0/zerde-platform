@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { Topic, TopicStatus } from '@/types';
+import { useLanguage } from '@/context/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/context/LanguageContext';
 import {
   CheckCircle2,
   Clock,
-  PlayCircle,
   CircleDot,
   Search,
   ChevronRight,
-  Filter,
   Layers,
-  Sparkles,
 } from 'lucide-react';
 
 interface QuarterTopicsTableProps {
@@ -24,16 +21,20 @@ export const QuarterTopicsTable: React.FC<QuarterTopicsTableProps> = ({
   topics,
   onSelectTopic,
 }) => {
-  const { t, getLocalized } = useLanguage();
+  const { t, language, getLocalized } = useLanguage();
   const [filter, setFilter] = useState<'all' | 'mastered' | 'in_progress' | 'pending' | 'queued'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const lang = (language as 'KZ' | 'RU' | 'EN') || 'KZ';
+
   const filteredTopics = topics.filter((t) => {
+    const title = getLocalized(t, 'title', t.title);
+    const desc = getLocalized(t, 'description', t.sub_text || t.description || '');
     const matchesFilter = filter === 'all' ? true : t.status === filter;
     const matchesQuery =
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (t.topic_number && t.topic_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (t.sub_text && t.sub_text.toLowerCase().includes(searchQuery.toLowerCase()));
+      desc.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesQuery;
   });
 
@@ -71,6 +72,37 @@ export const QuarterTopicsTable: React.FC<QuarterTopicsTableProps> = ({
     }
   };
 
+  const headerTitle =
+    lang === 'KZ'
+      ? 'Тоқсан тақырыптары (Quarter Topics Lifecycle)'
+      : lang === 'RU'
+      ? 'Темы четверти (Quarter Topics Lifecycle)'
+      : 'Quarter Topics Lifecycle (Quarter I)';
+
+  const headerSub =
+    lang === 'KZ'
+      ? 'GitHub Issues стиліндегі екі факторлы зачет пен оқу матрицасы'
+      : lang === 'RU'
+      ? 'Матрица навыков и зачетов в стиле GitHub Issues'
+      : 'GitHub Issues-style two-factor skill mastery matrix';
+
+  const filterAllLabel =
+    lang === 'KZ' ? 'Барлығы' : lang === 'RU' ? 'Все' : 'All';
+
+  const searchPlaceholder =
+    lang === 'KZ'
+      ? 'Тақырыптарды сүзу...'
+      : lang === 'RU'
+      ? 'Фильтр тем...'
+      : 'Filter topics...';
+
+  const todayFocusBadge =
+    lang === 'KZ'
+      ? 'Бүгінгі фокус'
+      : lang === 'RU'
+      ? 'Фокус дня'
+      : 'Today Focus';
+
   return (
     <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3">
       {/* Header with Title and Search */}
@@ -81,10 +113,10 @@ export const QuarterTopicsTable: React.FC<QuarterTopicsTableProps> = ({
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-              {t('student.quarter_topics')}
+              {headerTitle}
             </h3>
             <p className="text-[10px] text-primer-fg-muted">
-              {t('student.quarter_topics_desc')}
+              {headerSub}
             </p>
           </div>
         </div>
@@ -96,13 +128,13 @@ export const QuarterTopicsTable: React.FC<QuarterTopicsTableProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('header.search_placeholder')}
+            placeholder={searchPlaceholder}
             className="pl-8 pr-3 py-1 text-xs bg-primer-canvas-inset border border-primer-border-muted rounded-md text-primer-fg-default placeholder:text-primer-fg-subtle outline-none focus:border-primer-accent-emphasis w-full sm:w-48"
           />
         </div>
       </div>
 
-      {/* Filter Tabs (GitHub Style) */}
+      {/* Filter Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
         <button
           onClick={() => setFilter('all')}
@@ -112,7 +144,7 @@ export const QuarterTopicsTable: React.FC<QuarterTopicsTableProps> = ({
               : 'bg-primer-canvas-inset text-primer-fg-muted hover:text-primer-fg-default border border-primer-border-muted'
           }`}
         >
-          {t('common.all')} ({topics.length})
+          {filterAllLabel} ({topics.length})
         </button>
         <button
           onClick={() => setFilter('mastered')}
@@ -153,12 +185,16 @@ export const QuarterTopicsTable: React.FC<QuarterTopicsTableProps> = ({
       <div className="divide-y divide-primer-border-muted/50 border border-primer-border-muted rounded-lg overflow-hidden bg-primer-canvas-inset/40">
         {filteredTopics.length === 0 ? (
           <div className="py-8 text-center text-xs text-primer-fg-muted">
-            {t('common.no_data')}
+            {lang === 'KZ'
+              ? 'Бұл сүзгі бойынша тақырыптар табылмады.'
+              : lang === 'RU'
+              ? 'По данному фильтру тем не найдено.'
+              : 'No topics found for this filter.'}
           </div>
         ) : (
           filteredTopics.map((topic) => {
             const title = getLocalized(topic, 'title', topic.title);
-            const desc = getLocalized(topic, 'sub_text', topic.sub_text || topic.description || '');
+            const desc = getLocalized(topic, 'description', topic.sub_text || topic.description || '');
 
             return (
               <div
@@ -176,7 +212,7 @@ export const QuarterTopicsTable: React.FC<QuarterTopicsTableProps> = ({
                     </h4>
                     {topic.is_today_focus && (
                       <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-primer-attention-subtle text-primer-attention-fg border border-primer-attention-muted/60">
-                        {t('student.start_focus')}
+                        {todayFocusBadge}
                       </span>
                     )}
                   </div>
@@ -208,3 +244,4 @@ export const QuarterTopicsTable: React.FC<QuarterTopicsTableProps> = ({
   );
 };
 
+export default QuarterTopicsTable;

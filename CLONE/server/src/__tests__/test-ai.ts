@@ -1,5 +1,5 @@
 import http from 'http';
-import app from './server';
+import app from '../server';
 
 interface ApiResponse {
   success?: boolean;

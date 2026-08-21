@@ -1,44 +1,15 @@
 export type UserRole = 'student' | 'teacher' | 'admin';
 export type AppLanguage = 'KZ' | 'RU' | 'EN';
 export type AppTheme = 'light' | 'dark' | 'system';
-export type EnrollmentStatus = 'pending_approval' | 'enrolled' | 'rejected' | 'expelled' | 'completed';
+export type EnrollmentStatus = 'pending_approval' | 'enrolled' | 'expelled' | 'completed';
 export type EloRankLevel = 'Өскін' | 'Тұғыр' | 'Қыран' | 'Самғау';
 export type TopicStatus = 'mastered' | 'pending' | 'in_progress' | 'queued' | 'locked';
-
-export interface CourseApplicationData {
-  goal: string;
-  level: string;
-  weekly_hours: string;
-  notes?: string;
-  agreed_to_rules: boolean;
-}
-
-export interface Enrollment {
-  id: string;
-  course_id: string;
-  student_id: string;
-  student_name: string;
-  student_email: string;
-  grade?: string;
-  school?: string;
-  current_elo?: number;
-  status: EnrollmentStatus;
-  application_data?: CourseApplicationData;
-  rejection_reason?: string;
-  is_dismissed?: boolean;
-  applied_at: string;
-  updated_at: string;
-}
-
 
 export interface User {
   id: string;
   email: string;
   full_name: string;
   role: UserRole;
-  password?: string;
-  org_token?: string;
-  bio?: string;
   grade?: string;
   school?: string;
   language: AppLanguage;
@@ -56,43 +27,41 @@ export interface User {
 
 export interface Course {
   id: string;
-  short_code?: string;
   title: string;
-  title_kz?: string;
-  title_ru?: string;
-  title_en?: string;
   description: string;
-  description_kz?: string;
-  description_ru?: string;
-  description_en?: string;
   subject: string;
-  subject_kz?: string;
-  subject_ru?: string;
-  subject_en?: string;
   teacher_id: string;
   teacher_name: string;
   grade: string;
-  language: AppLanguage | 'ALL' | 'all' | 'kz' | 'ru' | 'en';
+  language: AppLanguage | 'ALL';
   is_active: boolean;
   students_count: number;
   progress_percentage?: number;
   next_topic?: string;
-  next_topic_kz?: string;
-  next_topic_ru?: string;
-  next_topic_en?: string;
-  enrollment_status?: 'enrolled' | 'pending_approval' | 'rejected' | 'none' | 'expelled' | 'completed';
+  enrollment_status?: 'enrolled' | 'pending_approval' | 'none' | 'expelled' | 'completed';
 }
 
-
-
+export interface Enrollment {
+  id: string;
+  student_id: string;
+  course_id: string;
+  status: EnrollmentStatus;
+  enrolled_at: string;
+}
 
 export interface Topic {
   id: string;
   course_id: string;
   topic_number?: string;
   title: string;
+  title_kz?: string;
+  title_ru?: string;
+  title_en?: string;
   order_index: number;
   description?: string;
+  description_kz?: string;
+  description_ru?: string;
+  description_en?: string;
   quarter?: number;
   status: TopicStatus;
   status_label?: string;
@@ -105,29 +74,34 @@ export interface HeatmapDay {
   date: string;
   level: 0 | 1 | 2 | 3 | 4;
   tasksCompleted: number;
+  dayOfWeek?: number;
+  topicsMastered?: number;
+  details?: string;
 }
 
 export interface SubjectFocus {
   id: string;
   title: string;
-  titleKZ?: string;
-  titleRU?: string;
-  titleEN?: string;
+  title_kz?: string;
+  title_ru?: string;
+  title_en?: string;
   icon: string;
   subjectElo: number;
   predictedScore: string;
+  predictedScore_kz?: string;
+  predictedScore_ru?: string;
+  predictedScore_en?: string;
   focusTopic: string;
-  focusTopicKZ?: string;
-  focusTopicRU?: string;
-  focusTopicEN?: string;
+  focusTopic_kz?: string;
+  focusTopic_ru?: string;
+  focusTopic_en?: string;
   focusReason: string;
-  focusReasonKZ?: string;
-  focusReasonRU?: string;
-  focusReasonEN?: string;
+  focusReason_kz?: string;
+  focusReason_ru?: string;
+  focusReason_en?: string;
   durationMinutes: number;
   ctaLabel: string;
 }
-
 
 export interface SpacedRepetitionItem {
   available: boolean;
@@ -162,67 +136,14 @@ export interface StudyDay {
   streakActive: boolean;
 }
 
-export interface RoadmapMilestone {
-  id: string;
-  title: string;
-  subject?: string;
-  deadline: string;
-  status: 'completed' | 'in_progress' | 'locked' | 'upcoming';
-  mastery: number;
-  scoreContribution?: number;
-  description?: string;
-  microSkills?: Array<{
-    name: string;
-    mastery: number;
-    isKey: boolean;
-  }>;
-}
-
-export interface StudentRoadmapData {
-  target_exam: string;
-  target_date: string;
-  days_remaining: number;
-  current_score: number;
-  predicted_score: number;
-  target_score: number;
-  current_elo: number;
-  milestones: RoadmapMilestone[];
-}
-
-export interface ClassLeaderboardEntry {
-  id: string;
-  rank: number;
-  name: string;
-  avatar_url?: string;
-  grade: string;
-  school: string;
-  elo: number;
-  eloRankLevel: EloRankLevel;
-  streakDays: number;
-  masteredCount: number;
-  isCurrentUser?: boolean;
-}
-
-export interface Enrollment {
-  id: string;
-  course_id: string;
-  student_id: string;
-  student_name: string;
-  student_email: string;
-  grade?: string;
-  status: EnrollmentStatus;
-  applied_at: string;
-  updated_at: string;
-}
-
 export interface StudentDashboardData {
   user: User;
   elo: number;
-  rank: EloRankLevel;
+  rank: string;
   rank_badge: string;
   streak_days: number;
   streak_freeze_available: boolean;
-  pinned_course: Course | null;
+  pinned_course?: Course | null;
   recent_topics: Topic[];
   memory_cards: {
     due_today: number;
@@ -245,51 +166,83 @@ export interface StudentHeatmapData {
   matrix: HeatmapDay[];
 }
 
-export type NotificationTriggerType = 
-  | 'STREAK_SAVER' 
-  | 'AGA_REMINDER' 
-  | 'MEMORY_BURN' 
-  | 'WEEKLY_DIGEST' 
-  | 'course_enrollment' 
-  | 'teacher_feedback' 
-  | 'system'
-  | 'streak_saver';
+export interface StudentRoadmapMilestone {
+  id: string;
+  title: string;
+  subject: string;
+  deadline: string;
+  status: 'completed' | 'in_progress' | 'locked';
+  mastery: number;
+  scoreContribution: number;
+  description: string;
+  microSkills?: Array<{
+    name: string;
+    mastery: number;
+    isKey: boolean;
+  }>;
+}
+
+export interface StudentRoadmapData {
+  target_exam: string;
+  target_date: string;
+  days_remaining: number;
+  current_score: number;
+  predicted_score: number;
+  target_score: number;
+  current_elo: number;
+  milestones: StudentRoadmapMilestone[];
+}
+
+export interface ClassLeaderboardEntry {
+  id: string;
+  rank: number;
+  name: string;
+  grade: string;
+  school: string;
+  elo: number;
+  eloRankLevel: EloRankLevel;
+  streakDays: number;
+  masteredCount: number;
+  avatar_url?: string;
+  isCurrentUser?: boolean;
+}
 
 export interface NotificationItem {
   id: string;
   user_id?: string;
+  type?: any;
+  trigger_type?: string;
   title: string;
   message: string;
-  type: NotificationTriggerType;
-  trigger_type?: 'STREAK_SAVER' | 'AGA_REMINDER' | 'MEMORY_BURN' | 'WEEKLY_DIGEST';
-  is_read: boolean;
   created_at: string;
+  is_read?: boolean;
+  read?: boolean;
   action_url?: string;
-  priority?: 'urgent' | 'high' | 'normal';
-  metadata?: {
-    streak_days?: number;
-    expires_in_minutes?: number;
-    elo_reward?: number;
-    formulas_count?: number;
-    top_rank?: number;
-    topic_id?: string;
-    topic_title?: string;
-  };
+  action_cta?: string;
+  priority?: 'low' | 'normal' | 'high' | 'urgent' | string;
+  payload?: any;
+  metadata?: any;
+  data?: any;
 }
 
 export interface WeeklyDigestData {
-  user_id: string;
-  student_name: string;
+  user_id?: string;
+  student_name?: string;
   week_range: string;
-  elo_earned: number;
-  current_elo: number;
-  class_rank: number;
-  total_students: number;
-  streak_maintained: number;
-  tasks_completed: number;
-  retention_rate: number;
+  total_study_minutes?: number;
   mastered_skills: string[];
-  focus_next_week: string;
+  elo_growth?: number;
+  elo_earned?: number;
+  current_elo?: number;
+  class_rank?: number;
+  total_students?: number;
+  streak_maintained?: number;
+  current_streak?: number;
   mentor_quote: string;
-  html_template: string;
+  next_week_target?: string;
+  focus_next_week?: string;
+  total_problems_solved?: number;
+  tasks_completed?: number;
+  retention_rate?: number;
+  html_template?: string;
 }

@@ -267,3 +267,65 @@ CREATE TABLE IF NOT EXISTS retention_notifications (
 );
 
 CREATE INDEX IF NOT EXISTS idx_retention_std_unread ON retention_notifications(student_id, is_read, created_at DESC);
+
+-- 14. Пресеты учебных курсов и слотов (Course Presets)
+CREATE TABLE IF NOT EXISTS course_presets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    subject_type TEXT NOT NULL,
+    syllabus_json TEXT NOT NULL,                 -- Структура тем, микро-навыков, банка вопросов
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_course_presets_teacher ON course_presets(teacher_id);
+
+-- 15. Утренние проактивные брифинги учителя от Co-Pilot
+CREATE TABLE IF NOT EXISTS morning_briefings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL,
+    classroom_id INTEGER,
+    date TEXT NOT NULL,                          -- YYYY-MM-DD
+    briefing_text TEXT NOT NULL,
+    action_items_json TEXT,                      -- Рекомендации по корректировке плана урока
+    status TEXT NOT NULL CHECK(status IN ('pending', 'approved', 'adjusted')) DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_morning_briefings ON morning_briefings(teacher_id, date);
+
+-- 16. Когнитивный Паспорт Ученика (Student Passport)
+CREATE TABLE IF NOT EXISTS student_passports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER UNIQUE NOT NULL,
+    cognitive_summary TEXT NOT NULL,
+    strengths_json TEXT NOT NULL DEFAULT '[]',
+    gaps_json TEXT NOT NULL DEFAULT '[]',
+    recommendations_json TEXT NOT NULL DEFAULT '[]',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_passports_std ON student_passports(student_id);
+
+-- 17. Электронный журнал Kundelik.kz с дескрипторами и СОР/СОЧ
+CREATE TABLE IF NOT EXISTS kundelik_journal (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    classroom_id INTEGER NOT NULL,
+    student_id INTEGER NOT NULL,
+    topic_id INTEGER NOT NULL,
+    date TEXT NOT NULL,                          -- YYYY-MM-DD
+    score INTEGER NOT NULL,                      -- 1..10
+    work_type TEXT NOT NULL DEFAULT 'formative', -- formative, sor, soch
+    descriptor TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_kundelik_journal ON kundelik_journal(classroom_id, date);

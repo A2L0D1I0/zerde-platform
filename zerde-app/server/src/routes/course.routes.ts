@@ -273,6 +273,10 @@ router.post(['/:id/enroll', '/:id/apply'], authenticate, requireRole('student'),
       throw new AppError('Курс табылмады', 404);
     }
 
+    if (course.teacher_id === req.user.id) {
+      throw new AppError('Мұғалім өзі жасаған курсына оқушы ретінде өтініш бере алмайды (Teacher cannot apply to own course)', 400);
+    }
+
     const existingUser = store.findUserById(req.user.id);
     if (!existingUser) {
       throw new AppError('Оқушы табылмады', 404);

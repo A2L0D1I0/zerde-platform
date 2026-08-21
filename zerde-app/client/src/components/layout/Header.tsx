@@ -29,29 +29,53 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
+import { NavTabId } from '@/components/layout/BottomNav';
+import {
+  Home,
+  BookOpen as BookOpenIcon,
+  Zap as ZapIcon,
+  Calendar as CalendarIcon,
+} from 'lucide-react';
+
 interface HeaderProps {
   onOpenCommandPalette: () => void;
   onOpenTrainer?: (topicId?: string) => void;
   onOpenStreakSaver?: () => void;
+  activeTab?: NavTabId;
+  onTabChange?: (tab: NavTabId) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenCommandPalette,
   onOpenTrainer,
   onOpenStreakSaver,
+  activeTab = 'home',
+  onTabChange,
 }) => {
   const { user, role, switchRole, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
 
+  const lang = (language as 'KZ' | 'RU' | 'EN') || 'KZ';
+
+  const studentNavTabs = [
+    { id: 'home' as NavTabId, label: t('nav.home') || (lang === 'KZ' ? 'Басты бет' : lang === 'RU' ? 'Главная' : 'Home'), icon: Home },
+    { id: 'courses' as NavTabId, label: t('nav.courses') || (lang === 'KZ' ? 'Пәндер' : lang === 'RU' ? 'Предметы' : 'Courses'), icon: BookOpenIcon },
+    { id: 'roadmap' as NavTabId, label: lang === 'KZ' ? 'Күнтізбе' : lang === 'RU' ? 'Календарь' : 'Calendar', icon: CalendarIcon },
+    { id: 'profile' as NavTabId, label: lang === 'KZ' ? 'Профиль' : lang === 'RU' ? 'Профиль' : 'Profile', icon: UserCheck },
+  ];
+
   return (
     <header className="sticky top-0 z-30 bg-primer-canvas-default/95 backdrop-blur border-b border-primer-border-default px-3.5 sm:px-6 py-2.5 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         
-        {/* Left: Brand & Search */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        {/* Left: Brand & Search & Desktop Nav */}
+        <div className="flex items-center gap-3 sm:gap-5 min-w-0">
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer select-none">
+          <div
+            onClick={() => onTabChange && onTabChange('home')}
+            className="flex items-center gap-2 cursor-pointer select-none"
+          >
             <div className="w-8 h-8 rounded-full bg-primer-canvas-subtle border border-primer-border-default flex items-center justify-center font-bold text-xs text-primer-fg-default shadow-primer-xs shrink-0">
               <svg height="20" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="20" fill="currentColor">
                 <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
@@ -72,6 +96,31 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
+          {/* Desktop Navigation Links for Students */}
+          {role === 'student' && onTabChange && (
+            <nav className="hidden lg:flex items-center gap-1">
+              {studentNavTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => onTabChange(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer ${
+                      isActive
+                        ? 'bg-primer-canvas-subtle text-primer-accent-fg border border-primer-border-default shadow-xs'
+                        : 'text-primer-fg-muted hover:text-primer-fg-default hover:bg-primer-canvas-subtle/50'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          )}
+
           {/* Quick Search / Command Palette Button */}
           <button
             onClick={onOpenCommandPalette}
@@ -89,21 +138,26 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right: Badges & Controls */}
         <div className="flex items-center gap-2 sm:gap-2.5">
           
-          {/* ELO Rank Pill */}
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-canvas-subtle border border-primer-border-default text-xs font-semibold text-primer-fg-default shadow-primer-xs">
-            <span>{user?.eloRank?.symbol || '🌱'}</span>
-            <span className="text-primer-success-fg font-mono font-bold">
-              {user?.overallElo ?? (role === 'teacher' ? 2000 : 1000)}
-            </span>
-            <span className="text-primer-fg-subtle text-[10px]">ELO</span>
-          </div>
+          {/* ELO Rank & Streak Flame Pills (Students Only) */}
+          {role === 'student' && (
+            <>
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-canvas-subtle border border-primer-border-default text-xs font-semibold text-primer-fg-default shadow-primer-xs">
+                <span>{user?.eloRank?.symbol || '🌱'}</span>
+                <span className="text-primer-success-fg font-mono font-bold">
+                  {user?.overallElo ?? 1000}
+                </span>
+                <span className="text-primer-fg-subtle text-[10px]">ELO</span>
+              </div>
 
-          {/* Streak Flame Pill */}
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-attention-subtle border border-primer-attention-muted/60 text-xs font-bold text-primer-attention-fg shadow-primer-xs">
-            <Flame className="w-3.5 h-3.5 text-primer-attention-fg fill-primer-attention-fg" />
-            <span className="font-mono">{user?.streakDays ?? 0}</span>
-          </div>
-
+              <div
+                onClick={onOpenStreakSaver}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primer-attention-subtle border border-primer-attention-muted/60 text-xs font-bold text-primer-attention-fg shadow-primer-xs cursor-pointer hover:bg-primer-attention-subtle/80 transition"
+              >
+                <Flame className="w-3.5 h-3.5 text-primer-attention-fg fill-primer-attention-fg" />
+                <span className="font-mono">{user?.streakDays ?? 0}</span>
+              </div>
+            </>
+          )}
 
           {/* Language Switcher Dropdown */}
           <DropdownMenu>
@@ -149,7 +203,7 @@ export const Header: React.FC<HeaderProps> = ({
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2.5 py-2">
                 <div className="text-xs font-bold text-primer-fg-default truncate">
-                  {user?.full_name || 'Әлихан Нұрғалиев'}
+                  {user?.full_name || (lang === 'KZ' ? 'Оқушы' : lang === 'RU' ? 'Ученик' : 'Student')}
                 </div>
                 <div className="text-[11px] text-primer-fg-muted truncate">{user?.email}</div>
                 <div className="mt-1 flex items-center gap-1">
@@ -166,35 +220,21 @@ export const Header: React.FC<HeaderProps> = ({
 
               <DropdownMenuSeparator />
 
-              {/* Switch Role */}
-              <DropdownMenuItem
-                onClick={() => switchRole(role === 'student' ? 'teacher' : 'student')}
-                className="gap-2 cursor-pointer"
-              >
-                {role === 'student' ? (
-                  <>
-                    <GraduationCap className="w-3.5 h-3.5 text-primer-accent-fg" />
-                    <span>{t('palette.switch_to_teacher')}</span>
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="w-3.5 h-3.5 text-primer-success-fg" />
-                    <span>{t('palette.switch_to_student')}</span>
-                  </>
-                )}
-              </DropdownMenuItem>
-
               {/* Theme Toggle */}
               <DropdownMenuItem onClick={toggleTheme} className="gap-2 cursor-pointer">
                 {theme === 'dark' ? (
                   <>
                     <Sun className="w-3.5 h-3.5 text-primer-attention-fg" />
-                    <span>Ашық тақырып (Light)</span>
+                    <span>
+                      {lang === 'KZ' ? 'Жарық тақырып (Light)' : lang === 'RU' ? 'Светлая тема (Light)' : 'Light Theme'}
+                    </span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-3.5 h-3.5 text-primer-accent-fg" />
-                    <span>Күңгірт тақырып (Dark)</span>
+                    <span>
+                      {lang === 'KZ' ? 'Қараңғы тақырып (Dark)' : lang === 'RU' ? 'Темная тема (Dark)' : 'Dark Theme'}
+                    </span>
                   </>
                 )}
               </DropdownMenuItem>

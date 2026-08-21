@@ -1,10 +1,10 @@
 import http from 'http';
-import app from './server';
-import { calculateDinaSkillMastery, classifyStudentError, getStudentCdmProfile } from './services/cdm-qmatrix';
-import { getEloRank, applyEloDelta, getDeltaForReason, getStudentElo, getStudentEloHistory } from './services/elo-engine';
-import { calculateSM2, getDueCardsForStudent, reviewSpacedCard, getSpacedRepetitionSummary } from './services/spaced-repetition';
-import { getQuestionsForDeficit, getAdaptivePracticeSession } from './services/question-cache';
-import { generateToken } from './middleware/auth.middleware';
+import app from '../server';
+import { calculateDinaSkillMastery, classifyStudentError, getStudentCdmProfile } from '../services/cdm-qmatrix';
+import { getEloRank, applyEloDelta, getDeltaForReason, getStudentElo, getStudentEloHistory } from '../services/elo-engine';
+import { calculateSM2, getDueCardsForStudent, reviewSpacedCard, getSpacedRepetitionSummary } from '../services/spaced-repetition';
+import { getQuestionsForDeficit, getAdaptivePracticeSession } from '../services/question-cache';
+import { generateToken } from '../middleware/auth.middleware';
 
 async function runMathEngineVerification() {
   console.log('================================================================');

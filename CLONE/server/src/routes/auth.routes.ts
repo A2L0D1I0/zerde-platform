@@ -15,6 +15,8 @@ const registerSchema = z.object({
   role: z.enum(['student', 'teacher', 'admin'], {
     errorMap: () => ({ message: 'Рөл: student, teacher немесе admin болуы керек' })
   }),
+  bio: z.string().optional(),
+  org_token: z.string().optional(),
   grade: z.string().optional(),
   school: z.string().optional(),
   language: z.enum(['kz', 'ru', 'en']).optional().default('kz'),
@@ -29,6 +31,7 @@ const loginSchema = z.object({
 
 const profileUpdateSchema = z.object({
   full_name: z.string().min(2, 'Аты-жөн кемінде 2 әріптен тұруы керек').optional(),
+  bio: z.string().optional(),
   language: z.enum(['kz', 'ru', 'en'], {
     errorMap: () => ({ message: 'Тіл тек kz, ru немесе en болуы мүмкін' })
   }).optional(),
@@ -53,6 +56,23 @@ router.post('/register', async (req, res, next) => {
       throw new AppError('Бұл email бойынша пайдаланушы тіркелген (User already exists)', 409);
     }
 
+    let organizationId: string | undefined;
+    let schoolName = validated.school || '';
+
+
+    // Organization Token Verification for Teachers
+    if (validated.role === 'teacher') {
+      if (!validated.org_token || validated.org_token.trim() === '') {
+        throw new AppError('Оқытушы ретінде тіркелу үшін Ұйымның қауіпсіздік токені қажет (Organization token required)', 400);
+      }
+      const org = store.validateOrgToken(validated.org_token);
+      if (!org) {
+        throw new AppError('Ұйым токені жарамсыз немесе табылмады (Invalid organization security token)', 403);
+      }
+      organizationId = org.id;
+      schoolName = org.name;
+    }
+
     const salt = await bcryptjs.genSalt(10);
     const password_hash = await bcryptjs.hash(validated.password, salt);
 
@@ -61,8 +81,10 @@ router.post('/register', async (req, res, next) => {
       password_hash,
       full_name: validated.full_name,
       role: validated.role,
-      grade: validated.grade,
-      school: validated.school || 'РФМШ Астана',
+      bio: validated.bio || '',
+      grade: validated.grade || '',
+      school: schoolName,
+      organization_id: organizationId,
       language: validated.language,
       theme: validated.theme,
       avatar_url: validated.avatar_url
@@ -84,6 +106,7 @@ router.post('/register', async (req, res, next) => {
     next(error);
   }
 });
+
 
 /**
  * POST /api/auth/login

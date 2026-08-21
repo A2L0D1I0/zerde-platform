@@ -13,12 +13,14 @@ import {
   Award,
   CheckCircle2,
   Flame,
+  Calendar,
 } from 'lucide-react';
 import { TeacherDashboard } from './TeacherDashboard';
 import { CourseBuilderScreen } from './CourseBuilderScreen';
 import { SmartboardScreen } from './SmartboardScreen';
+import { TeacherCalendarScreen } from './TeacherCalendarScreen';
 
-export type TeacherPortalTab = 'dashboard' | 'builder' | 'smartboard' | 'enrollments';
+export type TeacherPortalTab = 'dashboard' | 'calendar' | 'builder' | 'smartboard' | 'enrollments';
 
 export const TeacherPortal: React.FC = () => {
   const { t } = useLanguage();
@@ -54,6 +56,18 @@ export const TeacherPortal: React.FC = () => {
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>{t('teacher.tab_gradebook')}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={`px-3 py-1.5 font-bold rounded-md transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                activeTab === 'calendar'
+                  ? 'bg-primer-canvas-subtle text-primer-fg-default shadow-xs border border-primer-border-default/60'
+                  : 'text-primer-fg-muted hover:text-primer-fg-default'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-primer-accent-fg" />
+              <span>Күнтізбе / Роадмап</span>
             </button>
 
             <button
@@ -98,6 +112,14 @@ export const TeacherPortal: React.FC = () => {
               setActiveTab('smartboard');
             }}
             onOpenCourseBuilder={() => setActiveTab('builder')}
+          />
+        )}
+
+        {activeTab === 'calendar' && (
+          <TeacherCalendarScreen
+            onOpenClassJournal={(classId) => {
+              setActiveTab('dashboard');
+            }}
           />
         )}
 

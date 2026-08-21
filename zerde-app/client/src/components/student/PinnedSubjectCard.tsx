@@ -19,6 +19,7 @@ export const PinnedSubjectCard: React.FC<PinnedSubjectCardProps> = ({
   const title = getLocalized(subject, 'title', subject.title);
   const focusTopic = getLocalized(subject, 'focusTopic', subject.focusTopic);
   const focusReason = getLocalized(subject, 'focusReason', subject.focusReason);
+  const predictedScore = getLocalized(subject, 'predictedScore', subject.predictedScore);
 
   return (
     <div className="rounded-lg border border-primer-border-default bg-primer-canvas-subtle p-3.5 sm:p-4 shadow-primer-xs">
@@ -38,15 +39,15 @@ export const PinnedSubjectCard: React.FC<PinnedSubjectCardProps> = ({
               </Badge>
             </div>
             <p className="text-[10px] text-primer-fg-muted mt-0.5">
-              {t('student.predicted_grade_label')}{' '}
-              <span className="font-semibold text-primer-success-fg">{subject.predictedScore}</span>
+              {t('student.predicted_grade_label') || 'Predicted Grade:'}{' '}
+              <span className="font-semibold text-primer-success-fg">{predictedScore}</span>
             </p>
           </div>
         </div>
 
         <div className="hidden xs:flex items-center gap-1 text-[11px] font-mono text-primer-fg-muted bg-primer-canvas-inset px-2 py-0.5 rounded border border-primer-border-muted">
           <Clock className="w-3 h-3 text-primer-attention-fg" />
-          <span>{subject.durationMinutes} {t('common.minutes')}</span>
+          <span>{subject.durationMinutes} {t('common.minutes') || 'min'}</span>
         </div>
       </div>
 
@@ -69,7 +70,7 @@ export const PinnedSubjectCard: React.FC<PinnedSubjectCardProps> = ({
       <div className="pt-2 border-t border-primer-border-muted/50 flex items-center justify-between gap-2">
         <span className="text-[10px] text-primer-fg-subtle flex items-center gap-1">
           <TrendingUp className="w-3 h-3 text-primer-success-fg" />
-          <span>{t('student.eureka_reward_tag')}</span>
+          <span>{t('student.eureka_reward_tag') || '+15 ELO Eureka Reward'}</span>
         </span>
 
         <Button
@@ -79,10 +80,11 @@ export const PinnedSubjectCard: React.FC<PinnedSubjectCardProps> = ({
           className="gap-1.5 font-bold shadow-primer-xs"
         >
           <Zap className="w-3.5 h-3.5 fill-current" />
-          <span>{t('student.start_focus')} ({subject.durationMinutes} {t('common.minutes')})</span>
+          <span>{t('student.start_focus') || 'Start Focus'} ({subject.durationMinutes} {t('common.minutes') || 'min'})</span>
         </Button>
       </div>
     </div>
   );
 };
 
+export default PinnedSubjectCard;

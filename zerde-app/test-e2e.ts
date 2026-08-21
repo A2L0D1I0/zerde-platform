@@ -1,1 +1,1 @@
-import './server/src/test-e2e';
+import './server/src/__tests__/test-e2e';

@@ -272,43 +272,12 @@ export const CourseBuilderScreen: React.FC = () => {
     });
   };
 
-  // Invite Student to Group Modal State
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteStudentName, setInviteStudentName] = useState('');
-  const [inviteStudentEmail, setInviteStudentEmail] = useState('');
-  const [isSendingInvite, setIsSendingInvite] = useState(false);
-  const shortCode = '7X9K2M';
-
-  const handleSendInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inviteStudentEmail || !inviteStudentName) return;
-    setIsSendingInvite(true);
-    try {
-      showToast({
-        type: 'success',
-        title: t('courses.invite_student_title'),
-        message: `«${inviteStudentName}» (${inviteStudentEmail}) оқушысына шақыру сәтті жіберілді! 🎉`,
-      });
-      setInviteStudentName('');
-      setInviteStudentEmail('');
-      setIsInviteModalOpen(false);
-    } catch (err: any) {
-      showToast({
-        type: 'danger',
-        title: t('common.error_occurred'),
-        message: err.message || t('common.failed_to_save'),
-      });
-    } finally {
-      setIsSendingInvite(false);
-    }
-  };
-
   // Publish Course
   const handlePublishCourse = () => {
     showToast({
       type: 'success',
       title: 'Курс сәтті жарияланды! 🚀',
-      message: `«${courseTitle}» курсы ${grade} тобының жеке кабинетінде қолжетімді.`,
+      message: `«${courseTitle}» курсы ${grade} оқушыларының жеке кабинетінде қолжетімді.`,
     });
   };
 
@@ -337,34 +306,6 @@ export const CourseBuilderScreen: React.FC = () => {
 
         {/* Action Toolbar */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Automatic Short Code Badge with 1-Click Copy */}
-          <div
-            onClick={() => {
-              navigator.clipboard.writeText(shortCode);
-              showToast({
-                type: 'success',
-                title: t('courses.code_copied_toast'),
-                message: shortCode,
-              });
-            }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-primer-canvas-inset border border-primer-accent-muted/40 font-mono text-xs font-bold text-primer-accent-fg cursor-pointer hover:border-primer-accent-emphasis shadow-primer-xs"
-            title={t('courses.copy_code_tooltip')}
-          >
-            <span className="text-[10px] text-primer-fg-muted">{t('courses.short_code_badge')}</span>
-            <span>{shortCode}</span>
-            <span>📋</span>
-          </div>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsInviteModalOpen(true)}
-            className="gap-1.5 text-xs font-semibold"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>{t('courses.invite_student_title')}</span>
-          </Button>
-
           <Button
             variant="secondary"
             size="sm"
@@ -372,84 +313,20 @@ export const CourseBuilderScreen: React.FC = () => {
             className="gap-1.5 text-xs font-semibold"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>{t('common.add')}</span>
+            <span>Тақырып қосу</span>
           </Button>
 
           <Button
             variant="primary"
             size="sm"
             onClick={handlePublishCourse}
-            className="gap-1.5 text-xs font-bold shadow-primer-xs"
+            className="gap-1.5 font-bold text-xs"
           >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Жариялау</span>
+            <BookPlus className="w-3.5 h-3.5" />
+            <span>Курсты жариялау</span>
           </Button>
         </div>
       </div>
-
-      {/* Invite Student Modal */}
-      <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-primer-accent-fg" />
-              <span>{t('courses.invite_student_title')}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Оқушыға осы топқа қосылу үшін ресми шақыру жіберіңіз
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSendInvite} className="space-y-3 py-2">
-            <div>
-              <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                {t('courses.invite_student_name')}
-              </label>
-              <Input
-                type="text"
-                value={inviteStudentName}
-                onChange={(e) => setInviteStudentName(e.target.value)}
-                placeholder="Мысалы: Азамат Темірханов"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-primer-fg-muted block mb-1">
-                {t('courses.invite_student_email')}
-              </label>
-              <Input
-                type="email"
-                value={inviteStudentEmail}
-                onChange={(e) => setInviteStudentEmail(e.target.value)}
-                placeholder="azamat@zerde.kz"
-                required
-              />
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-primer-canvas-subtle border border-primer-border-muted text-[11px] text-primer-fg-muted space-y-1">
-              <div className="font-semibold text-primer-fg-default">
-                Курс тобының кодпен қосылу мүмкіндігі:
-              </div>
-              <div className="flex items-center gap-1 font-mono font-bold text-primer-accent-fg">
-                <span>{shortCode}</span>
-                <span className="text-[10px] text-primer-fg-subtle">(Оқушы тікелей осы кодты жазып кіре алады)</span>
-              </div>
-            </div>
-
-            <DialogFooter className="gap-2 pt-2">
-              <Button type="button" variant="secondary" size="sm" onClick={() => setIsInviteModalOpen(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" variant="primary" size="sm" disabled={isSendingInvite}>
-                {isSendingInvite ? '...' : t('courses.send_invite_btn')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-
 
       {/* Split-View Studio Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">

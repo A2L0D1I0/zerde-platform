@@ -105,42 +105,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         onClose();
       },
     },
-    {
-      category: 'Мұғалім студиясы',
-      id: 'teacher-smartboard',
-      title: 'Смарт-доска: 5 минуттық интервенция (F11)',
-      icon: Sparkles,
-      action: () => {
-        if (role !== 'teacher') switchRole('teacher');
-        showToast({
-          type: 'attention',
-          title: 'Смарт-доска режимі',
-          message: 'F11 режиміне өтуде...',
-        });
-        onClose();
-      },
-    },
-    {
-      category: 'Мұғалім студиясы',
-      id: 'teacher-builder',
-      title: 'AI Co-Pilot Course Studio & Конструктор',
-      icon: BookOpen,
-      action: () => {
-        if (role !== 'teacher') switchRole('teacher');
-        onClose();
-      },
-    },
-    {
-      category: 'Мұғалім студиясы',
-      id: 'teacher-kundelik',
-      title: '1-Click Kundelik.kz Экспорт',
-      icon: Sparkles,
-      action: () => {
-        if (role !== 'teacher') switchRole('teacher');
-        onClose();
-      },
-    },
-
     // Actions & Tools
     {
       category: t('palette.actions'),
@@ -151,24 +115,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         toggleTheme();
         showToast({
           type: 'info',
-          title: 'Тема өзгертілді',
-          message: `Тақырып: ${theme === 'dark' ? 'Ашық (Light)' : 'Күңгірт (Dark)'}`,
-        });
-        onClose();
-      },
-    },
-    {
-      category: t('palette.actions'),
-      id: 'switch-role',
-      title: role === 'student' ? t('palette.switch_to_teacher') : t('palette.switch_to_student'),
-      icon: role === 'student' ? GraduationCap : UserCheck,
-      action: () => {
-        const nextRole = role === 'student' ? 'teacher' : 'student';
-        switchRole(nextRole);
-        showToast({
-          type: 'success',
-          title: 'Рөл ауыстырылды',
-          message: `Ағымдағы режим: ${nextRole === 'teacher' ? 'Мұғалім' : 'Оқушы'}`,
+          title: language === 'KZ' ? 'Тема өзгертілді' : language === 'RU' ? 'Тема изменена' : 'Theme updated',
+          message: `${theme === 'dark' ? 'Light' : 'Dark'}`,
         });
         onClose();
       },

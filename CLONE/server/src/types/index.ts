@@ -1,9 +1,18 @@
 export type UserRole = 'student' | 'teacher' | 'admin';
 export type AppLanguage = 'kz' | 'ru' | 'en';
 export type AppTheme = 'light' | 'dark' | 'system';
-export type EnrollmentStatus = 'pending_approval' | 'enrolled' | 'expelled' | 'completed';
+export type EnrollmentStatus = 'pending_approval' | 'enrolled' | 'rejected' | 'expelled' | 'completed';
 export type EloRank = 'Өскін' | 'Тұғыр' | 'Қыран' | 'Самғау';
 export type TopicStatus = 'locked' | 'available' | 'in_progress' | 'completed';
+
+
+export interface Organization {
+  id: string;
+  name: string;
+  org_token: string; // e.g. 'ORG-8F3K9A', 'ZK-7492-X'
+  type: 'school' | 'university' | 'college' | 'academy' | 'tutoring';
+  created_at: string;
+}
 
 export interface User {
   id: string;
@@ -11,8 +20,10 @@ export interface User {
   password_hash: string;
   full_name: string;
   role: UserRole;
+  bio?: string;
   grade?: string;
   school?: string;
+  organization_id?: string;
   language: AppLanguage;
   theme: AppTheme;
   avatar_url?: string;
@@ -20,21 +31,62 @@ export interface User {
   updated_at: string;
 }
 
-export type SafeUser = Omit<User, 'password_hash'>;
+export interface SafeUser extends Omit<User, 'password_hash'> {
+  overallElo?: number;
+  streakDays?: number;
+  eloRank?: {
+    level: EloRank;
+    symbol: string;
+    minElo: number;
+    maxElo: number;
+  };
+}
+
 
 export interface Course {
   id: string;
+  short_code: string; // Unique random short token, e.g. '7X9K2M', 'K8F42A'
   title: string;
+  title_kz?: string;
+  title_ru?: string;
+  title_en?: string;
   description: string;
+  description_kz?: string;
+  description_ru?: string;
+  description_en?: string;
   subject: string;
+  subject_kz?: string;
+  subject_ru?: string;
+  subject_en?: string;
   teacher_id: string;
   teacher_name: string;
   grade: string;
   language: AppLanguage | 'all';
   is_active: boolean;
   students_count: number;
+  progress_percentage?: number;
+  next_topic?: string;
+  next_topic_kz?: string;
+  next_topic_ru?: string;
+  next_topic_en?: string;
+  enrollment_status?: 'enrolled' | 'pending_approval' | 'rejected' | 'none' | 'expelled' | 'completed';
   created_at: string;
+
   updated_at: string;
+}
+
+
+export interface CourseInvitation {
+  id: string;
+  course_id: string;
+  course_title?: string;
+  course_short_code?: string;
+  teacher_id: string;
+  teacher_name: string;
+  student_name: string;
+  student_email: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
 }
 
 export interface Topic {
@@ -49,6 +101,14 @@ export interface Topic {
   mastery_percentage: number;
 }
 
+export interface CourseApplicationData {
+  goal: string;
+  level: string;
+  weekly_hours: string;
+  notes?: string;
+  agreed_to_rules: boolean;
+}
+
 export interface Enrollment {
   id: string;
   course_id: string;
@@ -56,20 +116,28 @@ export interface Enrollment {
   student_name: string;
   student_email: string;
   grade?: string;
+  school?: string;
+  current_elo?: number;
   status: EnrollmentStatus;
+  application_data?: CourseApplicationData;
+  rejection_reason?: string;
+  is_dismissed?: boolean;
   applied_at: string;
   updated_at: string;
 }
+
 
 export type NotificationTriggerType = 
   | 'STREAK_SAVER' 
   | 'AGA_REMINDER' 
   | 'MEMORY_BURN' 
   | 'WEEKLY_DIGEST' 
+  | 'COURSE_ANNOUNCEMENT'
   | 'course_enrollment' 
   | 'teacher_feedback' 
   | 'system'
   | 'streak_saver';
+
 
 export interface NotificationItem {
   id: string;

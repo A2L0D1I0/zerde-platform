@@ -1,8 +1,13 @@
--- ============================================================================
--- ЭКОСИСТЕМА «ZERDE» — ОФИЦИАЛЬНАЯ СХЕМА БАЗЫ ДАННЫХ (SQLITE)
--- ============================================================================
+-- 0. Организации и Токены Доступа (Школы, ВУЗы, Центры)
+CREATE TABLE IF NOT EXISTS organizations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    org_token TEXT UNIQUE NOT NULL,              -- e.g. 'ORG-8F3K9A', 'ZK-7492-X'
+    type TEXT NOT NULL DEFAULT 'school',        -- 'school', 'university', 'college', 'academy'
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-PRAGMA foreign_keys = ON;
+CREATE INDEX IF NOT EXISTS idx_organizations_token ON organizations(org_token);
 
 -- 1. Пользователи (Ученики, Учителя, Администраторы)
 CREATE TABLE IF NOT EXISTS users (
@@ -12,13 +17,16 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL CHECK(role IN ('student', 'teacher', 'admin')),
-    grade INTEGER,                                -- например: 9
-    school TEXT,                                 -- например: 'РФМШ Алматы'
-    curator_id INTEGER,                          -- куратор / классный руководитель
-    parent_contact TEXT,                         -- телефон / контакт родителя
+    bio TEXT,                                    -- 'О себе / Научные интересы'
+    grade INTEGER,                                -- 1..12 или курс
+    school TEXT,                                 -- Название организации
+    organization_id INTEGER,                     -- ID организации
+    curator_id INTEGER,                          -- куратор / наставник
+    parent_contact TEXT,                         -- телефон / контакт
     notify_on_risk INTEGER NOT NULL DEFAULT 1,   -- 1 = вкл, 0 = выкл
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL,
     FOREIGN KEY (curator_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
@@ -26,10 +34,10 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_uuid ON users(uuid);
 
--- 2. Классы (Учебные группы)
+-- 2. Классы и Учебные Группы
 CREATE TABLE IF NOT EXISTS classrooms (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,                          -- '9 «А»', '9 «Б»'
+    name TEXT NOT NULL,                          -- 'Группа A-101', 'IT-2026'
     school TEXT NOT NULL,
     teacher_id INTEGER,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -39,7 +47,7 @@ CREATE TABLE IF NOT EXISTS classrooms (
 CREATE INDEX IF NOT EXISTS idx_classrooms_teacher ON classrooms(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_classrooms_school ON classrooms(school);
 
--- Связь учеников с классами
+-- Связь учеников с учебными группами
 CREATE TABLE IF NOT EXISTS classroom_students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     classroom_id INTEGER NOT NULL,
@@ -56,26 +64,46 @@ CREATE INDEX IF NOT EXISTS idx_classroom_students_std ON classroom_students(stud
 -- 3. Курсы (Предметы)
 CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,                         -- 'Алгебра (9 класс)'
+    short_code TEXT UNIQUE NOT NULL,             -- Автоматический случайный токен, e.g. '7X9K2M', 'K8F42A'
+    title TEXT NOT NULL,                         -- 'Алгебра және анализ бастамалары'
     description TEXT,
     subject_type TEXT NOT NULL,                  -- 'algebra', 'physics', 'kazakh_lang'
     language TEXT NOT NULL CHECK(language IN ('KZ', 'RU', 'EN', 'ANY')) DEFAULT 'KZ',
     icon TEXT DEFAULT '📐',
     teacher_id INTEGER,
+    organization_id INTEGER,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_courses_short_code ON courses(short_code);
 CREATE INDEX IF NOT EXISTS idx_courses_teacher ON courses(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_courses_subject ON courses(subject_type);
 
--- 4. Запись на курс (Enrollments с жизненным циклом)
+-- 3.1. Приглашения студентов в курс (Инвайты от преподавателя)
+CREATE TABLE IF NOT EXISTS course_invitations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id INTEGER NOT NULL,
+    teacher_id INTEGER NOT NULL,
+    student_name TEXT NOT NULL,
+    student_email TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_invitations_email ON course_invitations(student_email);
+CREATE INDEX IF NOT EXISTS idx_invitations_course ON course_invitations(course_id);
+
+-- 4. Запись на курс (Enrollments)
 CREATE TABLE IF NOT EXISTS course_enrollments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     course_id INTEGER NOT NULL,
     student_id INTEGER NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('pending_approval', 'enrolled', 'completed', 'expelled')) DEFAULT 'pending_approval',
+    status TEXT NOT NULL CHECK(status IN ('pending_approval', 'enrolled', 'completed', 'expelled')) DEFAULT 'enrolled',
     requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     approved_at DATETIME,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
@@ -86,6 +114,7 @@ CREATE TABLE IF NOT EXISTS course_enrollments (
 CREATE INDEX IF NOT EXISTS idx_enrollments_course ON course_enrollments(course_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_student ON course_enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_status ON course_enrollments(status);
+
 
 -- 5. Темы курса (Разбивка по четвертям)
 CREATE TABLE IF NOT EXISTS topics (
@@ -238,3 +267,65 @@ CREATE TABLE IF NOT EXISTS retention_notifications (
 );
 
 CREATE INDEX IF NOT EXISTS idx_retention_std_unread ON retention_notifications(student_id, is_read, created_at DESC);
+
+-- 14. Пресеты учебных курсов и слотов (Course Presets)
+CREATE TABLE IF NOT EXISTS course_presets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    subject_type TEXT NOT NULL,
+    syllabus_json TEXT NOT NULL,                 -- Структура тем, микро-навыков, банка вопросов
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_course_presets_teacher ON course_presets(teacher_id);
+
+-- 15. Утренние проактивные брифинги учителя от Co-Pilot
+CREATE TABLE IF NOT EXISTS morning_briefings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teacher_id INTEGER NOT NULL,
+    classroom_id INTEGER,
+    date TEXT NOT NULL,                          -- YYYY-MM-DD
+    briefing_text TEXT NOT NULL,
+    action_items_json TEXT,                      -- Рекомендации по корректировке плана урока
+    status TEXT NOT NULL CHECK(status IN ('pending', 'approved', 'adjusted')) DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_morning_briefings ON morning_briefings(teacher_id, date);
+
+-- 16. Когнитивный Паспорт Ученика (Student Passport)
+CREATE TABLE IF NOT EXISTS student_passports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER UNIQUE NOT NULL,
+    cognitive_summary TEXT NOT NULL,
+    strengths_json TEXT NOT NULL DEFAULT '[]',
+    gaps_json TEXT NOT NULL DEFAULT '[]',
+    recommendations_json TEXT NOT NULL DEFAULT '[]',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_passports_std ON student_passports(student_id);
+
+-- 17. Электронный журнал Kundelik.kz с дескрипторами и СОР/СОЧ
+CREATE TABLE IF NOT EXISTS kundelik_journal (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    classroom_id INTEGER NOT NULL,
+    student_id INTEGER NOT NULL,
+    topic_id INTEGER NOT NULL,
+    date TEXT NOT NULL,                          -- YYYY-MM-DD
+    score INTEGER NOT NULL,                      -- 1..10
+    work_type TEXT NOT NULL DEFAULT 'formative', -- formative, sor, soch
+    descriptor TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_kundelik_journal ON kundelik_journal(classroom_id, date);

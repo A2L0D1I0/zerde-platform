@@ -1,8 +1,8 @@
 import React from 'react';
-import { Home, BookOpen, Zap, Target } from 'lucide-react';
+import { Home, BookOpen, Calendar, User } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
-export type NavTabId = 'home' | 'courses' | 'trainer' | 'progress' | 'roadmap';
+export type NavTabId = 'home' | 'courses' | 'roadmap' | 'profile';
 
 interface BottomNavProps {
   activeTab: NavTabId;
@@ -10,13 +10,14 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const lang = (language as 'KZ' | 'RU' | 'EN') || 'KZ';
 
   const tabs: Array<{ id: NavTabId; label: string; icon: React.ElementType }> = [
-    { id: 'home', label: t('nav.home'), icon: Home },
-    { id: 'courses', label: t('nav.courses'), icon: BookOpen },
-    { id: 'trainer', label: t('nav.trainer'), icon: Zap },
-    { id: 'roadmap', label: 'Roadmap', icon: Target },
+    { id: 'home', label: t('nav.home') || (lang === 'KZ' ? 'Басты бет' : lang === 'RU' ? 'Главная' : 'Home'), icon: Home },
+    { id: 'courses', label: t('nav.courses') || (lang === 'KZ' ? 'Пәндер' : lang === 'RU' ? 'Предметы' : 'Courses'), icon: BookOpen },
+    { id: 'roadmap', label: lang === 'KZ' ? 'Күнтізбе' : lang === 'RU' ? 'Календарь' : 'Calendar', icon: Calendar },
+    { id: 'profile', label: lang === 'KZ' ? 'Профиль' : lang === 'RU' ? 'Профиль' : 'Profile', icon: User },
   ];
 
   return (
@@ -24,7 +25,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
       <div className="max-w-md mx-auto h-full grid grid-cols-4 items-center">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id || (tab.id === 'roadmap' && activeTab === 'progress');
+          const isActive = activeTab === tab.id;
 
           return (
             <button
@@ -47,3 +48,5 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
     </nav>
   );
 };
+
+export default BottomNav;

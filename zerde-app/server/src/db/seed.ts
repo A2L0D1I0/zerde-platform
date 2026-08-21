@@ -136,11 +136,12 @@ export function seed() {
   // ==========================================================================
   console.log('📚 Seeding courses...');
   const insertCourse = db.prepare(`
-    INSERT INTO courses (title, description, subject_type, language, icon, teacher_id, is_active, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO courses (short_code, title, description, subject_type, language, icon, teacher_id, is_active, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const algebraCourseId = Number(insertCourse.run(
+    '7X9K2M',
     'Алгебра (9 сынып)',
     '9-сыныпқа арналған алгебра: Теңсіздіктер, екі айнымалысы бар теңдеулер жүйесі және сандық тізбектер',
     'algebra',
@@ -152,6 +153,7 @@ export function seed() {
   ).lastInsertRowid);
 
   const physicsCourseId = Number(insertCourse.run(
+    'K8F42A',
     'Физика (9 сынып)',
     '9-сынып физикасы: Кинематика, динамика негіздері, Ньютон заңдары және сақталу заңдары',
     'physics',
@@ -163,6 +165,7 @@ export function seed() {
   ).lastInsertRowid);
 
   const kazakhCourseId = Number(insertCourse.run(
+    'M3N9P1',
     'Қазақ тілі (9 сынып)',
     '9-сынып қазақ тілі: Құрмалас сөйлемдер синтаксисі, сөзжасам және мәтінтану',
     'kazakh_lang',

@@ -8,7 +8,9 @@ dotenv.config();
 export type SqliteDatabase = Database.Database;
 
 const DB_PATH = process.env.DATABASE_PATH || path.resolve(__dirname, '../../zerde.db');
-const SCHEMA_PATH = path.resolve(__dirname, 'schema.sql');
+const SCHEMA_PATH = fs.existsSync(path.resolve(__dirname, 'schema.sql'))
+  ? path.resolve(__dirname, 'schema.sql')
+  : path.resolve(__dirname, '../../src/db/schema.sql');
 
 let dbInstance: Database.Database | null = null;
 

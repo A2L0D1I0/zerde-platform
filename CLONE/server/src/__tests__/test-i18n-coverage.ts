@@ -64,7 +64,7 @@ async function runI18nCoverageTest() {
   console.log('🧪 RUNNING: I18n Coverage & Zero-Hardcode Scanner');
   console.log('======================================================\n');
 
-  const clientDir = path.resolve(__dirname, '../../client/src');
+  const clientDir = path.resolve(__dirname, '../../../client/src');
   const kzPath = path.join(clientDir, 'i18n/kz.ts');
   const ruPath = path.join(clientDir, 'i18n/ru.ts');
   const enPath = path.join(clientDir, 'i18n/en.ts');

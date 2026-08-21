@@ -1,4 +1,4 @@
-import { AiOrchestrator } from './services/ai-orchestrator';
+import { AiOrchestrator } from '../services/ai-orchestrator';
 
 /**
  * ============================================================================

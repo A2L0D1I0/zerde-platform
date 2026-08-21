@@ -37,8 +37,8 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response: AxiosResponse) => response,
       (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          // Token expired or invalid
+        if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login') && !error.config?.url?.includes('/auth/register')) {
+          // Token expired or invalid during active authenticated session
           console.warn('[Zerde API] 401 Unauthorized - clearing credentials');
           localStorage.removeItem('zerde_token');
           // Dispatches a custom auth event for AuthContext to react without page reload

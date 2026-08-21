@@ -12,7 +12,7 @@ import { TeacherPortal } from '@/screens/TeacherPortal';
 import { StreakSaverModal } from '@/components/notifications/StreakSaverModal';
 
 const MainLayout: React.FC = () => {
-  const { isAuthenticated, role, user } = useAuth();
+  const { isAuthenticated, isLoading, role, user } = useAuth();
   const [activeTab, setActiveTab] = useState<NavTabId>('home');
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isStreakSaverOpen, setIsStreakSaverOpen] = useState(false);
@@ -30,7 +30,18 @@ const MainLayout: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  if (!isAuthenticated) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-primer-canvas-default flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primer-accent-emphasis border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-primer-fg-muted font-mono">Авторизация тексерілуде...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
     return <AuthScreen />;
   }
 
@@ -38,8 +49,9 @@ const MainLayout: React.FC = () => {
     <div className="min-h-screen bg-primer-canvas-default text-primer-fg-default font-sans antialiased pb-20 md:pb-6 transition-colors selection:bg-primer-accent-emphasis selection:text-white">
       {/* 1. GitHub Primer Header */}
       <Header
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        onOpenTrainer={(topicId) => setActiveTab('trainer')}
         onOpenStreakSaver={() => setIsStreakSaverOpen(true)}
       />
 
@@ -66,7 +78,7 @@ const MainLayout: React.FC = () => {
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         onNavigateTab={(tab: string) => {
-          if (['home', 'courses', 'trainer', 'progress', 'roadmap'].includes(tab)) {
+          if (['home', 'courses', 'roadmap', 'profile'].includes(tab)) {
             setActiveTab(tab as NavTabId);
           }
         }}
@@ -78,9 +90,9 @@ const MainLayout: React.FC = () => {
         onClose={() => setIsStreakSaverOpen(false)}
         onStartFocus={() => {
           setIsStreakSaverOpen(false);
-          setActiveTab('trainer');
+          setActiveTab('home');
         }}
-        streakDays={user?.streakDays || 12}
+        streakDays={user?.streakDays ?? 0}
       />
     </div>
   );

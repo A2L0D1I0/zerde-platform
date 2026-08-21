@@ -2,8 +2,8 @@ import React from 'react';
 import { NavTabId } from '@/components/layout/BottomNav';
 import { StudentHomeScreen } from '@/screens/StudentHomeScreen';
 import { CourseCatalogScreen } from '@/screens/CourseCatalogScreen';
-import { TrainerScreen } from '@/screens/TrainerScreen';
 import { RoadmapScreen } from '@/screens/RoadmapScreen';
+import { StudentProfileScreen } from '@/screens/StudentProfileScreen';
 
 interface StudentPortalProps {
   activeTab: NavTabId;
@@ -25,21 +25,20 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
       {activeTab === 'courses' && (
         <CourseCatalogScreen
           onStartCourseTopic={(topicTitle) => {
-            onTabChange('trainer');
+            // Can open topic practice modal directly on home or courses
+            onTabChange('home');
           }}
         />
       )}
 
-      {/* 3. Socratic AI Trainer View */}
-      {activeTab === 'trainer' && (
-        <div className="animate-in fade-in duration-150">
-          <TrainerScreen />
-        </div>
+      {/* 3. Calendar & Roadmap View */}
+      {activeTab === 'roadmap' && (
+        <RoadmapScreen />
       )}
 
-      {/* 4. Roadmap & Progress View */}
-      {(activeTab === 'progress' || activeTab === 'roadmap') && (
-        <RoadmapScreen />
+      {/* 4. Student Profile View */}
+      {activeTab === 'profile' && (
+        <StudentProfileScreen />
       )}
     </div>
   );

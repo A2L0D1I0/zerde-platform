@@ -197,4 +197,78 @@ router.post('/class-telemetry', async (req: Request, res: Response, next: NextFu
   }
 });
 
+/**
+ * POST /api/ai/morning-briefing
+ * Утренний проактивный брифинг учителя (Co-Pilot)
+ */
+router.post('/morning-briefing', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { teacherId = 1, classroomId, className, language = 'kz' } = req.body;
+    const briefing = await aiOrchestrator.generateMorningBriefing({
+      teacherId,
+      classroomId,
+      className,
+      language
+    });
+    res.json({ success: true, briefing });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/ai/student-passport
+ * Генерация когнитивного паспорта ученика
+ */
+router.post('/student-passport', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { studentId, studentName = 'Оқушы', eloHistory = [], dinaSkillsMastered = [], dinaSkillsGaps = [], language = 'kz' } = req.body;
+    const passport = await aiOrchestrator.generateStudentPassport({
+      studentId,
+      studentName,
+      eloHistory,
+      dinaSkillsMastered,
+      dinaSkillsGaps,
+      language
+    });
+    res.json({ success: true, passport });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/ai/presets
+ * Создание пресета курса
+ */
+router.post('/presets', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { teacherId = 1, name, description, subjectType, syllabus } = req.body;
+    const result = await aiOrchestrator.createCoursePreset({
+      teacherId,
+      name,
+      description,
+      subjectType,
+      syllabus
+    });
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/ai/presets
+ * Список сохраненных пресетов учителя
+ */
+router.get('/presets', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const teacherId = Number(req.query.teacherId) || 1;
+    const presets = await aiOrchestrator.getCoursePresets(teacherId);
+    res.json({ success: true, presets });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

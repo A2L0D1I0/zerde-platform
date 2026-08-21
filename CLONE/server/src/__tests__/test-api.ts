@@ -1,4 +1,4 @@
-import app from './server';
+import app from '../server';
 import http from 'http';
 
 interface ApiResponse {

@@ -85,4 +85,20 @@ router.get('/roadmap', authenticate, (req: AuthRequest, res: Response, next) => 
   }
 });
 
+/**
+ * GET /api/student/leaderboard
+ * Returns class and global leaderboard ranking
+ */
+router.get('/leaderboard', authenticate, (req: AuthRequest, res: Response, next) => {
+  try {
+    const leaderboard = store.getLeaderboard();
+    res.json({
+      success: true,
+      data: leaderboard,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

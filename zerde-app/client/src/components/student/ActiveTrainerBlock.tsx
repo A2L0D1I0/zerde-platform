@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useLanguage } from '@/context/LanguageContext';
 import { DesmosGraphCanvas } from '@/components/canvas/DesmosGraphCanvas';
 import { Zap, Play, Sparkles, Brain, Sliders, ExternalLink } from 'lucide-react';
 
@@ -13,11 +12,9 @@ interface ActiveTrainerBlockProps {
 
 export const ActiveTrainerBlock: React.FC<ActiveTrainerBlockProps> = ({
   onStartTrainer,
-  topicTitle,
-  subjectTitle,
+  topicTitle = 'Квадраттық теңсіздіктер (Интервалдар әдісі)',
+  subjectTitle = 'Алгебра 9 сынып',
 }) => {
-  const { t } = useLanguage();
-
   return (
     <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3.5">
       {/* Header */}
@@ -29,19 +26,15 @@ export const ActiveTrainerBlock: React.FC<ActiveTrainerBlockProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-                Active Canvas & Desmos
+                Active Canvas & Desmos Интерактивті блогы
               </h3>
-              {subjectTitle && (
-                <Badge variant="accent" className="text-[10px] py-0 font-mono">
-                  {subjectTitle}
-                </Badge>
-              )}
+              <Badge variant="accent" className="text-[10px] py-0 font-mono">
+                {subjectTitle}
+              </Badge>
             </div>
-            {topicTitle && (
-              <p className="text-[11px] text-primer-fg-muted mt-0.5">
-                {topicTitle}
-              </p>
-            )}
+            <p className="text-[11px] text-primer-fg-muted mt-0.5">
+              {topicTitle}
+            </p>
           </div>
         </div>
 
@@ -64,8 +57,8 @@ export const ActiveTrainerBlock: React.FC<ActiveTrainerBlockProps> = ({
       {/* Socratic callout and Launch Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
         <div className="text-xs text-primer-fg-muted leading-relaxed">
-          <span className="font-bold text-primer-fg-default">{t('trainer.mentor_name')}: </span>
-          <span>{t('trainer.active_canvas_hint')}</span>
+          <span className="font-bold text-primer-fg-default">«Аға» наставнигі: </span>
+          «Парабола тармақтары мен нөлдерін өзгертіп, таңбалардың ауысу заңдылығын зерттеңіз!»
         </div>
 
         <Button
@@ -75,10 +68,9 @@ export const ActiveTrainerBlock: React.FC<ActiveTrainerBlockProps> = ({
           className="shrink-0 gap-1.5 font-bold shadow-primer-xs"
         >
           <Play className="w-4 h-4 fill-white" />
-          <span>{t('student.start_focus')} (3 {t('common.minutes')})</span>
+          <span>Начать тренировку (3 мин)</span>
         </Button>
       </div>
     </div>
   );
 };
-
