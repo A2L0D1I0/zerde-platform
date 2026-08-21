@@ -17,11 +17,12 @@ import {
 import { TeacherDashboard } from './TeacherDashboard';
 import { CourseBuilderScreen } from './CourseBuilderScreen';
 import { SmartboardScreen } from './SmartboardScreen';
+import { TeacherEnrollmentsScreen } from './TeacherEnrollmentsScreen';
 
 export type TeacherPortalTab = 'dashboard' | 'builder' | 'smartboard' | 'enrollments';
 
 export const TeacherPortal: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TeacherPortalTab>('dashboard');
@@ -54,6 +55,18 @@ export const TeacherPortal: React.FC = () => {
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>{t('teacher.tab_gradebook')}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('enrollments')}
+              className={`px-3 py-1.5 font-bold rounded-md transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                activeTab === 'enrollments'
+                  ? 'bg-primer-canvas-subtle text-primer-fg-default shadow-xs border border-primer-border-default/60'
+                  : 'text-primer-fg-muted hover:text-primer-fg-default'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-primer-attention-fg" />
+              <span>{language === 'KZ' ? 'Өтініштер' : language === 'RU' ? 'Заявки на курсы' : 'Applications'}</span>
             </button>
 
             <button
@@ -101,6 +114,8 @@ export const TeacherPortal: React.FC = () => {
           />
         )}
 
+        {activeTab === 'enrollments' && <TeacherEnrollmentsScreen />}
+
         {activeTab === 'builder' && <CourseBuilderScreen />}
       </main>
     </div>
@@ -108,3 +123,4 @@ export const TeacherPortal: React.FC = () => {
 };
 
 export default TeacherPortal;
+

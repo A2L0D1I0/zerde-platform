@@ -17,8 +17,10 @@ import {
   AppLanguage,
   AppTheme,
   Organization,
-  CourseInvitation
+  CourseInvitation,
+  CourseApplicationData
 } from '../types';
+
 
 
 class DataStore {
@@ -820,6 +822,58 @@ class DataStore {
     return Array.from(this.enrollments.values()).filter(e => e.student_id === studentId);
   }
 
+  public getStudentCourses(studentId: string): (Course & { enrollment_status: EnrollmentStatus; rejection_reason?: string; application_data?: CourseApplicationData })[] {
+    const studentEnrs = Array.from(this.enrollments.values()).filter(
+      e => e.student_id === studentId && !e.is_dismissed
+    );
+    const result: (Course & { enrollment_status: EnrollmentStatus; rejection_reason?: string; application_data?: CourseApplicationData })[] = [];
+    for (const enr of studentEnrs) {
+      const course = this.courses.get(enr.course_id);
+      if (course) {
+        result.push({
+          ...course,
+          enrollment_status: enr.status,
+          rejection_reason: enr.rejection_reason,
+          application_data: enr.application_data
+        });
+      }
+    }
+    return result;
+  }
+
+  public getTeacherEnrollmentRequests(teacherId?: string): any[] {
+    const pendingEnrs = Array.from(this.enrollments.values()).filter(e => e.status === 'pending_approval');
+    const result: any[] = [];
+
+    for (const e of pendingEnrs) {
+      const course = this.courses.get(e.course_id);
+      if (!course) continue;
+      if (teacherId && course.teacher_id !== teacherId && teacherId !== 'usr_admin_01') {
+        continue;
+      }
+      const student = this.users.get(e.student_id);
+      const stats = this.studentStats.get(e.student_id) || { elo: 1000, streak_days: 0 };
+
+      result.push({
+        id: e.id,
+        studentId: e.student_id,
+        studentName: e.student_name,
+        studentEmail: e.student_email,
+        courseId: e.course_id,
+        courseTitle: course.title,
+        courseShortCode: course.short_code,
+        grade: e.grade || student?.grade || '9 «А»',
+        school: e.school || student?.school || 'РФМШ',
+        currentElo: stats.elo || 1000,
+        date: e.applied_at,
+        avatarInitial: e.student_name.charAt(0).toUpperCase(),
+        application_data: e.application_data,
+        status: e.status
+      });
+    }
+    return result;
+  }
+
   public findEnrollment(courseId: string, studentId: string): Enrollment | undefined {
     for (const e of this.enrollments.values()) {
       if (e.course_id === courseId && e.student_id === studentId) {
@@ -829,18 +883,20 @@ class DataStore {
     return undefined;
   }
 
-  public createEnrollment(courseId: string, student: SafeUser | User): Enrollment {
+  public createEnrollment(courseId: string, student: SafeUser | User, applicationData?: CourseApplicationData): Enrollment {
     const existing = this.findEnrollment(courseId, student.id);
+    const now = new Date().toISOString();
+    const stats = this.studentStats.get(student.id);
+
     if (existing) {
-      if (existing.status === 'expelled') {
-        existing.status = 'pending_approval';
-        existing.updated_at = new Date().toISOString();
-        return existing;
-      }
+      existing.status = 'pending_approval';
+      existing.application_data = applicationData || existing.application_data;
+      existing.rejection_reason = undefined;
+      existing.is_dismissed = false;
+      existing.updated_at = now;
       return existing;
     }
     const id = `enr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const now = new Date().toISOString();
 
     const newEnrollment: Enrollment = {
       id,
@@ -849,20 +905,61 @@ class DataStore {
       student_name: student.full_name,
       student_email: student.email,
       grade: student.grade,
+      school: student.school,
+      current_elo: stats?.elo ?? 1000,
       status: 'pending_approval',
+      application_data: applicationData,
+      is_dismissed: false,
       applied_at: now,
       updated_at: now
     };
     this.enrollments.set(id, newEnrollment);
+
+    // Notify teacher
+    const course = this.courses.get(courseId);
+    if (course) {
+      const teacherId = course.teacher_id;
+      const teacherNotifs = this.notifications.get(teacherId) || [];
+      teacherNotifs.unshift({
+        id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+        user_id: teacherId,
+        title: '📩 Жаңа өтініш түсті',
+        message: `${student.full_name} «${course.title}» курсына жазылуға өтініш жіберді.`,
+        type: 'course_enrollment',
+        is_read: false,
+        action_url: `/teacher/courses/${courseId}/enrollments`,
+        created_at: now
+      });
+      this.notifications.set(teacherId, teacherNotifs);
+    }
+
     return newEnrollment;
   }
 
-  public updateEnrollmentStatus(courseId: string, studentId: string, status: EnrollmentStatus): Enrollment | undefined {
+  public cancelApplication(courseId: string, studentId: string): boolean {
+    const enr = this.findEnrollment(courseId, studentId);
+    if (!enr || enr.status !== 'pending_approval') return false;
+    this.enrollments.delete(enr.id);
+    return true;
+  }
+
+  public dismissRejectedCourse(courseId: string, studentId: string): boolean {
+    const enr = this.findEnrollment(courseId, studentId);
+    if (!enr) return false;
+    enr.is_dismissed = true;
+    enr.updated_at = new Date().toISOString();
+    return true;
+  }
+
+  public updateEnrollmentStatus(courseId: string, studentId: string, status: EnrollmentStatus, rejectionReason?: string): Enrollment | undefined {
     const enrollment = this.findEnrollment(courseId, studentId);
     if (!enrollment) return undefined;
 
     const prevStatus = enrollment.status;
     enrollment.status = status;
+    if (rejectionReason) {
+      enrollment.rejection_reason = rejectionReason;
+    }
     enrollment.updated_at = new Date().toISOString();
 
     const course = this.courses.get(courseId);
@@ -884,6 +981,9 @@ class DataStore {
     if (status === 'enrolled') {
       title = '🎉 Курсқа қабылдандыңыз!';
       message = `Мұғалім сіздің «${course?.title || 'Курс'}» курсына өтінішіңізді мақұлдады. Оқуды бастаңыз!`;
+    } else if (status === 'rejected') {
+      title = '❌ Курсқа өтініш қабылданбады';
+      message = `Сіздің «${course?.title || 'Курс'}» курсына өтінішіңіз қабылданбады.${rejectionReason ? ` Себебі: ${rejectionReason}` : ''}`;
     } else if (status === 'expelled') {
       title = '⚠️ Курстан шығарылдыңыз';
       message = `Мұғалім сізді «${course?.title || 'Курс'}» курсынан шығарды.`;
@@ -903,6 +1003,7 @@ class DataStore {
 
     return enrollment;
   }
+
 
   // --- Student Dashboard & Metrics ---
   public getEloRank(elo: number): { rank: EloRank; badge: string } {

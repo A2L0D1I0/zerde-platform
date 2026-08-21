@@ -216,10 +216,51 @@ router.post('/', authenticate, requireRole('teacher', 'admin'), (req: AuthReques
 
 
 /**
- * POST /api/courses/:id/enroll
- * Student applies for course enrollment -> status: pending_approval
+ * GET /api/courses/my-courses
+ * Student gets their interacted courses (enrolled, pending, rejected)
  */
-router.post('/:id/enroll', authenticate, requireRole('student'), (req: AuthRequest, res: Response, next) => {
+router.get('/my-courses', authenticate, (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Авторизация қажет', 401);
+    }
+    const myCourses = store.getStudentCourses(req.user.id);
+    res.json({
+      success: true,
+      count: myCourses.length,
+      courses: myCourses
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/courses/teacher/applications
+ * Teacher views all pending applications for their courses
+ */
+router.get('/teacher/applications', authenticate, requireRole('teacher', 'admin'), (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Авторизация қажет', 401);
+    }
+    const requests = store.getTeacherEnrollmentRequests(req.user.id);
+    res.json({
+      success: true,
+      count: requests.length,
+      applications: requests
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/courses/:id/enroll
+ * POST /api/courses/:id/apply
+ * Student applies for course enrollment with Google Form style data -> status: pending_approval
+ */
+router.post(['/:id/enroll', '/:id/apply'], authenticate, requireRole('student'), (req: AuthRequest, res: Response, next) => {
   try {
     if (!req.user) {
       throw new AppError('Авторизация қажет', 401);
@@ -237,32 +278,63 @@ router.post('/:id/enroll', authenticate, requireRole('student'), (req: AuthReque
       throw new AppError('Оқушы табылмады', 404);
     }
 
-    const existingEnrollment = store.findEnrollment(courseId, req.user.id);
-    if (existingEnrollment) {
-      if (existingEnrollment.status === 'enrolled') {
-        res.json({
-          success: true,
-          enrollment: existingEnrollment,
-          message: 'Сіз бұл курсқа тіркелгенсіз'
-        });
-        return;
-      }
-      if (existingEnrollment.status === 'pending_approval') {
-        res.json({
-          success: true,
-          enrollment: existingEnrollment,
-          message: 'Өтінішіңіз қаралуда (Күтілуде)'
-        });
-        return;
-      }
-    }
+    const applicationData = req.body?.application_data || {
+      goal: req.body?.goal || 'ҰБТ / ЕНТ-ға дайындық',
+      level: req.body?.level || 'Орташа',
+      weekly_hours: req.body?.weekly_hours || '4-6 сағат',
+      notes: req.body?.notes || '',
+      agreed_to_rules: req.body?.agreed_to_rules ?? true
+    };
 
-    const enrollment = store.createEnrollment(courseId, existingUser);
+    const enrollment = store.createEnrollment(courseId, existingUser, applicationData);
 
     res.status(201).json({
       success: true,
       enrollment,
-      message: 'Өтініш жіберілді. Мұғалімнің мақұлдауын күтіңіз (pending_approval)'
+      message: 'Өтінішіңіз мұғалімге сәтті жіберілді! 📋'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/courses/:id/cancel-application
+ * Student cancels their pending application
+ */
+router.post('/:id/cancel-application', authenticate, requireRole('student'), (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Авторизация қажет', 401);
+    }
+    const { id: courseId } = req.params;
+    const cancelled = store.cancelApplication(courseId, req.user.id);
+    if (!cancelled) {
+      throw new AppError('Қайтарып алатын белсенді өтініш табылмады', 400);
+    }
+    res.json({
+      success: true,
+      message: 'Курсқа берілген өтініш кері қайтарылды'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * DELETE /api/courses/:id/dismiss
+ * Student dismisses rejected course from their list
+ */
+router.delete('/:id/dismiss', authenticate, requireRole('student'), (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError('Авторизация қажет', 401);
+    }
+    const { id: courseId } = req.params;
+    store.dismissRejectedCourse(courseId, req.user.id);
+    res.json({
+      success: true,
+      message: 'Курс тізімнен өшірілді'
     });
   } catch (error) {
     next(error);
@@ -280,11 +352,6 @@ router.get('/:id/enrollments', authenticate, requireRole('teacher', 'admin'), (r
 
     if (!course) {
       throw new AppError('Курс табылмады', 404);
-    }
-
-    // Check teacher permission (owner or admin)
-    if (req.user?.role === 'teacher' && course.teacher_id !== req.user.id) {
-      // Allow viewing for demonstration or check ownership
     }
 
     const enrollments = store.getEnrollmentsByCourse(courseId);
@@ -337,6 +404,40 @@ router.post('/:id/enrollments/:studentId/approve', authenticate, requireRole('te
 });
 
 /**
+ * POST /api/courses/:id/enrollments/:studentId/reject
+ * Teacher rejects enrollment application -> status: rejected + push notification
+ */
+router.post('/:id/enrollments/:studentId/reject', authenticate, requireRole('teacher', 'admin'), (req: AuthRequest, res: Response, next) => {
+  try {
+    const { id: courseId, studentId } = req.params;
+    const { reason } = req.body;
+
+    const course = store.getCourseById(courseId);
+    if (!course) {
+      throw new AppError('Курс табылмады', 404);
+    }
+
+    const student = store.findUserById(studentId);
+    if (!student) {
+      throw new AppError('Оқушы табылмады', 404);
+    }
+
+    const updated = store.updateEnrollmentStatus(courseId, studentId, 'rejected', reason);
+    if (!updated) {
+      throw new AppError('Өтініш табылмады', 404);
+    }
+
+    res.json({
+      success: true,
+      enrollment: updated,
+      message: 'Өтініш қабылданбады (rejected)'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * POST /api/courses/:id/enrollments/:studentId/expel
  * Teacher expels student or finishes course for student
  */
@@ -368,6 +469,7 @@ router.post('/:id/enrollments/:studentId/expel', authenticate, requireRole('teac
     next(error);
   }
 });
+
 
 /**
  * GET /api/courses/:id/topics

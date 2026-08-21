@@ -1,9 +1,10 @@
 export type UserRole = 'student' | 'teacher' | 'admin';
 export type AppLanguage = 'kz' | 'ru' | 'en';
 export type AppTheme = 'light' | 'dark' | 'system';
-export type EnrollmentStatus = 'pending_approval' | 'enrolled' | 'expelled' | 'completed';
+export type EnrollmentStatus = 'pending_approval' | 'enrolled' | 'rejected' | 'expelled' | 'completed';
 export type EloRank = 'Өскін' | 'Тұғыр' | 'Қыран' | 'Самғау';
 export type TopicStatus = 'locked' | 'available' | 'in_progress' | 'completed';
+
 
 export interface Organization {
   id: string;
@@ -68,8 +69,9 @@ export interface Course {
   next_topic_kz?: string;
   next_topic_ru?: string;
   next_topic_en?: string;
-  enrollment_status?: 'enrolled' | 'pending_approval' | 'none' | 'expelled' | 'completed';
+  enrollment_status?: 'enrolled' | 'pending_approval' | 'rejected' | 'none' | 'expelled' | 'completed';
   created_at: string;
+
   updated_at: string;
 }
 
@@ -99,6 +101,14 @@ export interface Topic {
   mastery_percentage: number;
 }
 
+export interface CourseApplicationData {
+  goal: string;
+  level: string;
+  weekly_hours: string;
+  notes?: string;
+  agreed_to_rules: boolean;
+}
+
 export interface Enrollment {
   id: string;
   course_id: string;
@@ -106,11 +116,16 @@ export interface Enrollment {
   student_name: string;
   student_email: string;
   grade?: string;
+  school?: string;
+  current_elo?: number;
   status: EnrollmentStatus;
+  application_data?: CourseApplicationData;
+  rejection_reason?: string;
+  is_dismissed?: boolean;
   applied_at: string;
-
   updated_at: string;
 }
+
 
 export type NotificationTriggerType = 
   | 'STREAK_SAVER' 

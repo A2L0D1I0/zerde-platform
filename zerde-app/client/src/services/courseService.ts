@@ -1,5 +1,6 @@
 import { api } from '@/api/client';
-import { Course, Topic, Enrollment } from '@/types';
+import { Course, Topic, Enrollment, CourseApplicationData } from '@/types';
+
 
 export const mockDefaultCourses: (Course & { enrollment_status?: 'enrolled' | 'pending_approval' | 'none'; topics?: Topic[] })[] = [
   {
@@ -239,6 +240,107 @@ class CourseService {
     return res;
   }
 
+  public async getMyCourses(): Promise<Course[]> {
+    try {
+      const response = await api.get<{ courses: Course[] } | Course[]>('/courses/my-courses');
+      const list = Array.isArray(response) ? response : (response as any)?.courses || [];
+      if (list.length > 0) {
+        return list;
+      }
+    } catch (e) {
+      console.warn('[CourseService] Offline/Mock fallback for my-courses');
+    }
+
+    // Filter local mock courses where status is active
+    return mockDefaultCourses
+      .map((c) => {
+        const localStatus = this.localEnrollmentState.get(c.id);
+        if (localStatus) {
+          return { ...c, enrollment_status: localStatus };
+        }
+        return c;
+      })
+      .filter((c) => c.enrollment_status && c.enrollment_status !== 'none');
+  }
+
+  public async searchCourseByCodeOrTitle(query: string): Promise<Course | null> {
+    if (!query.trim()) return null;
+    const clean = query.trim().toUpperCase();
+
+    // 1. Check direct short code endpoint
+    try {
+      const res: any = await api.get(`/courses/by-code/${clean}`);
+      if (res?.course) {
+        const status = this.localEnrollmentState.get(res.course.id) || res.course.enrollment_status || 'none';
+        return { ...res.course, enrollment_status: status };
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // 2. Search catalog fallback
+    const all = await this.getAllCourses({ search: query.trim() });
+    if (all.length > 0) {
+      return all[0];
+    }
+    return null;
+  }
+
+  public async applyToCourse(courseId: string, applicationData: CourseApplicationData): Promise<{ success: boolean; status: 'pending_approval'; message: string }> {
+    try {
+      const response: any = await api.post(`/courses/${courseId}/apply`, {
+        application_data: applicationData,
+      });
+      if (response) {
+        this.localEnrollmentState.set(courseId, 'pending_approval');
+        return {
+          success: true,
+          status: 'pending_approval',
+          message: response.message || 'Өтініш сәтті жіберілді. Мұғалімнің мақұлдауын күтіңіз.',
+        };
+      }
+    } catch (e: any) {
+      console.warn(`[CourseService] Offline fallback for apply to course ${courseId}`);
+    }
+
+    this.localEnrollmentState.set(courseId, 'pending_approval');
+    return {
+      success: true,
+      status: 'pending_approval',
+      message: 'Өтініш жіберілді! Мұғалімнің мақұлдауын күтіңіз.',
+    };
+  }
+
+  public async cancelApplication(courseId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response: any = await api.post(`/courses/${courseId}/cancel-application`);
+      this.localEnrollmentState.delete(courseId);
+      return {
+        success: true,
+        message: response?.message || 'Өтініш кері қайтарылды',
+      };
+    } catch (e: any) {
+      this.localEnrollmentState.delete(courseId);
+      return {
+        success: true,
+        message: 'Өтініш кері қайтарылды',
+      };
+    }
+  }
+
+  public async dismissRejectedCourse(courseId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      await api.delete(`/courses/${courseId}/dismiss`);
+      this.localEnrollmentState.delete(courseId);
+    } catch (e) {
+      this.localEnrollmentState.delete(courseId);
+    }
+    return {
+      success: true,
+      message: 'Курс тізімнен өшірілді',
+    };
+  }
+
   public async enroll(courseId: string): Promise<{ success: boolean; status: 'pending_approval' | 'enrolled'; message: string }> {
     try {
       const response: any = await api.post(`/courses/${courseId}/enroll`);
@@ -264,11 +366,12 @@ class CourseService {
     };
   }
 
-  public getEnrollmentStatus(courseId: string): 'enrolled' | 'pending_approval' | 'none' {
-    return this.localEnrollmentState.get(courseId) || 'none';
+  public getEnrollmentStatus(courseId: string): 'enrolled' | 'pending_approval' | 'rejected' | 'none' {
+    return (this.localEnrollmentState.get(courseId) as any) || 'none';
   }
 }
 
 export const courseService = new CourseService();
 export default courseService;
+
 
