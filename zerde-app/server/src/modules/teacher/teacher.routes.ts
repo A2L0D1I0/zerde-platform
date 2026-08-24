@@ -106,9 +106,10 @@ router.get('/classrooms', authenticate, requireRole('teacher'), (req: AuthReques
 router.get('/class-matrix', authenticate, requireRole('teacher'), (req: AuthRequest, res: Response) => {
   const db = getDb();
   const classroomId = (req.query.classroomId as string) || '1';
+  const courseId = Number(req.query.courseId) || 1;
   const cls = db.prepare('SELECT id, name, school FROM classrooms WHERE id = ?').get(classroomId) as any;
 
-  const data = teacherRepository.getClassMatrix(classroomId);
+  const data = teacherRepository.getClassMatrix(classroomId, courseId);
 
   res.json({
     success: true,
@@ -174,4 +175,83 @@ router.get('/lesson-signal', authenticate, requireRole('teacher'), async (req: A
   });
 });
 
+// ============================================================================
+// 5 MATERIAL SLOTS & CURRICULUM PLANNING (Phase 3)
+// ============================================================================
+
+/**
+ * GET /api/teacher/courses/:id/slots
+ */
+router.get(
+  '/courses/:id/slots',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.getCourseSlots(req, res, next)
+);
+
+/**
+ * POST /api/teacher/courses/:id/slots/:slotNumber
+ */
+router.post(
+  '/courses/:id/slots/:slotNumber',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.upsertCourseSlot(req, res, next)
+);
+
+/**
+ * POST /api/teacher/courses/:id/plan/generate
+ */
+router.post(
+  '/courses/:id/plan/generate',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.generateCurriculumPlan(req, res, next)
+);
+
+/**
+ * POST /api/teacher/courses/:id/plan/approve
+ */
+router.post(
+  '/courses/:id/plan/approve',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.approveCurriculumPlan(req, res, next)
+);
+
+/**
+ * GET /api/teacher/courses/:id/plan
+ */
+router.get(
+  '/courses/:id/plan',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.getCurriculumPlan(req, res, next)
+);
+
+// ============================================================================
+// ADMISSION PIPELINE & APPLICATIONS MODERATION (Phase 3)
+// ============================================================================
+
+/**
+ * GET /api/teacher/courses/:id/applications
+ */
+router.get(
+  '/courses/:id/applications',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.getCourseApplications(req, res, next)
+);
+
+/**
+ * POST /api/teacher/courses/:id/applications/:appId/moderate
+ */
+router.post(
+  '/courses/:id/applications/:appId/moderate',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.moderateApplication(req, res, next)
+);
+
 export default router;
+

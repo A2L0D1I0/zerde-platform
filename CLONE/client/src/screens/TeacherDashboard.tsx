@@ -245,7 +245,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </Badge>
             </div>
             <p className="text-[11px] text-primer-fg-muted">
-              {user?.school || 'NIS IB Astana'} • 24 оқушы • 16 микронавык
+              {user?.school || 'Zerde School'} • 24 оқушы • 16 микронавык
             </p>
           </div>
         </div>

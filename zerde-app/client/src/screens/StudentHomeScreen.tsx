@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Flame, Award, PlayCircle, BookOpen, Clock, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
 import { TestPracticeModal } from '@/components/student/TestPracticeModal';
+import { AgaNavigatorWidget } from '@/features/navigator/AgaNavigatorWidget';
 import api from '@/api/client';
 
 interface StudentHomeScreenProps {
@@ -126,88 +127,10 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
         </div>
       </div>
 
-      {/* 2. Daily Learning Focus / Practice Launch Card */}
-      {dailyFocus ? (
-        <div className="rounded-xl border border-primer-accent-emphasis/30 bg-gradient-to-r from-primer-accent-subtle/20 via-primer-canvas-subtle to-primer-canvas-subtle p-5 shadow-primer-sm space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Badge variant="accent" className="text-[10px] uppercase font-bold tracking-wider">
-                  {isRU ? 'Фокус дня' : isEN ? 'Daily Focus' : 'Бүгінгі мақсат'}
-                </Badge>
-                <span className="text-xs text-primer-fg-muted flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>5 {isRU ? 'минут' : isEN ? 'min' : 'минут'}</span>
-                </span>
-              </div>
-
-              <h3 className="text-base sm:text-lg font-bold text-primer-fg-default leading-snug">
-                {dailyFocus.title}
-              </h3>
-
-              <p className="text-xs text-primer-fg-muted">
-                {isRU
-                  ? 'Решите задачу для закрепления темы. При ошибке Сократ «Аға» автоматически подключится для разбора.'
-                  : isEN
-                  ? 'Solve the task to reinforce understanding. If you make a mistake, Mentor "Aga" will join automatically.'
-                  : 'Тақырыпты бекіту үшін есепті шығарыңыз. Қате болған жағдайда Сократ «Аға» көмекке келеді.'}
-              </p>
-            </div>
-
-            <div className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primer-canvas-inset border border-primer-border-default font-mono font-bold text-xs text-primer-accent-fg shrink-0">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>+{eloReward} ELO</span>
-            </div>
-          </div>
-
-          <div className="pt-2 flex items-center gap-3">
-            <Button
-              onClick={() => handleStartPractice(dailyFocus.title, dailyFocus.course_title || 'Математика')}
-              size="default"
-              className="text-xs font-bold gap-2 px-5 shadow-primer-sm cursor-pointer"
-            >
-              <PlayCircle className="w-4 h-4" />
-              <span>{isRU ? 'Начать практику' : isEN ? 'Start Practice' : 'Есеп шығаруды бастау'}</span>
-            </Button>
-
-            {onNavigateTab && (
-              <Button
-                onClick={() => onNavigateTab('courses')}
-                variant="outline"
-                size="default"
-                className="text-xs font-semibold gap-1.5 cursor-pointer"
-              >
-                <BookOpen className="w-4 h-4" />
-                <span>{isRU ? 'Все предметы' : isEN ? 'All Courses' : 'Барлық пәндер'}</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-5 shadow-primer-xs space-y-3">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">
-              {isRU ? 'Фокус дня' : isEN ? 'Daily Focus' : 'Бүгінгі мақсат'}
-            </Badge>
-          </div>
-          <h3 className="text-sm sm:text-base font-bold text-primer-fg-default">
-            {isEN ? 'No active assignments for today' : isRU ? 'На сегодня нет активных заданий' : 'Бүгінге белсенді тапсырмалар жоқ'}
-          </h3>
-          <p className="text-xs text-primer-fg-muted">
-            {isEN
-              ? 'Enroll in a course from the catalog to start practicing and earning ELO.'
-              : isRU
-              ? 'Запишитесь на курс из каталога, чтобы начать практику и повышать свой рейтинг ELO.'
-              : 'Жаттығуды бастап, ELO рейтингіңізді көтеру үшін каталогтан курсқа жазылыңыз.'}
-          </p>
-          {onNavigateTab && (
-            <Button onClick={() => onNavigateTab('courses')} size="sm" className="text-xs font-bold gap-1.5 cursor-pointer">
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>{isEN ? 'Choose Course from Catalog' : isRU ? 'Выбрать курс в каталоге' : 'Каталогтан курс таңдау'}</span>
-            </Button>
-          )}
-        </div>
-      )}
+      {/* 2. Aga Navigator AI Companion Widget */}
+      <AgaNavigatorWidget
+        onStartPractice={(topic) => handleStartPractice(topic, 'Математика')}
+      />
 
       {/* 3. Real Enrolled Courses Overview */}
       <div className="space-y-3 pt-2">

@@ -1,18 +1,40 @@
 import { getDb } from '../../db/database';
 import { getRankByElo, SkillMeta, ClassMatrixStudent, SkillMastery } from '@zerde/shared';
 
-export const SKILLS_HEADER: SkillMeta[] = [
-  { code: 'ALG_09_INEQ', nameKZ: 'Квадраттық теңсіздіктер', nameRU: 'Квадратные неравенства', subject: 'Алгебра' },
-  { code: 'ALG_09_INTERVAL_METHOD', nameKZ: 'Интервалдар әдісі', nameRU: 'Метод интервалов', subject: 'Алгебра' },
-  { code: 'ALG_09_DENOMINATOR_RESTRICTION', nameKZ: 'Бөлім нөлдері (ОДЗ)', nameRU: 'ОДЗ нулей знаменателя', subject: 'Алгебра' },
-  { code: 'ALG_09_FRACTIONAL', nameKZ: 'Бөлшек-рационал', nameRU: 'Дробно-рациональные', subject: 'Алгебра' },
-  { code: 'ALG_09_LINEAR', nameKZ: 'Сызықтық теңсіздік', nameRU: 'Линейные неравенства', subject: 'Алгебра' },
-  { code: 'ALG_09_VIETE_THEORM', nameKZ: 'Виет теоремасы', nameRU: 'Теорема Виета', subject: 'Алгебра' },
-  { code: 'PHYS_09_NEWTON_SECOND', nameKZ: 'Ньютонның II заңы', nameRU: 'Закон Ньютона II', subject: 'Физика' },
-  { code: 'PHYS_09_FRICTION_FORCE', nameKZ: 'Үйкеліс күші', nameRU: 'Сила трения', subject: 'Физика' },
-];
-
 export class TeacherRepository {
+  /**
+   * Dynamically loads skill headers for the course from question_bank and topics
+   * Zero-Fake: returns empty array if no topics or questions are registered for this course
+   */
+  public getSkillsHeaderForCourse(courseId: number | string = 1): SkillMeta[] {
+    const db = getDb();
+    const cid = Number(courseId) || 1;
+    const rows = db.prepare(`
+      SELECT DISTINCT 
+        qb.skill_code as code, 
+        COALESCE(t.title, qb.skill_code) as nameKZ, 
+        COALESCE(t.title, qb.skill_code) as nameRU, 
+        COALESCE(c.title, 'Математика') as subject
+      FROM question_bank qb
+      LEFT JOIN topics t ON qb.topic_id = t.id
+      LEFT JOIN courses c ON t.course_id = c.id
+      WHERE t.course_id = ? OR c.id = ?
+      ORDER BY qb.id ASC
+    `).all(cid, cid) as any[];
+
+    if (rows.length === 0) {
+      // Return empty array for honest zero-fake
+      return [];
+    }
+
+    return rows.map((r) => ({
+      code: r.code,
+      nameKZ: r.nameKZ,
+      nameRU: r.nameRU,
+      subject: r.subject
+    }));
+  }
+
   public getClassrooms(teacherId?: number | string): any[] {
     const db = getDb();
     let query = `
@@ -35,12 +57,14 @@ export class TeacherRepository {
   /**
    * Returns honest 2D Matrix of students enrolled in the classroom (Zero Fake SQLite)
    */
-  public getClassMatrix(classroomId: string = '1'): {
+  public getClassMatrix(classroomId: string = '1', courseId: number | string = 1): {
     skills_header: SkillMeta[];
     matrix: ClassMatrixStudent[];
     summary_stats: Record<string, { average_probability: number; deficit_count: number; mastery_count: number }>;
   } {
     const db = getDb();
+    const cid = Number(courseId) || 1;
+    const skills_header = this.getSkillsHeaderForCourse(cid);
 
     // Query real students enrolled in this classroom
     const students = db.prepare(`
@@ -52,14 +76,14 @@ export class TeacherRepository {
     `).all(classroomId) as any[];
 
     const summary_stats: Record<string, { average_probability: number; deficit_count: number; mastery_count: number }> = {};
-    SKILLS_HEADER.forEach((s) => {
+    skills_header.forEach((s) => {
       summary_stats[s.code] = { average_probability: 0, deficit_count: 0, mastery_count: 0 };
     });
 
-    // If 0 students in classroom -> Honest Empty State
-    if (students.length === 0) {
+    // If 0 students in classroom or 0 skills -> Honest Empty State
+    if (students.length === 0 || skills_header.length === 0) {
       return {
-        skills_header: SKILLS_HEADER,
+        skills_header,
         matrix: [],
         summary_stats
       };
@@ -102,7 +126,7 @@ export class TeacherRepository {
 
       const skills: Record<string, SkillMastery> = {};
 
-      SKILLS_HEADER.forEach((skill) => {
+      skills_header.forEach((skill) => {
         const fromPassport = passportSkills[skill.code];
         const fromAttempts = attemptsMap[skill.code];
 
@@ -156,16 +180,299 @@ export class TeacherRepository {
     });
 
     // Finalize averages
-    SKILLS_HEADER.forEach((s) => {
+    skills_header.forEach((s) => {
       summary_stats[s.code].average_probability =
         Math.round((summary_stats[s.code].average_probability / Math.max(1, matrix.length)) * 100) / 100;
     });
 
     return {
-      skills_header: SKILLS_HEADER,
+      skills_header,
       matrix,
       summary_stats
     };
+  }
+
+  /**
+   * Fetch all 5 material slots for course/classroom
+   */
+  public getCourseSlots(courseId: number | string, classroomId?: number | string | null): any[] {
+    const db = getDb();
+    const cid = Number(courseId) || 1;
+    const clsId = classroomId ? Number(classroomId) : null;
+
+    if (clsId) {
+      return db.prepare(`
+        SELECT id, course_id, classroom_id, slot_number, title, file_type, content_text, file_size, is_locked, uploaded_at
+        FROM course_material_slots
+        WHERE course_id = ? AND (classroom_id = ? OR classroom_id IS NULL)
+        ORDER BY slot_number ASC
+      `).all(cid, clsId) as any[];
+    }
+
+    return db.prepare(`
+      SELECT id, course_id, classroom_id, slot_number, title, file_type, content_text, file_size, is_locked, uploaded_at
+      FROM course_material_slots
+      WHERE course_id = ? AND classroom_id IS NULL
+      ORDER BY slot_number ASC
+    `).all(cid) as any[];
+  }
+
+  /**
+   * Upsert course material slot with is_locked verification
+   */
+  public upsertCourseSlot(slotData: {
+    courseId: number;
+    classroomId?: number | null;
+    slotNumber: number;
+    title: string;
+    contentText: string;
+    fileType?: string;
+    fileSize?: number;
+    isLocked?: number;
+  }): any {
+    const db = getDb();
+    const {
+      courseId,
+      classroomId = null,
+      slotNumber,
+      title,
+      contentText,
+      fileType = 'text',
+      fileSize = 0,
+      isLocked = 0
+    } = slotData;
+
+    // Check if slot exists and is locked
+    const existing = db.prepare(`
+      SELECT id, is_locked FROM course_material_slots
+      WHERE course_id = ? AND (classroom_id = ? OR (classroom_id IS NULL AND ? IS NULL)) AND slot_number = ?
+    `).get(courseId, classroomId, classroomId, slotNumber) as any;
+
+    if (existing && existing.is_locked === 1) {
+      throw new Error('SLOT_LOCKED: Слот бұғатталған (Material slot is locked outside edit window)');
+    }
+
+    if (existing) {
+      db.prepare(`
+        UPDATE course_material_slots
+        SET title = ?, content_text = ?, file_type = ?, file_size = ?, is_locked = ?, uploaded_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(title, contentText, fileType, fileSize, isLocked, existing.id);
+
+      return db.prepare('SELECT * FROM course_material_slots WHERE id = ?').get(existing.id);
+    } else {
+      const info = db.prepare(`
+        INSERT INTO course_material_slots (
+          course_id, classroom_id, slot_number, title, file_type, content_text, file_size, is_locked, uploaded_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `).run(courseId, classroomId, slotNumber, title, fileType, contentText, fileSize, isLocked);
+
+      return db.prepare('SELECT * FROM course_material_slots WHERE id = ?').get(Number(info.lastInsertRowid));
+    }
+  }
+
+  /**
+   * Save or update draft curriculum plan
+   */
+  public saveCurriculumPlan(planData: {
+    courseId: number;
+    classroomId?: number | null;
+    quarter: number;
+    markdownPlan: string;
+    status?: 'DRAFT_QUESTIONNAIRE' | 'APPROVED' | 'ARCHIVED';
+    version?: number;
+  }): any {
+    const db = getDb();
+    const {
+      courseId,
+      classroomId = null,
+      quarter,
+      markdownPlan,
+      status = 'DRAFT_QUESTIONNAIRE',
+      version = 1
+    } = planData;
+
+    // Fetch target classroom id or pick default classroom
+    let targetClsId = classroomId;
+    if (!targetClsId) {
+      const cls = db.prepare('SELECT id FROM classrooms WHERE teacher_id = (SELECT teacher_id FROM courses WHERE id = ?) LIMIT 1').get(courseId) as any;
+      targetClsId = cls ? cls.id : 1;
+    }
+
+    const existing = db.prepare(`
+      SELECT id, version FROM course_curriculum_plans
+      WHERE course_id = ? AND classroom_id = ? AND quarter = ?
+      ORDER BY version DESC LIMIT 1
+    `).get(courseId, targetClsId, quarter) as any;
+
+    const nextVersion = existing ? existing.version + 1 : version;
+
+    const info = db.prepare(`
+      INSERT INTO course_curriculum_plans (
+        course_id, classroom_id, quarter, markdown_plan, status, version, created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).run(courseId, targetClsId, quarter, markdownPlan, status, nextVersion);
+
+    return db.prepare('SELECT * FROM course_curriculum_plans WHERE id = ?').get(Number(info.lastInsertRowid));
+  }
+
+  /**
+   * Approve curriculum plan
+   */
+  public approveCurriculumPlan(planId: number, courseId?: number, classroomId?: number | null): any {
+    const db = getDb();
+    const tx = db.transaction(() => {
+      const plan = db.prepare('SELECT * FROM course_curriculum_plans WHERE id = ?').get(planId) as any;
+      if (!plan) {
+        throw new Error('PLAN_NOT_FOUND: Оқу жоспары табылмады (Curriculum plan not found)');
+      }
+
+      // Archive previous versions
+      db.prepare(`
+        UPDATE course_curriculum_plans
+        SET status = 'ARCHIVED', updated_at = CURRENT_TIMESTAMP
+        WHERE course_id = ? AND classroom_id = ? AND quarter = ? AND id != ?
+      `).run(plan.course_id, plan.classroom_id, plan.quarter, planId);
+
+      // Approve current
+      db.prepare(`
+        UPDATE course_curriculum_plans
+        SET status = 'APPROVED', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(planId);
+
+      return db.prepare('SELECT * FROM course_curriculum_plans WHERE id = ?').get(planId);
+    });
+
+    return tx();
+  }
+
+  /**
+   * Get active curriculum plan
+   */
+  public getCurriculumPlan(courseId: number | string, classroomId?: number | string | null, quarter: number = 1): any {
+    const db = getDb();
+    const cid = Number(courseId) || 1;
+    const q = Number(quarter) || 1;
+
+    let query = `
+      SELECT id, course_id, classroom_id, quarter, markdown_plan, status, version, created_at, updated_at
+      FROM course_curriculum_plans
+      WHERE course_id = ? AND quarter = ?
+    `;
+    const params: any[] = [cid, q];
+
+    if (classroomId) {
+      query += ` AND (classroom_id = ? OR classroom_id IS NULL)`;
+      params.push(Number(classroomId));
+    }
+
+    query += ` ORDER BY CASE WHEN status = 'APPROVED' THEN 1 WHEN status = 'DRAFT_QUESTIONNAIRE' THEN 2 ELSE 3 END, version DESC LIMIT 1`;
+
+    return db.prepare(query).get(...params) || null;
+  }
+
+  /**
+   * Get student applications for course admission
+   */
+  public getCourseApplications(courseId: number | string): any[] {
+    const db = getDb();
+    const cid = Number(courseId) || 1;
+
+    const rows = db.prepare(`
+      SELECT 
+        ce.id as application_id,
+        ce.course_id,
+        ce.student_id,
+        ce.status,
+        ce.motivation_text,
+        ce.assigned_classroom_id,
+        ce.rejection_reason,
+        ce.requested_at,
+        ce.approved_at,
+        u.full_name as student_name,
+        u.email as student_email,
+        u.grade,
+        u.school,
+        COALESCE(u.streak_days, 0) as streak_days,
+        COALESCE(scp.subject_elo, 1000) as subject_elo,
+        COALESCE(scp.rank_tier, 'OSKIN') as rank_tier
+      FROM course_enrollments ce
+      JOIN users u ON ce.student_id = u.id
+      LEFT JOIN student_course_passports scp ON ce.student_id = scp.student_id AND ce.course_id = scp.course_id
+      WHERE ce.course_id = ?
+      ORDER BY ce.requested_at DESC
+    `).all(cid) as any[];
+
+    return rows;
+  }
+
+  /**
+   * Moderate student application (Approve or Reject)
+   */
+  public moderateApplication(params: {
+    applicationId: number;
+    action: 'approve' | 'reject';
+    assignedClassroomId?: number | null;
+    rejectionReason?: string;
+  }): any {
+    const { applicationId, action, assignedClassroomId = null, rejectionReason = '' } = params;
+    const db = getDb();
+
+    const tx = db.transaction(() => {
+      const app = db.prepare('SELECT * FROM course_enrollments WHERE id = ?').get(applicationId) as any;
+      if (!app) {
+        throw new Error('APPLICATION_NOT_FOUND: Өтінім табылмады (Application not found)');
+      }
+
+      if (action === 'approve') {
+        db.prepare(`
+          UPDATE course_enrollments
+          SET status = 'enrolled', assigned_classroom_id = ?, approved_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(assignedClassroomId, applicationId);
+
+        // Add to classroom_students if group assigned
+        if (assignedClassroomId) {
+          db.prepare(`
+            INSERT OR IGNORE INTO classroom_students (classroom_id, student_id)
+            VALUES (?, ?)
+          `).run(assignedClassroomId, app.student_id);
+        }
+
+        // Initialize passport if not exists
+        db.prepare(`
+          INSERT OR IGNORE INTO student_course_passports (student_id, course_id, subject_elo, rank_tier, skills_progress_json, teacher_daily_notes_json)
+          VALUES (?, ?, 1000, 'OSKIN', '{}', '[]')
+        `).run(app.student_id, app.course_id);
+
+        return {
+          application_id: applicationId,
+          status: 'enrolled',
+          assigned_classroom_id: assignedClassroomId,
+          student_id: app.student_id,
+          course_id: app.course_id
+        };
+      } else {
+        db.prepare(`
+          UPDATE course_enrollments
+          SET status = 'rejected', rejection_reason = ?, approved_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(rejectionReason, applicationId);
+
+        return {
+          application_id: applicationId,
+          status: 'rejected',
+          rejection_reason: rejectionReason,
+          student_id: app.student_id,
+          course_id: app.course_id
+        };
+      }
+    });
+
+    return tx();
   }
 }
 

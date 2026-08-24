@@ -88,20 +88,18 @@ export class TutorController {
             })
           );
 
-          // Update course passport ELO if courseId provided
-          if (parsedCourseId) {
-            const passport = db.prepare(`
-              SELECT id, subject_elo FROM student_course_passports
-              WHERE student_id = ? AND course_id = ?
-            `).get(studentId, parsedCourseId) as any;
+          const targetCourseId = parsedCourseId || 1;
+          const passport = db.prepare(`
+            SELECT id, subject_elo FROM student_course_passports
+            WHERE student_id = ? AND course_id = ?
+          `).get(studentId, targetCourseId) as any;
 
-            if (passport) {
-              db.prepare(`
-                UPDATE student_course_passports
-                SET subject_elo = subject_elo + ?, updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-              `).run(eloDelta, passport.id);
-            }
+          if (passport) {
+            db.prepare(`
+              UPDATE student_course_passports
+              SET subject_elo = subject_elo + ?, updated_at = CURRENT_TIMESTAMP
+              WHERE id = ?
+            `).run(eloDelta, passport.id);
           }
         }
       }

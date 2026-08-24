@@ -97,7 +97,7 @@ export const TeacherPortal: React.FC = () => {
 
           <div className="hidden sm:flex items-center gap-2">
             <Badge variant="outline" className="text-[11px] font-mono py-1">
-              {user?.school || 'NIS IB Astana'}
+              {user?.school || 'Zerde School'}
             </Badge>
           </div>
         </div>

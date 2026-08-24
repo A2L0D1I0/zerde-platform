@@ -4,6 +4,7 @@ import { getDb } from '../../db/database';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import { copilotService } from '../../ai/copilot.service';
 import { CoPilotQuestionItemSchema } from '../../ai/schemas';
+import { teacherRepository } from './teacher.repository';
 
 const generateQuizRequestSchema = z.object({
   topic_title: z.string().min(2, 'Тақырып атауын енгізіңіз (Topic title is required)'),
@@ -307,6 +308,232 @@ export class TeacherController {
         message: 'Жазба жойылды (Note deleted successfully)'
       });
 
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/teacher/courses/:id/slots
+   */
+  public getCourseSlots(req: AuthRequest, res: Response, next: NextFunction): void {
+    try {
+      const courseId = parseInt(req.params.id, 10);
+      const classroomId = req.query.classroomId ? parseInt(req.query.classroomId as string, 10) : undefined;
+      const slots = teacherRepository.getCourseSlots(courseId, classroomId);
+
+      res.json({
+        success: true,
+        data: slots
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/teacher/courses/:id/slots/:slotNumber
+   */
+  public upsertCourseSlot(req: AuthRequest, res: Response, next: NextFunction): void {
+    try {
+      const courseId = parseInt(req.params.id, 10);
+      const slotNumber = parseInt(req.params.slotNumber, 10);
+      const { title, content_text, file_type, file_size, is_locked, classroom_id } = req.body;
+
+      if (!title || typeof content_text !== 'string') {
+        res.status(400).json({ success: false, error: 'Тақырып және мәтін міндетті (Title and content are required)' });
+        return;
+      }
+
+      if (slotNumber < 1 || slotNumber > 5) {
+        res.status(400).json({ success: false, error: 'Слот нөмірі 1 мен 5 арасында болуы тиіс (Slot number must be between 1 and 5)' });
+        return;
+      }
+
+      const slot = teacherRepository.upsertCourseSlot({
+        courseId,
+        classroomId: classroom_id ? parseInt(classroom_id, 10) : null,
+        slotNumber,
+        title,
+        contentText: content_text,
+        fileType: file_type || 'text',
+        fileSize: file_size || content_text.length,
+        isLocked: is_locked ? 1 : 0
+      });
+
+      // Audit Log
+      const db = getDb();
+      db.prepare(`
+        INSERT INTO system_audit_logs (actor_user_id, actor_role, course_id, event_type, payload_json)
+        VALUES (?, 'teacher', ?, 'SLOT_UPLOADED', ?)
+      `).run(
+        req.user?.id || null,
+        courseId,
+        JSON.stringify({ slot_number: slotNumber, title })
+      );
+
+      res.json({
+        success: true,
+        message: `Слот ${slotNumber} сәтті сақталды (Slot saved successfully)`,
+        data: slot
+      });
+    } catch (error: any) {
+      if (error.message && error.message.includes('SLOT_LOCKED')) {
+        res.status(403).json({ success: false, error: 'Слот оқу кезеңінде бұғатталған (Slot is locked outside edit window)' });
+        return;
+      }
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/teacher/courses/:id/plan/generate
+   */
+  public async generateCurriculumPlan(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const courseId = parseInt(req.params.id, 10);
+      const { classroom_id, quarter = 1, language = 'KZ' } = req.body;
+
+      const planResult = await copilotService.generateCurriculumPlan({
+        courseId,
+        classroomId: classroom_id ? parseInt(classroom_id, 10) : undefined,
+        quarter: Number(quarter) || 1,
+        language
+      });
+
+      const savedPlan = teacherRepository.saveCurriculumPlan({
+        courseId,
+        classroomId: classroom_id ? parseInt(classroom_id, 10) : null,
+        quarter: Number(quarter) || 1,
+        markdownPlan: planResult.markdown_plan,
+        status: 'DRAFT_QUESTIONNAIRE',
+        version: planResult.version
+      });
+
+      // Audit Log
+      const db = getDb();
+      db.prepare(`
+        INSERT INTO system_audit_logs (actor_user_id, actor_role, course_id, event_type, payload_json)
+        VALUES (?, 'teacher', ?, 'COPILOT_GENERATION', ?)
+      `).run(
+        req.user?.id || null,
+        courseId,
+        JSON.stringify({ quarter, slots_used: planResult.slots_used_count })
+      );
+
+      res.json({
+        success: true,
+        message: 'Оқу жоспары (КТП) сәтті жасалды (Curriculum plan generated)',
+        data: savedPlan
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/teacher/courses/:id/plan/approve
+   */
+  public approveCurriculumPlan(req: AuthRequest, res: Response, next: NextFunction): void {
+    try {
+      const courseId = parseInt(req.params.id, 10);
+      const { plan_id, classroom_id } = req.body;
+
+      if (!plan_id) {
+        res.status(400).json({ success: false, error: 'plan_id міндетті (plan_id is required)' });
+        return;
+      }
+
+      const approved = teacherRepository.approveCurriculumPlan(
+        Number(plan_id),
+        courseId,
+        classroom_id ? Number(classroom_id) : null
+      );
+
+      res.json({
+        success: true,
+        message: 'Оқу жоспары ресми бекітілді (Curriculum plan approved)',
+        data: approved
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/teacher/courses/:id/plan
+   */
+  public getCurriculumPlan(req: AuthRequest, res: Response, next: NextFunction): void {
+    try {
+      const courseId = parseInt(req.params.id, 10);
+      const classroomId = req.query.classroomId ? parseInt(req.query.classroomId as string, 10) : undefined;
+      const quarter = req.query.quarter ? parseInt(req.query.quarter as string, 10) : 1;
+
+      const plan = teacherRepository.getCurriculumPlan(courseId, classroomId, quarter);
+
+      res.json({
+        success: true,
+        data: plan
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/teacher/courses/:id/applications
+   */
+  public getCourseApplications(req: AuthRequest, res: Response, next: NextFunction): void {
+    try {
+      const courseId = parseInt(req.params.id, 10);
+      const applications = teacherRepository.getCourseApplications(courseId);
+
+      res.json({
+        success: true,
+        data: applications
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/teacher/courses/:id/applications/:appId/moderate
+   */
+  public moderateApplication(req: AuthRequest, res: Response, next: NextFunction): void {
+    try {
+      const appId = parseInt(req.params.appId, 10);
+      const { action, assigned_classroom_id, rejection_reason } = req.body;
+
+      if (!action || (action !== 'approve' && action !== 'reject')) {
+        res.status(400).json({ success: false, error: 'action "approve" немесе "reject" болуы керек' });
+        return;
+      }
+
+      const result = teacherRepository.moderateApplication({
+        applicationId: appId,
+        action,
+        assignedClassroomId: assigned_classroom_id ? Number(assigned_classroom_id) : null,
+        rejectionReason: rejection_reason || ''
+      });
+
+      // Audit Log
+      const db = getDb();
+      db.prepare(`
+        INSERT INTO system_audit_logs (actor_user_id, actor_role, target_user_id, course_id, event_type, payload_json)
+        VALUES (?, 'teacher', ?, ?, 'ENROLLMENT_CHANGE', ?)
+      `).run(
+        req.user?.id || null,
+        result.student_id,
+        result.course_id,
+        JSON.stringify({ action, assigned_classroom_id, status: result.status })
+      );
+
+      res.json({
+        success: true,
+        message: action === 'approve' ? 'Өтінім қабылданды (Application approved)' : 'Өтінім қабылданбады (Application rejected)',
+        data: result
+      });
     } catch (error) {
       next(error);
     }

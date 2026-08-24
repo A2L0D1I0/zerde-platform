@@ -211,7 +211,7 @@ function generateMockMatrix(classroomId: string | number): ClassMatrixResponse {
   return {
     classroom_id: classroomId,
     classroom_name: is9B ? '9 «Б»' : '9 «А»',
-    school: 'NIS IB Astana',
+    school: localStorage.getItem('zerde_user') ? (JSON.parse(localStorage.getItem('zerde_user') || '{}').school || 'Zerde School') : 'Zerde School',
     students_count: matrix.length,
     skills_header: MOCK_SKILLS_HEADER,
     matrix,

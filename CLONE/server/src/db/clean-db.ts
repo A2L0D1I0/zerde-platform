@@ -37,7 +37,8 @@ function cleanDb(dbPath: string) {
 
   const now = new Date().toISOString();
   const orgs = [
-    { name: 'NIS IB Astana', token: 'ORG-8F3K9A', type: 'school' }
+    { name: 'NIS IB Astana', token: 'TCH-NIS-8F3K9A', type: 'school' },
+    { name: 'Ekibastuz BIL', token: 'TCH-EKB-7492X', type: 'school' }
   ];
 
   for (const org of orgs) {

@@ -3,9 +3,11 @@ import { ClassMatrixResponse, ClassMatrixStudent, DailySignal, SkillMeta } from 
 import { DailySignalBanner } from '@/features/gradebook/DailySignalBanner';
 import { MasteryMatrix } from '@/features/gradebook/MasteryMatrix';
 import { StudentSkillModal } from '@/features/gradebook/StudentSkillModal';
+import { ApplicationsModerationModal } from '@/features/admission/ApplicationsModerationModal';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { Users, School, Sparkles, RefreshCw } from 'lucide-react';
+import { Users, School, Sparkles, RefreshCw, Bell, UserPlus, BookOpen } from 'lucide-react';
 import api from '@/api/client';
 
 interface TeacherDashboardProps {
@@ -30,6 +32,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [selectedSkill, setSelectedSkill] = useState<SkillMeta | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  // Admission applications moderation
+  const [isAppsModalOpen, setIsAppsModalOpen] = useState<boolean>(false);
+  const [pendingAppsCount, setPendingAppsCount] = useState<number>(0);
+
   // Fetch list of real classrooms
   useEffect(() => {
     const fetchClassrooms = async () => {
@@ -46,7 +52,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       }
     };
     fetchClassrooms();
+    fetchApplicationsCount();
   }, []);
+
+  // Fetch pending applications count
+  const fetchApplicationsCount = async () => {
+    try {
+      const res: any = await api.get('/teacher/courses/1/applications');
+      const list = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+      const pending = list.filter((a: any) => a.status === 'applied' || a.status === 'pending_approval');
+      setPendingAppsCount(pending.length);
+    } catch (err) {
+      console.warn('Failed to load applications count', err);
+      setPendingAppsCount(0);
+    }
+  };
 
   // Fetch matrix and signal for active classroom
   useEffect(() => {
@@ -125,7 +145,34 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Applications Moderation Button */}
+          <Button
+            size="sm"
+            variant={pendingAppsCount > 0 ? 'primary' : 'outline'}
+            onClick={() => setIsAppsModalOpen(true)}
+            className={`text-xs gap-1.5 h-8 font-semibold shadow-xs ${
+              pendingAppsCount > 0 ? 'animate-pulse' : ''
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>
+              {pendingAppsCount > 0 ? `Өтінімдер (${pendingAppsCount})` : 'Өтінімдерді басқару'}
+            </span>
+          </Button>
+
+          {onOpenCourseBuilder && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onOpenCourseBuilder}
+              className="text-xs gap-1.5 h-8 font-semibold shadow-xs"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-primer-accent-fg" />
+              <span>Course Studio</span>
+            </Button>
+          )}
+
           <Badge variant="outline" className="text-[11px] font-mono gap-1">
             <Users className="w-3 h-3 text-primer-accent-fg" />
             <span>{matrixData?.students_count || 0} оқушы</span>
@@ -166,6 +213,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         }}
         student={selectedStudent}
         skill={selectedSkill}
+      />
+
+      {/* 4. Applications Moderation Modal */}
+      <ApplicationsModerationModal
+        isOpen={isAppsModalOpen}
+        onClose={() => setIsAppsModalOpen(false)}
+        courseId={1}
+        classrooms={classrooms.map((c) => ({ id: c.id, name: c.name }))}
+        onUpdated={fetchApplicationsCount}
       />
     </div>
   );

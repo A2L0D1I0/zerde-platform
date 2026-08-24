@@ -36,7 +36,7 @@ import { MathText } from '@/components/ui/MathText';
 import { ZvdslRenderer } from '@/components/zvdsl/ZvdslRenderer';
 import { ActiveCanvasInspector } from '@/components/canvas/ActiveCanvasInspector';
 import { ThoughtForkTriad } from '@/features/socratic-tutor/ThoughtForkTriad';
-import { ThoughtFork } from '@zerde/shared';
+import { ThoughtFork, getRankByElo } from '@zerde/shared';
 import api from '@/api/client';
 
 export interface QuizOption {
@@ -131,48 +131,13 @@ export const TestPracticeModal: React.FC<TestPracticeModalProps> = ({
       try {
         const res = await api.get<QuizQuestion[]>('/questions');
         if (Array.isArray(res) && res.length > 0) {
-          // Augment questions if needed to demonstrate full up to 8 options and ZVDSL+ power
-          const enriched = res.map((q, idx) => {
-            let opts = q.options || [];
-            if (opts.length === 4 && idx === 0) {
-              // Ensure comprehensive 8 options for test demonstration with ZVDSL+
-              opts = [
-                ...opts,
-                { id: 'E', text: 'x > 3 немесе x < -2', latex: 'x \\in (-\\infty; -2) \\cup (3; +\\infty)', isCorrect: false },
-                { id: 'F', text: 'Барлық нақты сандар', latex: 'x \\in \\mathbb{R}', isCorrect: false },
-                { id: 'G', text: 'Шешімі жоқ', latex: '\\varnothing', isCorrect: false },
-                { id: 'H', text: 'Тек x = 0 нүктесі', latex: 'x = 0', isCorrect: false },
-              ];
-            }
-            return {
-              ...q,
-              options: opts,
-            };
-          });
-          setQuestions(enriched);
+          setQuestions(res);
         } else {
-          setQuestions([
-            {
-              id: '1',
-              questionText: 'Теңсіздікті шешіңіз және сан түзуіндегі шешімдер аралығын анықтаңыз:',
-              questionLatex: 'x^2 - x - 6 < 0',
-              mode: 'TYPE_A_CHOICE',
-              options: [
-                { id: 'A', text: '(-2; 3)', latex: '(-2; 3)', isCorrect: true },
-                { id: 'B', text: '(-\\infty; -2) \\cup (3; +\\infty)', latex: '(-\\infty; -2) \\cup (3; +\\infty)', isCorrect: false },
-                { id: 'C', text: '[-3; 2]', latex: '[-3; 2]', isCorrect: false },
-                { id: 'D', text: '(-3; 2)', latex: '(-3; 2]', isCorrect: false },
-                { id: 'E', text: 'x > 3', latex: 'x > 3', isCorrect: false },
-                { id: 'F', text: 'x < -2', latex: 'x < -2', isCorrect: false },
-                { id: 'G', text: 'Шешімі жоқ', latex: '\\varnothing', isCorrect: false },
-                { id: 'H', text: 'x = 0', latex: 'x = 0', isCorrect: false },
-              ],
-              explanation: 'Түбірлері -2 және 3. Парабола f(x) < 0 болғандықтан, шешім: (-2; 3).',
-            },
-          ]);
+          setQuestions([]);
         }
       } catch (err) {
         console.warn('Failed to load questions from SQLite', err);
+        setQuestions([]);
       } finally {
         setIsLoading(false);
       }
@@ -292,11 +257,12 @@ export const TestPracticeModal: React.FC<TestPracticeModalProps> = ({
     });
   };
 
-  const studentName = user?.full_name || 'Оқушы';
-  const currentElo = user?.elo || 1420;
-  const streakDays = user?.streakDays || 12;
-  const rankSymbol = '🦅';
-  const rankLabel = isRU ? 'Қыран' : isEN ? 'Qyran' : 'Қыран';
+  const studentName = user?.full_name || (lang === 'KZ' ? 'Оқушы' : lang === 'RU' ? 'Ученик' : 'Student');
+  const currentElo = user?.elo ?? user?.overallElo ?? 1000;
+  const streakDays = user?.streakDays || 0;
+  const rankInfo = getRankByElo(currentElo);
+  const rankSymbol = rankInfo.symbol;
+  const rankLabel = lang === 'RU' ? rankInfo.nameRU : lang === 'EN' ? rankInfo.nameEN : rankInfo.nameKZ;
 
   if (!isOpen) return null;
 

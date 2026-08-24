@@ -68,17 +68,7 @@ const getInitialProgress = (): UserProgressState => {
     streakFreezeTokens: 1, // 1 free freeze token on start
     activeFreezeDate: null,
     studentCode: generateDefaultStudentCode(),
-    orgMemberships: [
-      {
-        tokenId: 'STD-ORG-NIS-77',
-        orgId: 'org_nis_astana',
-        orgName: 'NIS IB Astana',
-        orgType: 'school',
-        roleInOrg: 'student',
-        joinedAt: new Date().toLocaleDateString(),
-        isVerified: true,
-      },
-    ],
+    orgMemberships: [],
     friends: [],
   };
 };
@@ -315,7 +305,7 @@ class UserProgressService {
       id: 'frd_' + Date.now(),
       studentCode: cleanCode,
       name: name?.trim() || `Студент (${cleanCode})`,
-      schoolOrOrg: 'NIS IB Astana',
+      schoolOrOrg: '',
       gradeOrStatus: '10-сынып',
       elo: 1050 + Math.floor(Math.random() * 200),
       streakDays: 1 + Math.floor(Math.random() * 10),

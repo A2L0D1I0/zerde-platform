@@ -26,6 +26,9 @@ function applySafeMigrations(database: Database.Database): void {
       if (!enrollColNames.has('motivation_text')) {
         database.exec("ALTER TABLE course_enrollments ADD COLUMN motivation_text TEXT NOT NULL DEFAULT ''");
       }
+      if (!enrollColNames.has('rejection_reason')) {
+        database.exec("ALTER TABLE course_enrollments ADD COLUMN rejection_reason TEXT NULL");
+      }
     }
 
     // Check and add columns to question_bank

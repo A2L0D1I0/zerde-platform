@@ -60,8 +60,8 @@ export function initDatabase(db: Database.Database = getDb()): void {
     if (userCols.length > 0 && !userCols.some(c => c.name === 'bio')) {
       db.exec("ALTER TABLE users ADD COLUMN bio TEXT");
     }
-    if (userCols.length > 0 && !userCols.some(c => c.name === 'organization_id')) {
-      db.exec("ALTER TABLE users ADD COLUMN organization_id INTEGER");
+    if (userCols.length > 0 && !userCols.some(c => c.name === 'roles_json')) {
+      db.exec("ALTER TABLE users ADD COLUMN roles_json TEXT DEFAULT '[]'");
     }
   } catch (e) {
     // Ignore if table does not exist

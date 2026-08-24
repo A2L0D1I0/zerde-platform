@@ -82,6 +82,11 @@ export const en = {
   // =========================================================================
   'auth.sign_in': 'Sign In',
   'auth.sign_up': 'Sign Up',
+  'auth.submit_login': 'Sign In',
+  'auth.submit_register': 'Create Account',
+  'auth.switch_to_login': 'Already have an account? Sign In',
+  'auth.switch_to_register': 'New member? Sign Up ➔',
+  'auth.processing': 'Processing...',
   'auth.role_switcher_student': 'Student',
   'auth.role_switcher_teacher': 'Educator',
   'auth.student_subtitle': 'Sign in to student dashboard or create a new account',

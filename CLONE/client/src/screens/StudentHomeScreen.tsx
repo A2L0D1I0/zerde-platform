@@ -439,7 +439,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
                 full_name: 'Оқушы',
                 role: 'student',
                 grade: '10-сынып',
-                school: 'NIS IB Astana',
+                school: '',
                 language: 'KZ',
                 theme: 'dark',
                 overallElo: progressState.elo,

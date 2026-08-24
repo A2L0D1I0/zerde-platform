@@ -26,7 +26,8 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().email('Жарамды email енгізіңіз'),
-  password: z.string().min(1, 'Құпиясөзді енгізіңіз')
+  password: z.string().min(1, 'Құпиясөзді енгізіңіз'),
+  role: z.enum(['student', 'teacher', 'admin']).optional()
 });
 
 const profileUpdateSchema = z.object({
@@ -45,32 +46,72 @@ const profileUpdateSchema = z.object({
 
 /**
  * POST /api/auth/register
- * Register a new user
+ * Register a new user (or add a secondary role to an existing user)
  */
 router.post('/register', async (req, res, next) => {
   try {
     const validated = registerSchema.parse(req.body);
 
-    const existingUser = store.findUserByEmail(validated.email);
-    if (existingUser) {
-      throw new AppError('Бұл email бойынша пайдаланушы тіркелген (User already exists)', 409);
-    }
-
     let organizationId: string | undefined;
     let schoolName = validated.school || '';
 
-
-    // Organization Token Verification for Teachers
+    // Organization Token Verification
     if (validated.role === 'teacher') {
       if (!validated.org_token || validated.org_token.trim() === '') {
-        throw new AppError('Оқытушы ретінде тіркелу үшін Ұйымның қауіпсіздік токені қажет (Organization token required)', 400);
+        throw new AppError('Қате токен', 400);
       }
-      const org = store.validateOrgToken(validated.org_token);
+      const org = store.validateOrgToken(validated.org_token, 'teacher');
       if (!org) {
-        throw new AppError('Ұйым токені жарамсыз немесе табылмады (Invalid organization security token)', 403);
+        throw new AppError('Қате токен', 403);
       }
       organizationId = org.id;
       schoolName = org.name;
+    } else if (validated.role === 'student' && validated.org_token && validated.org_token.trim() !== '') {
+      const org = store.validateOrgToken(validated.org_token, 'student');
+      if (!org) {
+        throw new AppError('Қате токен', 403);
+      }
+      organizationId = org.id;
+      schoolName = org.name;
+    }
+
+    const existingUser = store.findUserByEmail(validated.email);
+    if (existingUser) {
+      const currentRoles = existingUser.roles || [existingUser.role];
+      if (currentRoles.includes(validated.role)) {
+        throw new AppError(
+          validated.role === 'teacher'
+            ? 'Бұл email бойынша мұғалім аккаунты тіркеліп қойған'
+            : 'Бұл email бойынша оқушы аккаунты тіркеліп қойған',
+          409
+        );
+      }
+
+      // Check password matches existing account
+      const isMatch = await bcryptjs.compare(validated.password, existingUser.password_hash);
+      if (!isMatch) {
+        throw new AppError('Құпиясөз бұрынғы аккаунтыңызбен сәйкес келмейді', 401);
+      }
+
+      // Add new role to existing account
+      const updatedUser = store.addRoleToUser(existingUser.id, validated.role, {
+        school: schoolName || existingUser.school,
+        organization_id: organizationId || existingUser.organization_id,
+        grade: validated.grade || existingUser.grade
+      });
+
+      const token = generateToken({
+        userId: existingUser.id,
+        email: existingUser.email,
+        role: validated.role
+      });
+
+      return res.status(201).json({
+        success: true,
+        token,
+        user: store.toSafeUser(updatedUser || existingUser),
+        message: 'Аккаунтқа жаңа рөл сәтті қосылды'
+      });
     }
 
     const salt = await bcryptjs.genSalt(10);
@@ -81,6 +122,7 @@ router.post('/register', async (req, res, next) => {
       password_hash,
       full_name: validated.full_name,
       role: validated.role,
+      roles: [validated.role],
       bio: validated.bio || '',
       grade: validated.grade || '',
       school: schoolName,
@@ -110,7 +152,7 @@ router.post('/register', async (req, res, next) => {
 
 /**
  * POST /api/auth/login
- * User login with credentials
+ * User login with credentials and optional role verification
  */
 router.post('/login', async (req, res, next) => {
   try {
@@ -118,18 +160,33 @@ router.post('/login', async (req, res, next) => {
 
     const user = store.findUserByEmail(validated.email);
     if (!user) {
-      throw new AppError('Email немесе құпиясөз қате (Invalid credentials)', 401);
+      throw new AppError('Email немесе құпиясөз қате', 401);
     }
 
     const isMatch = (validated.password === 'password123' || validated.password === 'zerde2026') || await bcryptjs.compare(validated.password, user.password_hash);
     if (!isMatch) {
-      throw new AppError('Email немесе құпиясөз қате (Invalid credentials)', 401);
+      throw new AppError('Email немесе құпиясөз қате', 401);
+    }
+
+    const userRoles = user.roles || [user.role];
+    if (validated.role && !userRoles.includes(validated.role)) {
+      throw new AppError(
+        validated.role === 'teacher'
+          ? 'Бұл email бойынша мұғалім аккаунты табылмады. Алдымен мұғалім ретінде тіркеліңіз.'
+          : 'Бұл email бойынша оқушы аккаунты табылмады. Алдымен оқушы ретінде тіркеліңіз.',
+        403
+      );
+    }
+
+    const activeRole = validated.role || user.role;
+    if (user.role !== activeRole) {
+      user.role = activeRole;
     }
 
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: activeRole
     });
 
     res.json({
@@ -183,6 +240,66 @@ router.put('/profile', authenticate, async (req: AuthRequest, res: Response, nex
       success: true,
       user: store.toSafeUser(updatedUser),
       message: 'Профиль сәтті жаңартылды'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/auth/organization/users
+ * Returns list of users in the organization (Read-only view for school admins/teachers)
+ */
+router.get('/organization/users', authenticate, (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user || (req.user.role !== 'teacher' && req.user.role !== 'admin')) {
+      throw new AppError('Рұқсат жоқ (Forbidden)', 403);
+    }
+
+    const orgUsers = store.getUsersBySchool(req.user.school || 'NIS IB Astana');
+    res.json({
+      success: true,
+      users: orgUsers.map(u => store.toSafeUser(u))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/auth/organization/users/:id
+ * Allows school admins/teachers to edit account info (email, password, birthdate/grade)
+ */
+router.put('/organization/users/:id', authenticate, async (req: AuthRequest, res: Response, next) => {
+  try {
+    if (!req.user || (req.user.role !== 'teacher' && req.user.role !== 'admin')) {
+      throw new AppError('Рұқсат жоқ (Forbidden)', 403);
+    }
+
+    const targetUserId = req.params.id;
+    const { full_name, email, password, grade, school, bio } = req.body;
+
+    const updates: any = {};
+    if (full_name) updates.full_name = full_name;
+    if (email) updates.email = email;
+    if (grade) updates.grade = grade;
+    if (school) updates.school = school;
+    if (bio !== undefined) updates.bio = bio;
+
+    if (password && password.trim().length >= 6) {
+      const salt = await bcryptjs.genSalt(10);
+      updates.password_hash = await bcryptjs.hash(password.trim(), salt);
+    }
+
+    const updated = store.updateUser(targetUserId, updates);
+    if (!updated) {
+      throw new AppError('Пайдаланушы табылмады', 404);
+    }
+
+    res.json({
+      success: true,
+      user: store.toSafeUser(updated),
+      message: 'Аккаунт деректері жаңартылды'
     });
   } catch (error) {
     next(error);

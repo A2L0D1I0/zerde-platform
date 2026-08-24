@@ -1,40 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useTheme } from '@/context/ThemeContext';
 import {
   GraduationCap,
   UserCheck,
   KeyRound,
-  Info,
   AlertCircle,
   Globe,
   Sparkles,
   Eye,
   EyeOff,
-  School,
-  BookOpen,
-  Brain,
-  Zap,
-  Flame,
-  Award,
-  CheckCircle2,
-  ArrowRight,
+  Sun,
+  Moon,
   ShieldCheck,
   Check,
+  ChevronDown,
+  ArrowRight,
+  TrendingUp,
+  Brain,
+  Award,
+  Layers,
+  BookOpen,
+  Calendar,
+  Flame,
+  Users,
 } from 'lucide-react';
-
-const VERIFIED_ORGANIZATIONS = [
-  'NIS IB Astana',
-  'РФМШ Астана / РФМШ Алматы',
-  'БИЛ (BIL) Лицей',
-  '№17 IT-Лицей',
-  '№10 IT Мектеп-лицейі',
-  'Басқа / Другая школа',
-];
 
 const GRADE_OPTIONS = [
   { value: '7-сынып', labelKZ: '7-сынып', labelRU: '7 класс', labelEN: 'Grade 7' },
@@ -43,14 +34,15 @@ const GRADE_OPTIONS = [
   { value: '10-сынып', labelKZ: '10-сынып', labelRU: '10 класс', labelEN: 'Grade 10' },
   { value: '11-сынып', labelKZ: '11-сынып', labelRU: '11 класс', labelEN: 'Grade 11' },
   { value: '12-сынып', labelKZ: '12-сынып (NIS/IB)', labelRU: '12 класс (NIS/IB)', labelEN: 'Grade 12 (NIS/IB)' },
-  { value: 'Колледж', labelKZ: 'Колледж', labelRU: 'Колледж', labelEN: 'College' },
-  { value: 'ЖОО (ВУЗ)', labelKZ: 'ЖОО (Университет)', labelRU: 'ВУЗ (Университет)', labelEN: 'University' },
+  { value: 'Колледж', labelKZ: 'Колледж студенті', labelRU: 'Студент колледжа', labelEN: 'College Student' },
+  { value: 'ЖОО (ВУЗ)', labelKZ: 'Университет (ВУЗ)', labelRU: 'Университет (ВУЗ)', labelEN: 'University' },
   { value: 'Басқа', labelKZ: 'Басқа (Еркін жазу)', labelRU: 'Другое', labelEN: 'Other' },
 ];
 
 export const AuthScreen: React.FC = () => {
   const { login, register, isLoading } = useAuth();
   const { t, language, setLanguage } = useLanguage();
+  const { theme, toggleTheme, isDark } = useTheme();
   const lang = (language as 'KZ' | 'RU' | 'EN') || 'KZ';
 
   const [isRegister, setIsRegister] = useState(false);
@@ -59,55 +51,46 @@ export const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
-  const [school, setSchool] = useState(VERIFIED_ORGANIZATIONS[0]);
-  const [customSchool, setCustomSchool] = useState('');
   const [grade, setGrade] = useState('10-сынып');
   const [customGrade, setCustomGrade] = useState('');
-  const [subject, setSubject] = useState('Информатика (ICT)');
-  const [bio, setBio] = useState('');
-  const [orgToken, setOrgToken] = useState('ORG-8F3K9A');
+  const [orgToken, setOrgToken] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Showcase Interactive State
-  const [activeShowcaseTab, setActiveShowcaseTab] = useState<'socratic' | 'elo' | 'tokens' | 'math'>('socratic');
-  const [socraticChoice, setSocraticChoice] = useState<number | null>(null);
-
-  // Auto-cycle showcase tabs for subtle presentation animation
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveShowcaseTab((prev) => {
-        if (prev === 'socratic') return 'elo';
-        if (prev === 'elo') return 'math';
-        if (prev === 'math') return 'tokens';
-        return 'socratic';
-      });
-    }, 7000);
-    return () => clearInterval(timer);
-  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setIsSubmitting(true);
 
     try {
       if (isRegister) {
         if (!name.trim()) {
           setErrorMsg(t('auth.name_required') || 'Аты-жөніңізді енгізіңіз');
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (role === 'teacher' && !orgToken.trim()) {
+          setErrorMsg(
+            lang === 'KZ'
+              ? 'Қате токен'
+              : lang === 'RU'
+              ? 'Неверный токен'
+              : 'Invalid security token'
+          );
+          setIsSubmitting(false);
           return;
         }
 
         const finalGrade = grade === 'Басқа' ? (customGrade.trim() || '10-сынып') : grade;
-        const finalSchool = school === 'Басқа / Другая школа' ? (customSchool.trim() || 'NIS IB Astana') : school;
 
         await register({
           email: email.trim(),
           password,
           full_name: name.trim(),
           role,
-          school: finalSchool,
           grade: role === 'student' ? finalGrade : undefined,
-          bio: bio.trim(),
-          org_token: role === 'teacher' ? orgToken.trim() : undefined,
+          org_token: orgToken.trim() ? orgToken.trim() : undefined,
         });
       } else {
         if (!email.trim() || !password.trim()) {
@@ -118,625 +101,495 @@ export const AuthScreen: React.FC = () => {
               ? 'Введите email и пароль'
               : 'Please enter your email and password'
           );
+          setIsSubmitting(false);
           return;
         }
         await login(email.trim(), password, role);
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || t('common.error_occurred');
+      const msg = err?.response?.data?.message || err?.message || (lang === 'KZ' ? 'Қате орын алды' : 'Произошла ошибка');
       setErrorMsg(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-primer-canvas-default text-primer-fg-default flex flex-col justify-between selection:bg-primer-accent-emphasis selection:text-white">
-      
-      {/* 1. TOP NAV BAR */}
-      <header className="border-b border-primer-border-muted/80 bg-primer-canvas-default/80 backdrop-blur px-4 sm:px-8 py-3 transition-colors">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-primer-canvas-subtle border border-primer-border-default flex items-center justify-center font-bold text-xs text-primer-fg-default shadow-primer-xs">
-              <BookOpen className="w-4 h-4 text-primer-accent-fg" />
-            </div>
-            <div>
-              <span className="text-sm font-black tracking-tight text-primer-fg-default">
-                {t('brand.title')}
-              </span>
-              <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-mono bg-primer-canvas-subtle text-primer-accent-fg border border-primer-border-default font-bold">
-                v1.0 SaaS
-              </span>
-            </div>
+    <div
+      className={`min-h-screen w-full flex flex-col justify-between transition-colors duration-500 font-sans select-none overflow-x-hidden ${
+        isDark
+          ? 'bg-[#0b101b] text-white'
+          : 'bg-[#f4f6fb] text-slate-900'
+      }`}
+    >
+      {/* 1. TOP HEADER */}
+      <header className="w-full max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-md shadow-blue-600/30">
+            Z
           </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-base font-black tracking-tight font-mono text-blue-600 dark:text-blue-400">
+              ZERDE
+            </span>
+            <span className="text-xs font-bold opacity-80">Platform</span>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-1 bg-primer-canvas-subtle p-1 rounded-xl border border-primer-border-default shadow-primer-xs">
-              <Globe className="w-3.5 h-3.5 text-primer-fg-muted ml-1 mr-0.5 shrink-0" />
-              {(['KZ', 'RU', 'EN'] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setLanguage(l)}
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-bold font-mono transition cursor-pointer ${
-                    language === l
-                      ? 'bg-primer-accent-emphasis text-white shadow-xs'
-                      : 'text-primer-fg-muted hover:text-primer-fg-default'
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
+        <div className="flex items-center gap-3">
+          {/* Theme Switcher */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              isDark
+                ? 'bg-slate-800/80 border-slate-700 text-amber-300 hover:bg-slate-700'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs'
+            }`}
+            title="Теманы ауыстыру / Сменить тему"
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-blue-600" />}
+          </button>
+
+          {/* Language Switcher */}
+          <div
+            className={`inline-flex items-center gap-1 p-1 rounded-xl border ${
+              isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200 shadow-xs'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5 opacity-50 ml-1.5 mr-0.5" />
+            {(['KZ', 'RU', 'EN'] as const).map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setLanguage(l)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
+                  language === l
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'opacity-60 hover:opacity-100 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                {l}
+              </button>
+            ))}
           </div>
         </div>
       </header>
 
-      {/* 2. MAIN SPLIT-SCREEN CONTENT */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 my-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      {/* 2. MAIN 2-COLUMN HERO & AUTH SECTION */}
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 my-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center z-10">
         
-        {/* LEFT COLUMN: Interactive Presentation & Animations (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* LEFT COLUMN: Dual Floating Perspective Isometric Dashboard Mockups */}
+        <div className="hidden lg:flex lg:col-span-7 flex-col justify-center relative min-h-[500px] perspective-[1200px]">
           
-          {/* Hero Header */}
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold font-mono bg-primer-accent-subtle/40 border border-primer-accent-muted text-primer-accent-fg shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-primer-accent-emphasis animate-spin" />
-              <span>
-                {lang === 'KZ'
-                  ? 'Интеллектуалды білім беру экожүйесі'
-                  : lang === 'RU'
-                  ? 'Интеллектуальная образовательная экосистема'
-                  : 'Intelligent Educational Ecosystem'}
+          <div className="absolute -inset-4 bg-gradient-to-tr from-blue-500/10 via-indigo-500/10 to-transparent rounded-3xl blur-2xl pointer-events-none" />
+
+          {/* Top Isometric Dashboard Card */}
+          <div
+            className={`w-[540px] rounded-2xl p-5 border transition-all duration-500 shadow-2xl transform rotate-[-7deg] skew-y-[4deg] translate-y-[-20px] translate-x-[10px] hover:translate-y-[-25px] hover:rotate-[-5deg] ${
+              isDark
+                ? 'bg-[#151c2e] border-slate-700/80 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] text-slate-200'
+                : 'bg-white border-slate-200/90 shadow-[0_25px_50px_-12px_rgba(30,58,138,0.12)] text-slate-800'
+            }`}
+          >
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800/80">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+                <span className="text-[11px] font-bold font-mono text-blue-600 dark:text-blue-400 ml-2">
+                  ZERDE Learning Space
+                </span>
+              </div>
+              <div className="h-2 w-16 rounded-full bg-slate-200 dark:bg-slate-700" />
+            </div>
+
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-3 space-y-2 border-r border-slate-100 dark:border-slate-800/80 pr-2">
+                <div className="h-6 rounded-lg bg-blue-600/15 text-blue-600 dark:text-blue-400 flex items-center px-2 text-[10px] font-bold gap-1.5">
+                  <BookOpen className="w-3 h-3" />
+                  <span>Курстар</span>
+                </div>
+                <div className="h-5 rounded-lg bg-slate-100 dark:bg-slate-800/60 flex items-center px-2 text-[9px] text-slate-400 gap-1.5">
+                  <Calendar className="w-2.5 h-2.5" />
+                  <span>Күнтізбе</span>
+                </div>
+                <div className="h-5 rounded-lg bg-slate-100 dark:bg-slate-800/60 flex items-center px-2 text-[9px] text-slate-400 gap-1.5">
+                  <Flame className="w-2.5 h-2.5" />
+                  <span>Стрик</span>
+                </div>
+                <div className="h-5 rounded-lg bg-slate-100 dark:bg-slate-800/60 flex items-center px-2 text-[9px] text-slate-400 gap-1.5">
+                  <Brain className="w-2.5 h-2.5" />
+                  <span>Сократ ИИ</span>
+                </div>
+              </div>
+
+              <div className="col-span-9 space-y-3">
+                <div className="p-3 rounded-xl bg-blue-600 text-white shadow-sm flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                      Ағымдағы сабақ
+                    </div>
+                    <div className="text-xs font-black">Алгебра 10 • Тригонометрия</div>
+                  </div>
+                  <div className="px-2 py-1 rounded-lg bg-white/20 text-[10px] font-bold backdrop-blur-xs">
+                    94% Mastery
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                        Физика 10
+                      </span>
+                      <span className="text-[9px] font-mono font-bold text-blue-500">1420 ELO</span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-blue-500 h-full w-3/4 rounded-full" />
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                        Информатика
+                      </span>
+                      <span className="text-[9px] font-mono font-bold text-emerald-500">1510 ELO</span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-emerald-500 h-full w-4/5 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Overlapping Isometric Card */}
+          <div
+            className={`w-[520px] rounded-2xl p-4 border transition-all duration-500 shadow-xl transform rotate-[-4deg] skew-y-[2deg] translate-y-[20px] translate-x-[60px] hover:translate-y-[15px] hover:rotate-[-2deg] ${
+              isDark
+                ? 'bg-[#101726]/95 border-slate-800 shadow-[0_20px_45px_-10px_rgba(0,0,0,0.8)] text-slate-200'
+                : 'bg-white/95 border-slate-200/80 shadow-[0_20px_45px_-10px_rgba(30,58,138,0.1)] text-slate-800'
+            }`}
+          >
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>NIS IB Astana • Академиялық журнал</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-bold">
+                10 «А» сынып
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-primer-fg-default tracking-tight leading-tight">
-              {lang === 'KZ' ? (
-                <>
-                  Білімді жаттанды емес, <br />
-                  <span className="text-primer-accent-fg bg-clip-text">терең түсінікпен меңгеріңіз.</span>
-                </>
-              ) : lang === 'RU' ? (
-                <>
-                  Обучение через <br />
-                  <span className="text-primer-accent-fg bg-clip-text">глубокое понимание и практику.</span>
-                </>
-              ) : (
-                <>
-                  Master skills through <br />
-                  <span className="text-primer-accent-fg bg-clip-text">active discovery & reasoning.</span>
-                </>
-              )}
-            </h1>
-
-            <p className="text-xs sm:text-sm text-primer-fg-muted max-w-xl leading-relaxed">
-              {lang === 'KZ'
-                ? 'Сократикалық ИИ («Аға»), адаптивті ELO-рейтинг, когнитивті диагностика (CDM) және мектептен жоғары оқу орындарына дейінгі біртұтас платформа.'
-                : lang === 'RU'
-                ? 'Сократический ИИ («Аға»), адаптивный ELO-рейтинг, когнитивная диагностика (CDM) и единая платформа от 7 класса до вузов.'
-                : 'Socratic AI Mentor ("Aga"), adaptive ELO rating, cognitive diagnostic modeling (CDM), and unified platform for schools to universities.'}
-            </p>
-          </div>
-
-          {/* Interactive Feature Tabs */}
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-primer-canvas-subtle border border-primer-border-default w-fit">
-              <button
-                type="button"
-                onClick={() => setActiveShowcaseTab('socratic')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeShowcaseTab === 'socratic'
-                    ? 'bg-primer-accent-emphasis text-white shadow-xs'
-                    : 'text-primer-fg-muted hover:text-primer-fg-default'
-                }`}
-              >
-                <Brain className="w-3.5 h-3.5" />
-                <span>{lang === 'KZ' ? '🧠 Сократ ИИ' : lang === 'RU' ? '🧠 Сократ ИИ' : '🧠 Socratic AI'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveShowcaseTab('elo')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeShowcaseTab === 'elo'
-                    ? 'bg-primer-accent-emphasis text-white shadow-xs'
-                    : 'text-primer-fg-muted hover:text-primer-fg-default'
-                }`}
-              >
-                <Flame className="w-3.5 h-3.5 text-primer-attention-fg" />
-                <span>{lang === 'KZ' ? '🔥 ELO және Стрик' : lang === 'RU' ? '🔥 ELO и Стрик' : '🔥 ELO & Streak'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveShowcaseTab('math')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeShowcaseTab === 'math'
-                    ? 'bg-primer-accent-emphasis text-white shadow-xs'
-                    : 'text-primer-fg-muted hover:text-primer-fg-default'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>{lang === 'KZ' ? '📐 KaTeX & Графиктер' : lang === 'RU' ? '📐 KaTeX & Графики' : '📐 Math & Graphs'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveShowcaseTab('tokens')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeShowcaseTab === 'tokens'
-                    ? 'bg-primer-accent-emphasis text-white shadow-xs'
-                    : 'text-primer-fg-muted hover:text-primer-fg-default'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{lang === 'KZ' ? '🏛️ Ұйымдар токені' : lang === 'RU' ? '🏛️ Токены организаций' : '🏛️ Org Tokens'}</span>
-              </button>
-            </div>
-
-            {/* Showcase Interactive Card */}
-            <div className="rounded-2xl border border-primer-border-default bg-primer-canvas-subtle p-5 shadow-primer-md transition-all">
-              
-              {activeShowcaseTab === 'socratic' && (
-                <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-primer-accent-subtle text-primer-accent-fg flex items-center justify-center font-bold text-xs">
-                        <Brain className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-primer-fg-default">
-                          {lang === 'KZ' ? 'Сократикалық наставник «Аға»' : lang === 'RU' ? 'Сократический наставник «Аға»' : 'Socratic Mentor "Aga"'}
-                        </h4>
-                        <p className="text-[10px] text-primer-fg-muted">
-                          {lang === 'KZ' ? 'Тікелей дайын жауап бермейді — ойлауға жетелейді' : lang === 'RU' ? 'Не дает готовый ответ — направляет ход мысли' : 'Guides student reasoning without spoiling direct answers'}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="accent" className="text-[10px] py-0 font-mono">
-                      Active Discovery
-                    </Badge>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-primer-canvas-inset border border-primer-border-muted space-y-2.5">
-                    <div className="text-xs font-semibold text-primer-fg-default flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-primer-accent-fg shrink-0 mt-0.5" />
-                      <span>
-                        {lang === 'KZ'
-                          ? '«Квадрат теңсіздікті шешу үшін алдымен оның нөлдерін қалай табамыз?»'
-                          : lang === 'RU'
-                          ? '«Чтобы решить квадратное неравенство, с чего мы начнем поиск корней?»'
-                          : '"To solve a quadratic inequality, how do we find its roots first?"'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                      {[
-                        { id: 1, kz: 'Дискриминант D арқылы', ru: 'Через дискриминант D', en: 'Via discriminant D' },
-                        { id: 2, kz: 'Виет теоремасымен', ru: 'По теореме Виета', en: 'Via Vieta theorem' },
-                        { id: 3, kz: 'График параболасымен', ru: 'Графиком параболы', en: 'By parabola graph' },
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setSocraticChoice(opt.id)}
-                          className={`p-2 rounded-lg text-left text-[11px] font-bold border transition cursor-pointer flex items-center justify-between ${
-                            socraticChoice === opt.id
-                              ? 'bg-primer-accent-subtle/50 border-primer-accent-emphasis text-primer-accent-fg'
-                              : 'bg-primer-canvas-default border-primer-border-default text-primer-fg-muted hover:border-primer-accent-muted hover:text-primer-fg-default'
-                          }`}
-                        >
-                          <span>{lang === 'KZ' ? opt.kz : lang === 'RU' ? opt.ru : opt.en}</span>
-                          {socraticChoice === opt.id && <Check className="w-3.5 h-3.5" />}
-                        </button>
-                      ))}
-                    </div>
-
-                    {socraticChoice && (
-                      <div className="p-2.5 rounded-lg bg-primer-success-subtle/30 border border-primer-success-muted text-primer-success-fg text-[11px] font-medium flex items-center gap-2 animate-in fade-in">
-                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>
-                          {lang === 'KZ'
-                            ? 'Өте дұрыс! Түбірлерін анықтап, сан түзуіндегі интервалдар таңбасын қоямыз.'
-                            : lang === 'RU'
-                            ? 'Отлично! Определяем корни и расставляем знаки на интервалах числовой прямой.'
-                            : 'Excellent! We determine the roots and place interval signs on the number line.'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activeShowcaseTab === 'elo' && (
-                <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-primer-attention-subtle text-primer-attention-fg flex items-center justify-center font-bold text-xs">
-                        <Award className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-primer-fg-default">
-                          {lang === 'KZ' ? 'Адаптивті ELO Рейтинг және Ранктер' : lang === 'RU' ? 'Адаптивный ELO Рейтинг и Ранги' : 'Adaptive ELO Rating & Ranks'}
-                        </h4>
-                        <p className="text-[10px] text-primer-fg-muted">
-                          {lang === 'KZ' ? 'Шахмат жүйесі бойынша қиындыққа қарай өседі' : lang === 'RU' ? 'Растет в зависимости от сложности задач' : 'Progresses dynamically based on problem difficulty'}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold font-mono text-primer-attention-fg">
-                      1000 ➔ 1600+
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {[
-                      { rank: '🌱 Өскін', range: '1000 ELO', desc: 'Бастаушы' },
-                      { rank: '🌿 Тұғыр', range: '1200 ELO', desc: 'Орта деңгей' },
-                      { rank: '🦅 Қыран', range: '1400 ELO', desc: 'Жоғары қарқын' },
-                      { rank: '⭐ Самғау', range: '1600+ ELO', desc: 'Олимпиада' },
-                    ].map((item, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-2.5 rounded-xl border text-center space-y-1 ${
-                          idx === 1
-                            ? 'bg-primer-accent-subtle/30 border-primer-accent-muted text-primer-fg-default'
-                            : 'bg-primer-canvas-inset border-primer-border-muted/70 text-primer-fg-muted'
-                        }`}
-                      >
-                        <div className="text-xs font-bold">{item.rank}</div>
-                        <div className="text-[10px] font-mono font-bold text-primer-accent-fg">{item.range}</div>
-                        <div className="text-[9px]">{item.desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activeShowcaseTab === 'math' && (
-                <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-primer-done-subtle text-primer-done-fg flex items-center justify-center font-bold text-xs">
-                        <Zap className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-primer-fg-default">
-                          {lang === 'KZ' ? 'KaTeX Формулалар & Сан түзуі' : lang === 'RU' ? 'KaTeX Формулы & Числовая прямая' : 'KaTeX Formulas & Visual Canvas'}
-                        </h4>
-                        <p className="text-[10px] text-primer-fg-muted">
-                          {lang === 'KZ' ? 'Теңдеулер мен геометриялық сызбалар' : lang === 'RU' ? 'Наглядные математические графики' : 'Clear mathematical formulas and graphs'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-primer-canvas-inset border border-primer-border-muted flex items-center justify-around font-mono text-xs">
-                    <div className="text-center">
-                      <span className="text-primer-accent-fg font-bold">x² - 5x + 6 = 0</span>
-                      <p className="text-[10px] text-primer-fg-muted mt-0.5">x₁ = 2, x₂ = 3</p>
-                    </div>
-                    <div className="h-6 w-px bg-primer-border-muted" />
-                    <div className="text-center">
-                      <span className="text-primer-attention-fg font-bold">D = b² - 4ac</span>
-                      <p className="text-[10px] text-primer-fg-muted mt-0.5">Дискриминант</p>
-                    </div>
-                    <div className="h-6 w-px bg-primer-border-muted" />
-                    <div className="text-center">
-                      <span className="text-primer-done-fg font-bold">(-2; 3)</span>
-                      <p className="text-[10px] text-primer-fg-muted mt-0.5">Интервал</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeShowcaseTab === 'tokens' && (
-                <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-primer-accent-subtle text-primer-accent-fg flex items-center justify-center font-bold text-xs">
-                        <ShieldCheck className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-primer-fg-default">
-                          {lang === 'KZ' ? 'Ұйымдар мен Токендер жүйесі' : lang === 'RU' ? 'Система токенов организаций' : 'Organization Tokens Network'}
-                        </h4>
-                        <p className="text-[10px] text-primer-fg-muted">
-                          {lang === 'KZ' ? 'Мектептер, Колледждер, ВУЗ-дар және Репетиторлар' : lang === 'RU' ? 'Школы, Колледжи, ВУЗы и Центры' : 'Schools, Colleges, Universities & Tutors'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="p-2.5 rounded-xl bg-primer-canvas-inset border border-primer-border-muted space-y-1">
-                      <div className="text-xs font-bold text-primer-accent-fg font-mono">STD-ORG-8K9M2</div>
-                      <div className="text-[11px] font-semibold text-primer-fg-default">Оқушы токені (Student Token)</div>
-                      <p className="text-[10px] text-primer-fg-muted">Ұйымның барлық курстары мен топтық рейтингін ашады</p>
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-primer-canvas-inset border border-primer-border-muted space-y-1">
-                      <div className="text-xs font-bold text-primer-done-fg font-mono">TCH-ORG-4P1X9</div>
-                      <div className="text-[11px] font-semibold text-primer-fg-default">Оқытушы токені (Teacher Token)</div>
-                      <p className="text-[10px] text-primer-fg-muted">Курс құрастырушы мен журнал құқығын береді</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
-
-          {/* Metrics Footer */}
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            <div className="p-3 rounded-xl bg-primer-canvas-subtle/60 border border-primer-border-muted">
-              <div className="text-sm sm:text-base font-black text-primer-fg-default font-mono">100%</div>
-              <div className="text-[10px] text-primer-fg-muted font-medium">
-                {lang === 'KZ' ? 'Сократтық оқу' : lang === 'RU' ? 'Сократовское обучение' : 'Socratic Learning'}
+            <div className="space-y-1.5 text-[10px]">
+              <div className="grid grid-cols-12 font-bold opacity-60 px-1">
+                <div className="col-span-6">Оқушы</div>
+                <div className="col-span-3 text-center">Дәреже (ELO)</div>
+                <div className="col-span-3 text-right">Стрик 🔥</div>
               </div>
-            </div>
-            <div className="p-3 rounded-xl bg-primer-canvas-subtle/60 border border-primer-border-muted">
-              <div className="text-sm sm:text-base font-black text-primer-accent-fg font-mono">365 күн</div>
-              <div className="text-[10px] text-primer-fg-muted font-medium">
-                {lang === 'KZ' ? 'Белсенділік матрицасы' : lang === 'RU' ? 'Матрица активности' : 'Activity Heatmap'}
+              <div className="grid grid-cols-12 items-center p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold">
+                <div className="col-span-6 flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[8px]">
+                    1
+                  </div>
+                  <span>Саржанов Алдияр</span>
+                </div>
+                <div className="col-span-3 text-center font-mono">1420 pts</div>
+                <div className="col-span-3 text-right font-mono">12 күн</div>
               </div>
-            </div>
-            <div className="p-3 rounded-xl bg-primer-canvas-subtle/60 border border-primer-border-muted">
-              <div className="text-sm sm:text-base font-black text-primer-done-fg font-mono">7-12 + ВУЗ</div>
-              <div className="text-[10px] text-primer-fg-muted font-medium">
-                {lang === 'KZ' ? 'Кез келген білім деңгейі' : lang === 'RU' ? 'Любой уровень образования' : 'Multi-Grade Scope'}
+              <div className="grid grid-cols-12 items-center p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 font-medium">
+                <div className="col-span-6 flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[8px]">
+                    2
+                  </div>
+                  <span>Ахметов Данияр</span>
+                </div>
+                <div className="col-span-3 text-center font-mono">1380 pts</div>
+                <div className="col-span-3 text-right font-mono">9 күн</div>
               </div>
             </div>
           </div>
 
         </div>
 
-        {/* RIGHT COLUMN: Clean, Focused Auth Card (5 cols) */}
-        <div className="lg:col-span-5">
-          <Card className="border border-primer-border-default shadow-primer-overlay bg-primer-canvas-subtle overflow-hidden rounded-2xl">
-            <CardHeader className="pb-3 border-b border-primer-border-muted/60 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-base sm:text-lg font-bold">
-                  {isRegister ? t('auth.sign_up') : t('auth.sign_in')}
-                </CardTitle>
+        {/* RIGHT COLUMN: Clean Auth Card */}
+        <div className="lg:col-span-5 w-full max-w-[420px] mx-auto">
+          <div
+            className={`rounded-2xl p-6 sm:p-7 border transition-all duration-300 ${
+              isDark
+                ? 'bg-[#151c2e] border-slate-800 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.6)]'
+                : 'bg-white border-slate-200/90 shadow-[0_20px_50px_-10px_rgba(30,58,138,0.08)]'
+            }`}
+          >
+            {/* Header: Brand Box + Role Switcher */}
+            <div className="flex items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-black text-xs border border-blue-200 dark:border-blue-800/50">
+                  ZERDE <span className="font-semibold text-slate-700 dark:text-slate-300">Platform</span>
+                </div>
+              </div>
 
-                {/* Segmented Role Switcher */}
-                <div className="flex gap-1 bg-primer-canvas-inset p-1 rounded-xl border border-primer-border-muted">
-                  <button
-                    type="button"
-                    onClick={() => setRole('student')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+              {/* Role Switcher */}
+              <div className="flex bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setRole('student')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    role === 'student'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'opacity-60 hover:opacity-100 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <UserCheck className="w-3 h-3" />
+                  <span>{t('auth.role_switcher_student')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('teacher')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    role === 'teacher'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'opacity-60 hover:opacity-100 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <GraduationCap className="w-3 h-3" />
+                  <span>{t('auth.role_switcher_teacher')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Card Title */}
+            <div className="mb-4">
+              <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                {isRegister
+                  ? lang === 'KZ'
+                    ? 'Жаңа аккаунт ашу'
+                    : lang === 'RU'
+                    ? 'Создать аккаунт'
+                    : 'Create Account'
+                  : lang === 'KZ'
+                  ? 'Жүйеге кіру'
+                  : lang === 'RU'
+                  ? 'Вход в систему'
+                  : 'Sign In'}
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {role === 'student'
+                  ? t('auth.student_subtitle')
+                  : t('auth.teacher_subtitle')}
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              
+              {errorMsg && (
+                <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span className="font-semibold">{errorMsg}</span>
+                </div>
+              )}
+
+              {/* Name field for Registration */}
+              {isRegister && (
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                    {t('auth.name_label')} *
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={
                       role === 'student'
-                        ? 'bg-primer-accent-emphasis text-white shadow-xs'
-                        : 'text-primer-fg-muted hover:text-primer-fg-default'
+                        ? t('auth.name_placeholder_student')
+                        : t('auth.name_placeholder_teacher')
+                    }
+                    required
+                    className={`w-full text-xs h-10 px-3 rounded-xl border transition-all outline-none ${
+                      isDark
+                        ? 'bg-slate-900/80 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30'
+                        : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20'
                     }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>{t('auth.role_switcher_student')}</span>
-                  </button>
+                  />
+                </div>
+              )}
+
+              {/* Email / Username */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                  {lang === 'KZ' ? 'Пайдаланушы аты немесе Email *' : lang === 'RU' ? 'Имя пользователя или Email *' : 'Username or Email *'}
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('auth.email_placeholder')}
+                  required
+                  className={`w-full text-xs h-10 px-3 rounded-xl border transition-all outline-none ${
+                    isDark
+                      ? 'bg-slate-900/80 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30'
+                      : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20'
+                  }`}
+                />
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                  {t('auth.password_label')} *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t('auth.password_placeholder')}
+                    required
+                    className={`w-full text-xs h-10 pl-3 pr-9 rounded-xl border transition-all outline-none ${
+                      isDark
+                        ? 'bg-slate-900/80 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30'
+                        : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20'
+                    }`}
+                  />
                   <button
                     type="button"
-                    onClick={() => setRole('teacher')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                      role === 'teacher'
-                        ? 'bg-primer-accent-emphasis text-white shadow-xs'
-                        : 'text-primer-fg-muted hover:text-primer-fg-default'
-                    }`}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100 transition cursor-pointer p-0.5"
                   >
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    <span>{t('auth.role_switcher_teacher')}</span>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              <CardDescription className="text-xs text-primer-fg-muted">
-                {role === 'student'
-                  ? t('auth.student_subtitle')
-                  : t('auth.teacher_subtitle')}
-              </CardDescription>
-            </CardHeader>
-
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-3.5 pt-4">
-                {errorMsg && (
-                  <div className="p-3 rounded-xl bg-primer-danger-subtle/20 border border-primer-danger-muted text-primer-danger-fg text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span className="font-semibold">{errorMsg}</span>
-                  </div>
-                )}
-
-                {/* Full Name on Registration */}
-                {isRegister && (
-                  <div>
-                    <label className="text-xs font-bold text-primer-fg-default block mb-1">
-                      {t('auth.name_label')} *
+              {/* Registration Extra Fields (Only Token + Grade, NO School select) */}
+              {isRegister && (
+                <div className="space-y-2.5 pt-1">
+                  
+                  {/* Organization Security Token */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block flex items-center gap-1">
+                      <KeyRound className="w-3.5 h-3.5 text-blue-500" />
+                      <span>
+                        {t('auth.org_token_label')} {role === 'teacher' ? '*' : `(${lang === 'KZ' ? 'міндетті емес' : lang === 'RU' ? 'необязательно' : 'optional'})`}
+                      </span>
                     </label>
-                    <Input
+                    <input
                       type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={
-                        role === 'student'
-                          ? t('auth.name_placeholder_student')
-                          : t('auth.name_placeholder_teacher')
-                      }
-                      required
-                      className="w-full text-xs h-9"
+                      value={orgToken}
+                      onChange={(e) => setOrgToken(e.target.value)}
+                      placeholder={role === 'teacher' ? 'TCH-NIS-8F3K9A' : 'STD-NIS-4N9P1A'}
+                      required={role === 'teacher'}
+                      className={`w-full text-xs h-10 px-3 rounded-xl border font-mono uppercase tracking-wider outline-none ${
+                        isDark
+                          ? 'bg-slate-900/80 border-slate-700 text-white focus:border-blue-500'
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-600'
+                      }`}
                     />
                   </div>
-                )}
 
-                {/* Email Address */}
-                <div>
-                  <label className="text-xs font-bold text-primer-fg-default block mb-1">
-                    {t('auth.email_label')} *
-                  </label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth.email_placeholder')}
-                    required
-                    className="w-full text-xs h-9"
-                  />
-                </div>
-
-                {/* Password with Show/Hide */}
-                <div>
-                  <label className="text-xs font-bold text-primer-fg-default block mb-1">
-                    {t('auth.password_label')} *
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={t('auth.password_placeholder')}
-                      required
-                      className="w-full text-xs h-9 pr-9"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primer-fg-muted hover:text-primer-fg-default"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Registration Extra Fields */}
-                {isRegister && (
-                  <div className="space-y-3 pt-1 border-t border-primer-border-muted/50">
-                    
-                    {/* Educational Institution / School */}
-                    <div>
-                      <label className="text-xs font-bold text-primer-fg-default block mb-1 flex items-center gap-1">
-                        <School className="w-3.5 h-3.5 text-primer-accent-fg" />
-                        <span>{t('auth.school_label')}</span>
+                  {/* Grade for student */}
+                  {role === 'student' && (
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                        {t('auth.grade_label')}
                       </label>
                       <select
-                        value={school}
-                        onChange={(e) => setSchool(e.target.value)}
-                        className="w-full text-xs h-9 rounded-lg border border-primer-border-default bg-primer-canvas-default text-primer-fg-default px-2.5 focus:outline-none focus:border-primer-accent-emphasis"
+                        value={grade}
+                        onChange={(e) => setGrade(e.target.value)}
+                        className={`w-full text-xs h-10 px-2.5 rounded-xl border transition-all outline-none cursor-pointer ${
+                          isDark
+                            ? 'bg-slate-900/80 border-slate-700 text-white focus:border-blue-500'
+                            : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-600'
+                        }`}
                       >
-                        {VERIFIED_ORGANIZATIONS.map((org) => (
-                          <option key={org} value={org}>
-                            {org}
+                        {GRADE_OPTIONS.map((g) => (
+                          <option key={g.value} value={g.value} className={isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}>
+                            {lang === 'KZ' ? g.labelKZ : lang === 'RU' ? g.labelRU : g.labelEN}
                           </option>
                         ))}
                       </select>
 
-                      {school === 'Басқа / Другая школа' && (
-                        <div className="mt-1.5">
-                          <Input
-                            type="text"
-                            value={customSchool}
-                            onChange={(e) => setCustomSchool(e.target.value)}
-                            placeholder={t('auth.custom_school_placeholder')}
-                            className="w-full text-xs h-8"
-                          />
-                        </div>
+                      {grade === 'Басқа' && (
+                        <input
+                          type="text"
+                          value={customGrade}
+                          onChange={(e) => setCustomGrade(e.target.value)}
+                          placeholder="мысалы: IT Bootcamp / 6-сынып..."
+                          className={`w-full text-xs h-9 px-3 rounded-xl border mt-1 outline-none ${
+                            isDark
+                              ? 'bg-slate-900/80 border-slate-700 text-white'
+                              : 'bg-slate-50 border-slate-200 text-slate-900'
+                          }`}
+                        />
                       )}
                     </div>
+                  )}
 
-                    {/* Grade / Academic Status (For Students) */}
-                    {role === 'student' && (
-                      <div>
-                        <label className="text-xs font-bold text-primer-fg-default block mb-1">
-                          {t('auth.grade_label')}
-                        </label>
-                        <select
-                          value={grade}
-                          onChange={(e) => setGrade(e.target.value)}
-                          className="w-full text-xs h-9 rounded-lg border border-primer-border-default bg-primer-canvas-default text-primer-fg-default px-2.5 focus:outline-none focus:border-primer-accent-emphasis"
-                        >
-                          {GRADE_OPTIONS.map((g) => (
-                            <option key={g.value} value={g.value}>
-                              {lang === 'KZ' ? g.labelKZ : lang === 'RU' ? g.labelRU : g.labelEN}
-                            </option>
-                          ))}
-                        </select>
+                </div>
+              )}
 
-                        {grade === 'Басқа' && (
-                          <div className="mt-1.5">
-                            <Input
-                              type="text"
-                              value={customGrade}
-                              onChange={(e) => setCustomGrade(e.target.value)}
-                              placeholder="мысалы: IT Bootcamp / 6-сынып..."
-                              className="w-full text-xs h-8"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Teacher Org Token */}
-                    {role === 'teacher' && (
-                      <div>
-                        <label className="text-xs font-bold text-primer-fg-default block mb-1 flex items-center gap-1">
-                          <KeyRound className="w-3.5 h-3.5 text-primer-accent-fg" />
-                          <span>{t('auth.org_token_label')} *</span>
-                        </label>
-                        <Input
-                          type="text"
-                          value={orgToken}
-                          onChange={(e) => setOrgToken(e.target.value)}
-                          placeholder="ORG-8F3K9A"
-                          required
-                          className="w-full text-xs h-9 font-mono"
-                        />
-                        <p className="text-[10px] text-primer-fg-muted mt-1">
-                          {lang === 'KZ'
-                            ? 'Ресми мұғалім аккредитациясы үшін мектептен берілген токен'
-                            : 'Официальный токен аккредитации преподавателя'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-
-              <CardFooter className="flex flex-col gap-3 pt-2">
-                <Button
+              {/* Action Submit Button */}
+              <div className="pt-2">
+                <button
                   type="submit"
-                  variant="primary"
-                  size="default"
-                  disabled={isLoading}
-                  className="w-full font-bold text-xs h-9 shadow-sm"
+                  disabled={isSubmitting}
+                  className="w-full h-10 rounded-xl font-bold text-xs sm:text-sm text-white tracking-wide transition-all duration-200 transform active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-600/25"
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      {t('auth.processing')}
+                      <span>{t('auth.processing')}</span>
                     </span>
                   ) : isRegister ? (
-                    t('auth.submit_register')
+                    <span>{t('auth.submit_register')}</span>
                   ) : (
-                    t('auth.submit_login')
+                    <span>{t('auth.submit_login')}</span>
                   )}
-                </Button>
+                </button>
+              </div>
 
-                <div className="text-center w-full">
+              {/* Forgot password */}
+              {!isRegister && (
+                <div className="text-center pt-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsRegister(!isRegister);
-                      setErrorMsg(null);
-                    }}
-                    className="text-xs text-primer-accent-fg hover:underline font-semibold cursor-pointer"
+                    onClick={() => alert(lang === 'KZ' ? 'Құпия сөзді қалпына келтіру үшін кураторға хабарласыңыз' : 'Для восстановления пароля обратитесь к куратору')}
+                    className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline transition cursor-pointer font-medium"
                   >
-                    {isRegister ? t('auth.switch_to_login') : t('auth.switch_to_register')}
+                    {lang === 'KZ' ? 'Құпия сөзді ұмыттыңыз ба?' : lang === 'RU' ? 'Забыли пароль?' : 'Forgot Password?'}
                   </button>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    * Telegram ID немесе электрондық пошта арқылы расталады
+                  </p>
                 </div>
-              </CardFooter>
+              )}
+
+              {/* Switch to Register / Sign In */}
+              <div className="text-center pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegister(!isRegister);
+                    setErrorMsg(null);
+                  }}
+                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline transition cursor-pointer flex items-center justify-center gap-1 mx-auto"
+                >
+                  <span>{isRegister ? t('auth.switch_to_login') : t('auth.switch_to_register')}</span>
+                </button>
+              </div>
+
             </form>
-          </Card>
+          </div>
         </div>
 
       </main>
 
       {/* 3. FOOTER */}
-      <footer className="border-t border-primer-border-muted/60 py-3 px-4 text-center text-xs text-primer-fg-muted font-mono">
+      <footer className="w-full max-w-7xl mx-auto px-4 py-3 text-center text-xs text-slate-400 dark:text-slate-500 font-mono border-t border-slate-200/60 dark:border-slate-800/60">
         © 2026 Zerde Intelligent Educational Platform • Real SQLite + Express Cognitive Architecture
       </footer>
 

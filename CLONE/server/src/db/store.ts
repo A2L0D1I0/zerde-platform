@@ -38,16 +38,29 @@ class DataStore {
   }
 
   private seedInitialData() {
-    // 0. Seed Organizations (Valid official schools for registration)
-    const org1: Organization = {
+    // 0. Seed Organizations (NIS IB Astana & Ekibastuz BIL)
+    const orgNIS: Organization = {
       id: 'org_nis_01',
       name: 'NIS IB Astana',
       org_token: 'ORG-8F3K9A',
+      teacher_token: 'TCH-NIS-8F3K9A',
+      student_token: 'STD-NIS-4N9P1A',
       type: 'school',
       created_at: new Date('2026-01-01T08:00:00Z').toISOString()
     };
 
-    this.organizations.set(org1.id, org1);
+    const orgEKB: Organization = {
+      id: 'org_ekb_02',
+      name: 'Ekibastuz BIL',
+      org_token: 'ORG-EKB-7492X',
+      teacher_token: 'TCH-EKB-7492X',
+      student_token: 'STD-EKB-3M8K2B',
+      type: 'school',
+      created_at: new Date('2026-01-01T08:00:00Z').toISOString()
+    };
+
+    this.organizations.set(orgNIS.id, orgNIS);
+    this.organizations.set(orgEKB.id, orgEKB);
 
     // Restore any registered users from SQLite database
     try {
@@ -55,12 +68,23 @@ class DataStore {
       const sqliteUsers = db.prepare("SELECT * FROM users").all() as any[];
       for (const row of sqliteUsers) {
         if (!this.users.has(row.uuid)) {
+          let parsedRoles: UserRole[] = [row.role as UserRole];
+          try {
+            if (row.roles_json) {
+              const r = JSON.parse(row.roles_json);
+              if (Array.isArray(r) && r.length > 0) parsedRoles = r;
+            }
+          } catch (e) {
+            // ignore
+          }
+
           this.users.set(row.uuid, {
             id: row.uuid,
             email: row.email,
             password_hash: row.password_hash,
             full_name: row.full_name,
             role: row.role,
+            roles: parsedRoles,
             bio: row.bio || '',
             grade: row.grade ? `${row.grade}` : '',
             school: row.school || '',
@@ -70,7 +94,7 @@ class DataStore {
             created_at: row.created_at || new Date().toISOString(),
             updated_at: row.updated_at || new Date().toISOString()
           });
-          if (row.role === 'student') {
+          if (row.role === 'student' || parsedRoles.includes('student')) {
             this.studentStats.set(row.uuid, {
               elo: 1000,
               streak_days: 0,
@@ -101,14 +125,16 @@ class DataStore {
   public createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): User {
     const id = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
+    const userRoles = userData.roles && userData.roles.length > 0 ? userData.roles : [userData.role];
     const newUser: User = {
       ...userData,
       id,
+      roles: userRoles,
       created_at: now,
       updated_at: now
     };
     this.users.set(id, newUser);
-    if (userData.role === 'student') {
+    if (userData.role === 'student' || userRoles.includes('student')) {
       this.studentStats.set(id, {
         elo: 1000,
         streak_days: 0,
@@ -119,14 +145,15 @@ class DataStore {
     try {
       const db = getDb();
       db.prepare(`
-        INSERT OR REPLACE INTO users (uuid, email, password_hash, full_name, role, bio, grade, school, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO users (uuid, email, password_hash, full_name, role, roles_json, bio, grade, school, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id,
         newUser.email,
         newUser.password_hash,
         newUser.full_name,
         newUser.role,
+        JSON.stringify(userRoles),
         newUser.bio || '',
         parseInt(newUser.grade || '0') || null,
         newUser.school || '',
@@ -140,6 +167,31 @@ class DataStore {
     return newUser;
   }
 
+  public addRoleToUser(userId: string, newRole: UserRole, extra?: { school?: string; organization_id?: string; grade?: string }): User | undefined {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    const currentRoles = user.roles || [user.role];
+    if (!currentRoles.includes(newRole)) {
+      currentRoles.push(newRole);
+    }
+    const updates: Partial<User> = {
+      role: newRole,
+      roles: currentRoles,
+    };
+    if (extra?.school) updates.school = extra.school;
+    if (extra?.organization_id) updates.organization_id = extra.organization_id;
+    if (extra?.grade) updates.grade = extra.grade;
+
+    if (newRole === 'student' && !this.studentStats.has(userId)) {
+      this.studentStats.set(userId, {
+        elo: 1000,
+        streak_days: 0,
+        last_active: new Date().toISOString()
+      });
+    }
+
+    return this.updateUser(userId, updates);
+  }
 
   public updateUser(id: string, updates: Partial<User>): User | undefined {
     const user = this.users.get(id);
@@ -150,8 +202,68 @@ class DataStore {
       updated_at: new Date().toISOString()
     };
     this.users.set(id, updated);
+
+    try {
+      const db = getDb();
+      const setClauses: string[] = [];
+      const values: any[] = [];
+
+      if (updates.full_name !== undefined) {
+        setClauses.push('full_name = ?');
+        values.push(updates.full_name);
+      }
+      if (updates.email !== undefined) {
+        setClauses.push('email = ?');
+        values.push(updates.email);
+      }
+      if (updates.password_hash !== undefined) {
+        setClauses.push('password_hash = ?');
+        values.push(updates.password_hash);
+      }
+      if (updates.school !== undefined) {
+        setClauses.push('school = ?');
+        values.push(updates.school);
+      }
+      if (updates.grade !== undefined) {
+        setClauses.push('grade = ?');
+        values.push(parseInt(updates.grade || '0') || null);
+      }
+      if (updates.roles !== undefined) {
+        setClauses.push('roles_json = ?');
+        values.push(JSON.stringify(updates.roles));
+      }
+      if (updates.role !== undefined) {
+        setClauses.push('role = ?');
+        values.push(updates.role);
+      }
+      if (updates.bio !== undefined) {
+        setClauses.push('bio = ?');
+        values.push(updates.bio);
+      }
+
+      if (setClauses.length > 0) {
+        setClauses.push('updated_at = ?');
+        values.push(updated.updated_at);
+        values.push(id);
+        db.prepare(`UPDATE users SET ${setClauses.join(', ')} WHERE uuid = ?`).run(...values);
+      }
+    } catch (e) {
+      // ignore
+    }
+
     return updated;
   }
+
+  public getUsersBySchool(school: string): User[] {
+    const list: User[] = [];
+    for (const u of this.users.values()) {
+      if (u.school && u.school.toLowerCase().includes(school.toLowerCase())) {
+        list.push(u);
+      }
+    }
+    return list;
+  }
+
 
   public toSafeUser(user: User): SafeUser {
     const { password_hash, ...safe } = user;
@@ -175,27 +287,65 @@ class DataStore {
 
 
   // --- Organizations & Security Tokens ---
-  public validateOrgToken(token: string): Organization | null {
+  public validateOrgToken(token: string, targetRole?: 'student' | 'teacher'): Organization | null {
     if (!token) return null;
     const clean = token.trim().toUpperCase();
+
     for (const org of this.organizations.values()) {
-      if (org.org_token.toUpperCase() === clean) {
-        return org;
+      if (targetRole === 'teacher') {
+        if (org.teacher_token && org.teacher_token.toUpperCase() === clean) {
+          return org;
+        }
+        // Legacy fallback
+        if (org.org_token && org.org_token.toUpperCase() === clean) {
+          return org;
+        }
+      } else if (targetRole === 'student') {
+        if (org.student_token && org.student_token.toUpperCase() === clean) {
+          return org;
+        }
+      } else {
+        if (
+          (org.teacher_token && org.teacher_token.toUpperCase() === clean) ||
+          (org.student_token && org.student_token.toUpperCase() === clean) ||
+          (org.org_token && org.org_token.toUpperCase() === clean)
+        ) {
+          return org;
+        }
       }
     }
+
     try {
       const db = getDb();
-      const row = db.prepare('SELECT * FROM organizations WHERE UPPER(org_token) = ?').get(clean) as any;
-      if (row) {
-        const org: Organization = {
-          id: `org_${row.id}`,
-          name: row.name,
-          org_token: row.org_token,
-          type: (row.type as any) || 'school',
-          created_at: row.created_at
-        };
-        this.organizations.set(org.id, org);
-        return org;
+      let query = 'SELECT * FROM organizations WHERE UPPER(org_token) = ?';
+      if (targetRole === 'teacher') {
+        query = 'SELECT * FROM organizations WHERE UPPER(teacher_token) = ? OR UPPER(org_token) = ?';
+        const row = db.prepare(query).get(clean, clean) as any;
+        if (row) {
+          return {
+            id: `org_${row.id}`,
+            name: row.name,
+            org_token: row.org_token,
+            teacher_token: row.teacher_token || row.org_token,
+            student_token: row.student_token || '',
+            type: (row.type as any) || 'school',
+            created_at: row.created_at
+          };
+        }
+      } else if (targetRole === 'student') {
+        query = 'SELECT * FROM organizations WHERE UPPER(student_token) = ?';
+        const row = db.prepare(query).get(clean) as any;
+        if (row) {
+          return {
+            id: `org_${row.id}`,
+            name: row.name,
+            org_token: row.org_token,
+            teacher_token: row.teacher_token || '',
+            student_token: row.student_token,
+            type: (row.type as any) || 'school',
+            created_at: row.created_at
+          };
+        }
       }
     } catch (e) {
       // ignore

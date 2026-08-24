@@ -17,33 +17,25 @@ export interface DbStudent {
 
 export class StudentRepository {
   public findByIdOrEmail(identifier?: string | number): DbStudent | null {
+    if (!identifier) return null;
+
     const db = getDb();
     let row: any = null;
 
     const query = `
-      SELECT u.*, COALESCE(se.current_elo, 1000) as elo
+      SELECT u.*, 
+             COALESCE(
+               (SELECT subject_elo FROM student_course_passports WHERE student_id = u.id ORDER BY updated_at DESC LIMIT 1),
+               1000
+             ) as elo
       FROM users u
-      LEFT JOIN student_elo se ON u.id = se.student_id
       WHERE (u.id = ? OR u.uuid = ? OR u.email = ?)
     `;
 
-    if (identifier) {
-      if (typeof identifier === 'number' || !isNaN(Number(identifier))) {
-        row = db.prepare(query).get(Number(identifier), String(identifier), String(identifier));
-      } else {
-        row = db.prepare(query).get(0, identifier, identifier);
-      }
-    }
-
-    if (!row && !identifier) {
-      // Default to first student in db only if no identifier was specified at all
-      row = db.prepare(`
-        SELECT u.*, COALESCE(se.current_elo, 1000) as elo
-        FROM users u
-        LEFT JOIN student_elo se ON u.id = se.student_id
-        WHERE u.role = 'student'
-        ORDER BY u.id ASC LIMIT 1
-      `).get();
+    if (typeof identifier === 'number' || !isNaN(Number(identifier))) {
+      row = db.prepare(query).get(Number(identifier), String(identifier), String(identifier));
+    } else {
+      row = db.prepare(query).get(0, identifier, identifier);
     }
 
     if (!row) return null;
@@ -66,9 +58,13 @@ export class StudentRepository {
   public getLeaderboard(): Array<{ id: number; name: string; grade: string; school: string; elo: number; streak: number; rankCode: string; rank: number }> {
     const db = getDb();
     const rows = db.prepare(`
-      SELECT u.id, u.full_name as name, u.grade, u.school, COALESCE(se.current_elo, 1000) as elo, u.streak_days as streak
+      SELECT u.id, u.full_name as name, u.grade, u.school,
+             COALESCE(
+               (SELECT MAX(subject_elo) FROM student_course_passports WHERE student_id = u.id),
+               1000
+             ) as elo,
+             u.streak_days as streak
       FROM users u
-      LEFT JOIN student_elo se ON u.id = se.student_id
       WHERE u.role = 'student'
       ORDER BY elo DESC LIMIT 25
     `).all() as any[];
@@ -85,17 +81,19 @@ export class StudentRepository {
     }));
   }
 
-  public updateEloAndStreak(studentId: number, newElo: number, streakIncrement: boolean = false): void {
+  public updateEloAndStreak(studentId: number, newElo: number, streakIncrement: boolean = false, courseId: number = 1): void {
     const db = getDb();
+    const sid = Number(studentId);
+    const cid = Number(courseId) || 1;
     const rankInfo = getRankByElo(newElo);
-    const existing = db.prepare('SELECT id FROM student_elo WHERE student_id = ?').get(studentId) as any;
+    const existing = db.prepare('SELECT id FROM student_course_passports WHERE student_id = ? AND course_id = ?').get(sid, cid) as any;
 
     if (existing) {
-      db.prepare('UPDATE student_elo SET current_elo = ?, rank = ?, updated_at = CURRENT_TIMESTAMP WHERE student_id = ?')
-        .run(newElo, rankInfo.code, studentId);
+      db.prepare('UPDATE student_course_passports SET subject_elo = ?, rank_tier = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .run(newElo, rankInfo.code, existing.id);
     } else {
-      db.prepare('INSERT INTO student_elo (student_id, course_id, current_elo, rank) VALUES (?, 1, ?, ?)')
-        .run(studentId, newElo, rankInfo.code);
+      db.prepare('INSERT INTO student_course_passports (student_id, course_id, subject_elo, rank_tier, skills_progress_json, teacher_daily_notes_json) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(sid, cid, newElo, rankInfo.code, '{}', '[]');
     }
 
     if (streakIncrement) {
@@ -105,7 +103,7 @@ export class StudentRepository {
             longest_streak = MAX(longest_streak, streak_days + 1),
             last_active_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(studentId);
+      `).run(sid);
     }
   }
 
@@ -123,6 +121,44 @@ export class StudentRepository {
       }
     } catch (e) {
       // ignore
+    }
+  }
+
+  /**
+   * Apply for course with motivation letter
+   */
+  public applyForCourse(studentId: number, courseId: number, motivationText: string): any {
+    const db = getDb();
+    const sid = Number(studentId);
+    const cid = Number(courseId);
+
+    // Check if course exists
+    const course = db.prepare('SELECT id, title FROM courses WHERE id = ?').get(cid) as any;
+    if (!course) {
+      throw new Error('COURSE_NOT_FOUND: Курс табылмады (Course not found)');
+    }
+
+    // Check if already applied or enrolled
+    const existing = db.prepare('SELECT id, status FROM course_enrollments WHERE student_id = ? AND course_id = ?').get(sid, cid) as any;
+    if (existing && (existing.status === 'applied' || existing.status === 'enrolled' || existing.status === 'pending_approval')) {
+      throw new Error('DUPLICATE_APPLICATION: Бұл курсқа өтінім берілген (Already applied or enrolled in this course)');
+    }
+
+    if (existing) {
+      db.prepare(`
+        UPDATE course_enrollments
+        SET status = 'applied', motivation_text = ?, requested_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(motivationText, existing.id);
+
+      return db.prepare('SELECT * FROM course_enrollments WHERE id = ?').get(existing.id);
+    } else {
+      const info = db.prepare(`
+        INSERT INTO course_enrollments (course_id, student_id, motivation_text, status, requested_at)
+        VALUES (?, ?, ?, 'applied', CURRENT_TIMESTAMP)
+      `).run(cid, sid, motivationText);
+
+      return db.prepare('SELECT * FROM course_enrollments WHERE id = ?').get(Number(info.lastInsertRowid));
     }
   }
 }

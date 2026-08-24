@@ -97,9 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password = '', targetRole: UserRole = 'student') => {
-    setIsLoading(true);
     try {
-      const response: any = await api.post('/auth/login', { email, password });
+      const response: any = await api.post('/auth/login', { email, password, role: targetRole });
       if (response?.token && response?.user) {
         setToken(response.token);
         setUser(response.user);
@@ -110,13 +109,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (apiError: any) {
       console.warn('[Auth] Login failed:', apiError);
       throw apiError;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const register = async (userData: Partial<User> & { password?: string; org_token?: string; bio?: string }) => {
-    setIsLoading(true);
     try {
       const response: any = await api.post('/auth/register', {
         email: userData.email,
@@ -140,8 +136,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (apiError: any) {
       console.warn('[Auth] API register error:', apiError);
       throw apiError;
-    } finally {
-      setIsLoading(false);
     }
   };
 

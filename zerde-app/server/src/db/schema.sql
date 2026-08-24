@@ -165,8 +165,9 @@ CREATE TABLE IF NOT EXISTS course_enrollments (
     course_id INTEGER NOT NULL,
     student_id INTEGER NOT NULL,
     assigned_classroom_id INTEGER,                      -- Назначенная учителем группа ('9 «А»', 'Олимпиадники')
-    status TEXT NOT NULL CHECK(status IN ('pending_approval', 'enrolled', 'completed', 'expelled')) DEFAULT 'pending_approval',
+    status TEXT NOT NULL CHECK(status IN ('applied', 'pending_approval', 'enrolled', 'rejected', 'completed', 'expelled')) DEFAULT 'applied',
     motivation_text TEXT NOT NULL DEFAULT '',           -- Мотивационное письмо ученика
+    rejection_reason TEXT,
     requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     approved_at DATETIME,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,

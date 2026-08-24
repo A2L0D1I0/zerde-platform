@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { MathText } from '@/components/ui/MathText';
+import { Badge } from '@/components/ui/badge';
 import { NumberLinePrimitive } from '@/components/ui/NumberLinePrimitive';
 import { ThoughtForkTriad } from '@/features/socratic-tutor/ThoughtForkTriad';
 import { ThoughtFork } from '@zerde/shared';
@@ -18,6 +19,7 @@ import {
   UploadCloud,
   Send,
   RotateCcw,
+  RefreshCw,
   ArrowRight,
   Sliders
 } from 'lucide-react';
@@ -63,9 +65,12 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
   const [isEurekaCelebration, setIsEurekaCelebration] = useState(false);
 
-  // --- Mode B Open Response State ---
+  // --- Mode B Open Response & Silent Grader State ---
   const [openSolutionText, setOpenSolutionText] = useState('');
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [isSilentGrading, setIsSilentGrading] = useState(false);
+  const [silentGraderResult, setSilentGraderResult] = useState<any | null>(null);
+  const [silentGradingError, setSilentGradingError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const answersGridRef = useRef<HTMLDivElement>(null);
 
@@ -92,63 +97,35 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
     return { label: '🌱 Өскін (1000+)', color: 'text-emerald-400 bg-emerald-950/40 border-emerald-800' };
   };
 
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // Load questions on mount
-  useEffect(() => {
-    const loadQuestions = async () => {
-      try {
-        const res = await api.get<any[]>(`/questions?topic=${encodeURIComponent(topicTitle)}&language=${lang}`);
-        if (Array.isArray(res) && res.length > 0) {
-          setQuestions(res);
-        } else {
-          // Default pre-calibrated question list
-          setQuestions([
-            {
-              id: 'q1',
-              questionText: `«${topicTitle}» тақырыбы бойынша квадраттық теңсіздікті шешіңіз: $x^2 - 5x + 6 \\le 0$`,
-              katex_snippet: 'x^2 - 5x + 6 \\le 0 \\implies (x-2)(x-3) \\le 0',
-              hasNumberLine: true,
-              options: [
-                { id: 'A', text: '[2; 3]', isCorrect: true },
-                { id: 'B', text: '(-\\infty; 2] \\cup [3; +\\infty)', isCorrect: false },
-                { id: 'C', text: '(2; 3)', isCorrect: false },
-                { id: 'D', text: 'x \\le 2', isCorrect: false }
-              ],
-              explanation: 'Түбірлері $x_1 = 2, x_2 = 3$. Парабола тармақтары жоғары және $\\le 0$ болғандықтан, шешім кесіндісі: $[2; 3]$.'
-            },
-            {
-              id: 'q2',
-              questionText: `Бөлшек-рационал теңсіздікті шешіп, бөлімнің нөлін ескеріңіз: $\\frac{x - 4}{x + 1} > 0$`,
-              katex_snippet: 'x + 1 \\neq 0 \\implies x \\neq -1',
-              hasNumberLine: true,
-              options: [
-                { id: 'A', text: '(-\\infty; -1) \\cup (4; +\\infty)', isCorrect: true },
-                { id: 'B', text: '(-1; 4)', isCorrect: false },
-                { id: 'C', text: 'x > 4', isCorrect: false },
-                { id: 'D', text: 'x \\neq -1', isCorrect: false }
-              ],
-              explanation: 'Таңбалар әдісі бойынша аралықтар: $(-\\infty; -1) \\cup (4; +\\infty)$. Бөлімі $x=-1$ нүктесінде нөлге тең бола алмайды.'
-            }
-          ]);
-        }
-      } catch (err) {
-        console.warn('[TaskTrainerScreen] Using pre-calibrated questions', err);
+  const loadQuestions = async () => {
+    setIsLoadingQuestions(true);
+    setLoadError(null);
+    try {
+      const res = await api.get<any[]>(`/questions?topic=${encodeURIComponent(topicTitle)}&language=${lang}`);
+      if (Array.isArray(res) && res.length > 0) {
+        setQuestions(res);
+      } else {
+        setQuestions([]);
+        setLoadError(lang === 'KZ' ? 'Бұл тақырып бойынша әзірге сұрақтар табылмады' : lang === 'RU' ? 'Вопросы по данной теме не найдены' : 'No questions found for this topic');
       }
-    };
+    } catch (err: any) {
+      console.warn('[TaskTrainerScreen] Failed to load questions', err);
+      setQuestions([]);
+      setLoadError(err?.message || (lang === 'KZ' ? 'Сұрақтарды жүктеу сәтсіз аяқталды' : 'Ошибка загрузки вопросов'));
+    } finally {
+      setIsLoadingQuestions(false);
+    }
+  };
+
+  useEffect(() => {
     loadQuestions();
   }, [topicTitle, lang]);
 
-  const currentQuestion = questions[currentIndex] || {
-    questionText: `«${topicTitle}» тақырыбы бойынша есеп: $x^2 - 5x + 6 \\le 0$`,
-    katex_snippet: 'x^2 - 5x + 6 \\le 0',
-    hasNumberLine: true,
-    options: [
-      { id: 'A', text: '[2; 3]', isCorrect: true },
-      { id: 'B', text: '(-\\infty; 2] \\cup [3; +\\infty)', isCorrect: false },
-      { id: 'C', text: '(2; 3)', isCorrect: false },
-      { id: 'D', text: 'x \\le 2', isCorrect: false }
-    ],
-    explanation: 'Түбірлері $x_1 = 2, x_2 = 3$. Шешімі: $[2; 3]$.'
-  };
+  const currentQuestion = questions[currentIndex] || null;
 
   // --- Call Socrates "Aga" ---
   const handleCallSocrates = async (isMistakeTrigger: boolean = false) => {
@@ -237,14 +214,45 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
     }
   };
 
-  // --- Submit Mode B Open Solution ---
-  const handleSubmitOpenSolution = () => {
+  // --- Submit Mode B Open Solution via Silent Grader ---
+  const handleSubmitOpenSolution = async () => {
     if (!openSolutionText.trim() && uploadedPhotos.length === 0) return;
-    setIsSubmitted(true);
-    setIsCorrect(true);
-    const reward = uploadedPhotos.length > 0 ? 15 : 7;
-    setEloGain(reward);
-    setCurrentElo((prev) => prev + reward);
+
+    const currentQ = questions[currentIndex];
+    const qid = currentQ?.id || 1;
+
+    setIsSilentGrading(true);
+    setSilentGradingError(null);
+
+    try {
+      const res: any = await api.post('/student/tasks/grade-type-b', {
+        question_id: qid,
+        student_response: openSolutionText.trim() || 'Тетрадтағы жазбаша шешу фотосы жүктелді',
+        language: lang
+      });
+
+      const data = res?.data || res;
+      setSilentGraderResult(data);
+      setIsSubmitted(true);
+      setIsCorrect(data.verdict === 'FULL_CREDIT' || data.verdict === 'PARTIAL_CREDIT');
+      setEloGain(data.score_xp || 0);
+
+      if (data.new_subject_elo) {
+        setCurrentElo(data.new_subject_elo);
+        if (updateUser) {
+          updateUser({ elo: data.new_subject_elo });
+        }
+      }
+    } catch (err: any) {
+      console.error('[TaskTrainer] Silent Grader failed', err);
+      setSilentGradingError(
+        err?.response?.data?.error ||
+        err?.message ||
+        (lang === 'KZ' ? 'Шешімді тексеру қатесі орын алды' : 'Ошибка проверки решения Silent Grader')
+      );
+    } finally {
+      setIsSilentGrading(false);
+    }
   };
 
   // --- Next Question ---
@@ -257,6 +265,8 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
     setIsEurekaCelebration(false);
     setOpenSolutionText('');
     setUploadedPhotos([]);
+    setSilentGraderResult(null);
+    setSilentGradingError(null);
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((prev) => prev + 1);
     } else {
@@ -416,224 +426,345 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* БЛОК 2: ХОЛСТ ВОПРОСА (Markdown + KaTeX + ZVDSL+ Primitives)                */}
+      {/* БЛОК 2 & 3: ХОЛСТ ВОПРОСА И ВАРИАНТЫ ОТВЕТОВ / EMPTY & ERROR STATE       */}
       {/* ========================================================================= */}
-      <div className="bg-primer-canvas-subtle border border-primer-border-default rounded-2xl p-5 shadow-primer-sm space-y-4">
-        <div className="flex items-center justify-between text-xs text-primer-fg-muted">
-          <span className="font-semibold uppercase tracking-wider">Есеп шарты</span>
-          <span className="bg-primer-canvas-inset px-2 py-0.5 rounded text-[11px] font-mono border border-primer-border-muted">
-            KaTeX + ZVDSL+
-          </span>
+      {isLoadingQuestions ? (
+        <div className="bg-primer-canvas-subtle border border-primer-border-default rounded-2xl p-12 text-center space-y-3 shadow-primer-sm">
+          <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primer-accent-fg" />
+          <p className="text-xs font-semibold text-primer-fg-muted">
+            {lang === 'KZ' ? 'Сұрақтар жүктелуде...' : lang === 'RU' ? 'Загрузка вопросов...' : 'Loading questions...'}
+          </p>
         </div>
-
-        {/* Question Text with KaTeX */}
-        <div className="text-base font-medium text-primer-fg-default leading-relaxed">
-          <MathText text={currentQuestion.questionText} />
-        </div>
-
-        {/* KaTeX formula snippet */}
-        {currentQuestion.katex_snippet && (
-          <div className="p-3 bg-primer-canvas-inset border border-primer-border-muted rounded-xl text-center font-mono text-sm">
-            <MathText text={`$$${currentQuestion.katex_snippet}$$`} />
+      ) : !currentQuestion ? (
+        <div className="bg-primer-canvas-subtle border border-primer-border-default rounded-2xl p-8 sm:p-12 text-center space-y-4 shadow-primer-sm">
+          <div className="w-12 h-12 mx-auto rounded-full bg-primer-canvas-inset border border-primer-border-muted flex items-center justify-center text-primer-fg-muted">
+            <HelpCircle className="w-6 h-6" />
           </div>
-        )}
-
-        {/* Native ZVDSL+ Number Line Primitive (Числовая прямая) */}
-        {currentQuestion.hasNumberLine && (
-          <NumberLinePrimitive />
-        )}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* БЛОК 3: ИНТЕРАКТИВНЫЕ ОТВЕТЫ (РЕЖИМ А или РЕЖИМ Б)                         */}
-      {/* ========================================================================= */}
-      <div ref={answersGridRef} className="bg-primer-canvas-subtle border border-primer-border-default rounded-2xl p-5 shadow-primer-sm space-y-4">
-        {/* Mode Selector Header */}
-        <div className="flex items-center justify-between border-b border-primer-border-muted pb-3">
-          <span className="text-xs font-bold text-primer-fg-muted uppercase tracking-wider">
-            Жауап беру тәсілі
-          </span>
-
-          <div className="flex items-center gap-1 bg-primer-canvas-inset p-1 rounded-lg border border-primer-border-muted">
+          <div className="space-y-1">
+            <h3 className="text-sm sm:text-base font-bold text-primer-fg-default">
+              {lang === 'KZ' ? 'Сұрақтар табылмады' : lang === 'RU' ? 'Вопросы не найдены' : 'No questions found'}
+            </h3>
+            <p className="text-xs text-primer-fg-muted max-w-sm mx-auto">
+              {loadError || (lang === 'KZ' ? 'Бұл тақырып бойынша әзірге сұрақтар енгізілмеген.' : 'По данной теме пока нет доступных вопросов.')}
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 pt-2">
             <button
-              onClick={() => setMode('A')}
-              className={`px-3 py-1 rounded text-xs font-semibold transition cursor-pointer ${
-                mode === 'A'
-                  ? 'bg-primer-accent-emphasis text-white shadow-primer-xs'
-                  : 'text-primer-fg-muted hover:text-primer-fg-default'
-              }`}
+              onClick={loadQuestions}
+              className="px-4 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs cursor-pointer flex items-center gap-1.5"
             >
-              Режим А (Тест)
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{lang === 'KZ' ? 'Қайталау' : lang === 'RU' ? 'Повторить попытку' : 'Retry'}</span>
             </button>
             <button
-              onClick={() => setMode('B')}
-              className={`px-3 py-1 rounded text-xs font-semibold transition cursor-pointer ${
-                mode === 'B'
-                  ? 'bg-primer-accent-emphasis text-white shadow-primer-xs'
-                  : 'text-primer-fg-muted hover:text-primer-fg-default'
-              }`}
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-primer-canvas-inset border border-primer-border-default hover:bg-primer-canvas-subtle font-bold text-xs transition cursor-pointer"
             >
-              Режим Б (Ашық шешім / Фото)
+              {lang === 'KZ' ? 'Артқа қайту' : lang === 'RU' ? 'Назад' : 'Back'}
             </button>
           </div>
         </div>
-
-        {/* ----------------------------------------------------------------------- */}
-        {/* РЕЖИМ А: Тестовая сетка до 8 вариантов с автоскроллом                    */}
-        {/* ----------------------------------------------------------------------- */}
-        {mode === 'A' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {currentQuestion.options.map((opt: any) => {
-                const isSelected = selectedOption === opt.id;
-                let cardStyle = 'bg-primer-canvas-inset border-primer-border-default hover:border-primer-accent-emphasis hover:bg-primer-accent-subtle/10';
-
-                if (isSubmitted) {
-                  if (opt.isCorrect) {
-                    cardStyle = 'bg-emerald-950/40 border-emerald-600 text-emerald-300';
-                  } else if (isSelected && !opt.isCorrect) {
-                    cardStyle = 'bg-rose-950/40 border-rose-600 text-rose-300';
-                  }
-                } else if (isSelected) {
-                  cardStyle = 'bg-primer-accent-subtle/30 border-primer-accent-emphasis ring-1 ring-primer-accent-emphasis';
-                }
-
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleOptionSelect(opt.id)}
-                    disabled={isSubmitted}
-                    className={`p-3.5 rounded-xl border text-left flex items-center justify-between gap-3 transition cursor-pointer ${cardStyle}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center font-mono ${
-                        isSelected ? 'bg-primer-accent-emphasis text-white' : 'bg-primer-canvas-default text-primer-fg-muted border border-primer-border-muted'
-                      }`}>
-                        {opt.id}
-                      </span>
-                      <span className="text-sm font-medium">
-                        <MathText text={opt.text} />
-                      </span>
-                    </div>
-
-                    {isSubmitted && opt.isCorrect && (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                    )}
-                    {isSubmitted && isSelected && !opt.isCorrect && (
-                      <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
+      ) : (
+        <>
+          {/* БЛОК 2: ХОЛСТ ВОПРОСА (Markdown + KaTeX + ZVDSL+ Primitives) */}
+          <div className="bg-primer-canvas-subtle border border-primer-border-default rounded-2xl p-5 shadow-primer-sm space-y-4">
+            <div className="flex items-center justify-between text-xs text-primer-fg-muted">
+              <span className="font-semibold uppercase tracking-wider">Есеп шарты</span>
+              <span className="bg-primer-canvas-inset px-2 py-0.5 rounded text-[11px] font-mono border border-primer-border-muted">
+                KaTeX + ZVDSL+
+              </span>
             </div>
 
-            {/* Action Bar */}
-            <div className="flex items-center justify-between pt-2">
-              <div className="text-xs text-primer-fg-muted">
-                {!isSubmitted ? 'Нұсқаны таңдап, тексеруді басыңыз' : isCorrect ? '🎉 Дұрыс жауап!' : '❌ Қате жауап, Ағадан көмек сұраңыз'}
+            {/* Question Text with KaTeX */}
+            <div className="text-base font-medium text-primer-fg-default leading-relaxed">
+              <MathText text={currentQuestion.questionText} />
+            </div>
+
+            {/* KaTeX formula snippet */}
+            {currentQuestion.katex_snippet && (
+              <div className="p-3 bg-primer-canvas-inset border border-primer-border-muted rounded-xl text-center font-mono text-sm">
+                <MathText text={`$$${currentQuestion.katex_snippet}$$`} />
               </div>
+            )}
 
-              {!isSubmitted ? (
-                <button
-                  onClick={handleSubmitAnswer}
-                  disabled={!selectedOption}
-                  className="px-5 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>Жауапты тексеру</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleNextQuestion}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 transition shadow-primer-xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>Келесі есеп</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+            {/* Native ZVDSL+ Number Line Primitive (Числовая прямая) */}
+            {currentQuestion.hasNumberLine && (
+              <NumberLinePrimitive />
+            )}
           </div>
-        )}
 
-        {/* ----------------------------------------------------------------------- */}
-        {/* РЕЖИМ Б: Открытый ответ / Фото тетради                                   */}
-        {/* ----------------------------------------------------------------------- */}
-        {mode === 'B' && (
-          <div className="space-y-3">
-            {/* Textarea for written steps */}
-            <div>
-              <label className="text-xs font-semibold text-primer-fg-muted mb-1 block">
-                Шешу жолын жазыңыз (формулалар, қадамдар):
-              </label>
-              <textarea
-                value={openSolutionText}
-                onChange={(e) => setOpenSolutionText(e.target.value)}
-                placeholder="Мысалы: (x-2)(x-3) <= 0 түбірлерін тауып, сан түзуінде белгіледім..."
-                rows={4}
-                maxLength={4000}
-                className="w-full p-3 rounded-xl bg-primer-canvas-inset border border-primer-border-default text-xs text-primer-fg-default placeholder-primer-fg-subtle focus:outline-none focus:border-primer-accent-emphasis resize-none"
-              />
-            </div>
-
-            {/* Photo Upload Zone */}
-            <div>
-              <div className="flex items-center justify-between text-xs text-primer-fg-muted mb-1.5">
-                <span>Дәптер фотосы (10 фотоға дейін):</span>
-                <span>{uploadedPhotos.length}/10 жүктелді</span>
-              </div>
-
-              <div className="flex flex-wrap gap-2 items-center">
-                {uploadedPhotos.map((photo, i) => (
-                  <div key={i} className="w-16 h-16 rounded-lg border border-primer-border-default overflow-hidden relative group">
-                    <img src={photo} alt={`Page ${i+1}`} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => setUploadedPhotos((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-
-                {uploadedPhotos.length < 10 && (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-16 h-16 rounded-lg border border-dashed border-primer-border-default bg-primer-canvas-inset hover:border-primer-accent-emphasis flex flex-col items-center justify-center text-primer-fg-muted hover:text-primer-accent-fg transition cursor-pointer text-[10px]"
-                  >
-                    <Camera className="w-4 h-4 mb-0.5" />
-                    <span>Фото</span>
-                  </button>
-                )}
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            {/* Submit Mode B */}
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-[11px] text-primer-fg-muted">
-                ИИ-бағалау: толық шешімге +15 ELO, қысқа жауапқа +7 ELO
+          {/* БЛОК 3: ИНТЕРАКТИВНЫЕ ОТВЕТЫ (РЕЖИМ А или РЕЖИМ Б) */}
+          <div ref={answersGridRef} className="bg-primer-canvas-subtle border border-primer-border-default rounded-2xl p-5 shadow-primer-sm space-y-4">
+            {/* Mode Selector Header */}
+            <div className="flex items-center justify-between border-b border-primer-border-muted pb-3">
+              <span className="text-xs font-bold text-primer-fg-muted uppercase tracking-wider">
+                Жауап беру тәсілі
               </span>
 
-              <button
-                onClick={handleSubmitOpenSolution}
-                disabled={!openSolutionText.trim() && uploadedPhotos.length === 0}
-                className="px-5 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Шешімді тексеруге жіберу</span>
-              </button>
+              <div className="flex items-center gap-1 bg-primer-canvas-inset p-1 rounded-lg border border-primer-border-muted">
+                <button
+                  onClick={() => setMode('A')}
+                  className={`px-3 py-1 rounded text-xs font-semibold transition cursor-pointer ${
+                    mode === 'A'
+                      ? 'bg-primer-accent-emphasis text-white shadow-primer-xs'
+                      : 'text-primer-fg-muted hover:text-primer-fg-default'
+                  }`}
+                >
+                  Режим А (Тест)
+                </button>
+                <button
+                  onClick={() => setMode('B')}
+                  className={`px-3 py-1 rounded text-xs font-semibold transition cursor-pointer ${
+                    mode === 'B'
+                      ? 'bg-primer-accent-emphasis text-white shadow-primer-xs'
+                      : 'text-primer-fg-muted hover:text-primer-fg-default'
+                  }`}
+                >
+                  Режим Б (Ашық шешім / Фото)
+                </button>
+              </div>
             </div>
+
+            {/* РЕЖИМ А: Тестовая сетка */}
+            {mode === 'A' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {currentQuestion.options?.map((opt: any) => {
+                    const isSelected = selectedOption === opt.id;
+                    let cardStyle = 'bg-primer-canvas-inset border-primer-border-default hover:border-primer-accent-emphasis hover:bg-primer-accent-subtle/10';
+
+                    if (isSubmitted) {
+                      if (opt.isCorrect) {
+                        cardStyle = 'bg-emerald-950/40 border-emerald-600 text-emerald-300';
+                      } else if (isSelected && !opt.isCorrect) {
+                        cardStyle = 'bg-rose-950/40 border-rose-600 text-rose-300';
+                      }
+                    } else if (isSelected) {
+                      cardStyle = 'bg-primer-accent-subtle/30 border-primer-accent-emphasis ring-1 ring-primer-accent-emphasis';
+                    }
+
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => handleOptionSelect(opt.id)}
+                        disabled={isSubmitted}
+                        className={`p-3.5 rounded-xl border text-left flex items-center justify-between gap-3 transition cursor-pointer ${cardStyle}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center font-mono ${
+                            isSelected ? 'bg-primer-accent-emphasis text-white' : 'bg-primer-canvas-default text-primer-fg-muted border border-primer-border-muted'
+                          }`}>
+                            {opt.id}
+                          </span>
+                          <span className="text-sm font-medium">
+                            <MathText text={opt.text} />
+                          </span>
+                        </div>
+
+                        {isSubmitted && opt.isCorrect && (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                        )}
+                        {isSubmitted && isSelected && !opt.isCorrect && (
+                          <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Action Bar */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="text-xs text-primer-fg-muted">
+                    {!isSubmitted ? 'Нұсқаны таңдап, тексеруді басыңыз' : isCorrect ? '🎉 Дұрыс жауап!' : '❌ Қате жауап, Ағадан көмек сұраңыз'}
+                  </div>
+
+                  {!isSubmitted ? (
+                    <button
+                      onClick={handleSubmitAnswer}
+                      disabled={!selectedOption}
+                      className="px-5 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>Жауапты тексеру</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleNextQuestion}
+                      className="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 transition shadow-primer-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>Келесі есеп</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* РЕЖИМ Б: Открытый ответ / Фото тетради / Silent Grader */}
+            {mode === 'B' && (
+              <div className="space-y-3">
+                {isSilentGrading ? (
+                  <div className="p-8 rounded-xl bg-primer-canvas-inset border border-primer-accent-emphasis/40 text-center space-y-3 animate-pulse">
+                    <div className="w-10 h-10 rounded-full bg-primer-accent-emphasis/20 text-primer-accent-fg flex items-center justify-center mx-auto text-xl">
+                      🦉
+                    </div>
+                    <h4 className="text-sm font-bold text-primer-fg-default">
+                      Аға шешіміңізді тексеруде...
+                    </h4>
+                    <p className="text-xs text-primer-fg-muted">
+                      Математикалық логика мен әрбір қадамды AI Silent Grader арқылы талдау
+                    </p>
+                  </div>
+                ) : isSubmitted && silentGraderResult ? (
+                  <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 space-y-3 shadow-primer-xs">
+                    <div className="flex items-center justify-between border-b border-primer-border-muted pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🦉</span>
+                        <h4 className="text-xs font-bold text-primer-fg-default uppercase tracking-wider">
+                          Ағаның бағалау вердикті (Silent Grader)
+                        </h4>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Badge
+                          variant={
+                            silentGraderResult.verdict === 'FULL_CREDIT'
+                              ? 'success'
+                              : silentGraderResult.verdict === 'PARTIAL_CREDIT'
+                              ? 'accent'
+                              : silentGraderResult.verdict === 'CHEAT_PENALTY'
+                              ? 'danger'
+                              : 'attention'
+                          }
+                          className="text-xs font-mono font-bold"
+                        >
+                          {silentGraderResult.verdict} ({silentGraderResult.score_xp >= 0 ? `+${silentGraderResult.score_xp}` : silentGraderResult.score_xp} XP)
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Student Pedagogical Feedback with KaTeX */}
+                    <div className="p-3 rounded-lg bg-primer-canvas-inset border border-primer-border-muted space-y-1.5 text-xs">
+                      <div className="font-bold text-primer-accent-fg flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Оқушыға пікір (Педагогикалық түсіндірме):</span>
+                      </div>
+                      <div className="text-primer-fg-default leading-relaxed">
+                        <MathText text={silentGraderResult.feedback_for_student || ''} />
+                      </div>
+                    </div>
+
+                    {/* Technical Rationale */}
+                    {silentGraderResult.technical_rationale && (
+                      <div className="p-2.5 rounded-lg bg-primer-canvas-inset/60 border border-primer-border-muted text-[11px] text-primer-fg-muted space-y-1">
+                        <span className="font-semibold text-primer-fg-default">Талдау негіздемесі: </span>
+                        <span>{silentGraderResult.technical_rationale}</span>
+                      </div>
+                    )}
+
+                    {/* Next Question Button */}
+                    <div className="flex items-center justify-end pt-2">
+                      <button
+                        onClick={handleNextQuestion}
+                        className="px-5 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Келесі есепке өту</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {silentGradingError && (
+                      <div className="p-3 rounded-lg bg-primer-danger-subtle border border-primer-danger-emphasis/30 text-xs text-primer-danger-fg flex items-center justify-between">
+                        <span>{silentGradingError}</span>
+                        <button
+                          onClick={handleSubmitOpenSolution}
+                          className="font-bold underline cursor-pointer"
+                        >
+                          Қайталау
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Textarea for written steps */}
+                    <div>
+                      <label className="text-xs font-semibold text-primer-fg-muted mb-1 block">
+                        Шешу жолын жазыңыз (формулалар, дәлелдеме):
+                      </label>
+                      <textarea
+                        value={openSolutionText}
+                        onChange={(e) => setOpenSolutionText(e.target.value)}
+                        placeholder="Мысалы: (x-2)(x-3) <= 0 түбірлерін тауып, сан түзуінде интервалдар әдісімен таңбаларды анықтадым..."
+                        rows={4}
+                        maxLength={4000}
+                        className="w-full p-3 rounded-xl bg-primer-canvas-inset border border-primer-border-default text-xs text-primer-fg-default placeholder-primer-fg-subtle focus:outline-none focus:border-primer-accent-emphasis resize-none"
+                      />
+                    </div>
+
+                    {/* Photo Upload Zone */}
+                    <div>
+                      <div className="flex items-center justify-between text-xs text-primer-fg-muted mb-1.5">
+                        <span>Дәптер фотосы (10 фотоға дейін):</span>
+                        <span>{uploadedPhotos.length}/10 жүктелді</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {uploadedPhotos.map((photo, i) => (
+                          <div key={i} className="w-16 h-16 rounded-lg border border-primer-border-default overflow-hidden relative group">
+                            <img src={photo} alt={`Page ${i+1}`} className="w-full h-full object-cover" />
+                            <button
+                              onClick={() => setUploadedPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                              className="absolute inset-0 bg-black/60 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs transition"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+
+                        {uploadedPhotos.length < 10 && (
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-16 h-16 rounded-lg border border-dashed border-primer-border-default bg-primer-canvas-inset hover:border-primer-accent-emphasis flex flex-col items-center justify-center text-primer-fg-muted hover:text-primer-accent-fg transition cursor-pointer text-[10px]"
+                          >
+                            <Camera className="w-4 h-4 mb-0.5" />
+                            <span>Фото</span>
+                          </button>
+                        )}
+
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Submit Mode B */}
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[11px] text-primer-fg-muted">
+                        ИИ-бағалау: толық дәлелдемеге +15 ELO, жартылай шешімге +7 ELO
+                      </span>
+
+                      <button
+                        onClick={handleSubmitOpenSolution}
+                        disabled={!openSolutionText.trim() && uploadedPhotos.length === 0}
+                        className="px-5 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Шешімді тексеруге жіберу</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 };

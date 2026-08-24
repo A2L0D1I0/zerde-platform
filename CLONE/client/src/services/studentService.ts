@@ -90,7 +90,7 @@ class StudentService {
         full_name: 'Оқушы',
         role: 'student',
         grade: '10-сынып',
-        school: 'NIS IB Astana',
+        school: '',
         language: 'KZ',
         theme: 'dark',
         overallElo: progress.elo,
@@ -168,7 +168,7 @@ class StudentService {
         id: 'current_user',
         name: 'Сіз',
         grade: '10-сынып',
-        school: 'NIS IB Astana',
+        school: '',
         elo: progress.elo,
         eloRankLevel:
           progress.elo >= 1600
@@ -190,7 +190,7 @@ class StudentService {
         id: f.id,
         name: f.name,
         grade: f.gradeOrStatus || '10-сынып',
-        school: f.schoolOrOrg || 'NIS IB Astana',
+        school: f.schoolOrOrg || '',
         elo: f.elo,
         eloRankLevel:
           f.elo >= 1600

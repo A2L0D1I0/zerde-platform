@@ -1,6 +1,8 @@
+import fs from 'fs';
+import path from 'path';
 import dotenv from 'dotenv';
 import { SocraticResponseSchema, SocraticResponse } from './schemas';
-import { FallbackEngine } from './fallback-engine';
+import { sanitizeJsonString, callGeminiApi } from './sanitize-json';
 
 dotenv.config();
 
@@ -16,14 +18,29 @@ export interface SocraticPromptParams {
 export class SocraticService {
   private apiKey: string | null = null;
   private modelName: string = 'gemini-2.5-flash';
+  private systemPromptTemplate: string = '';
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.AI_API_KEY || null;
     this.modelName = process.env.GEMINI_STUDENT_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    this.loadSystemPrompt();
+  }
+
+  private loadSystemPrompt(): void {
+    const promptPath = path.resolve(__dirname, 'prompts/socratic_aga.md');
+    try {
+      if (fs.existsSync(promptPath)) {
+        this.systemPromptTemplate = fs.readFileSync(promptPath, 'utf-8');
+      }
+    } catch (e) {
+      this.systemPromptTemplate = '';
+    }
   }
 
   public getApiKey(): string | null {
-    return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.AI_API_KEY || this.apiKey;
+    const envKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? process.env.AI_API_KEY;
+    if (envKey !== undefined) return envKey;
+    return this.apiKey;
   }
 
   public hasApiKey(): boolean {
@@ -38,7 +55,10 @@ export class SocraticService {
     } else if (cleaned.startsWith('```')) {
       cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
-    return cleaned.trim();
+    cleaned = cleaned.trim();
+    // Fix unescaped backslashes in LaTeX strings inside JSON (e.g. \in, \le, \ge, \frac)
+    cleaned = cleaned.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
+    return cleaned;
   }
 
   /**
@@ -56,9 +76,9 @@ export class SocraticService {
 
     const lang = language.toUpperCase() as 'KZ' | 'RU' | 'EN';
 
-    // 1. Immediate Fallback if no valid API key
+    // 1. Honest error if no valid API key
     if (!this.hasApiKey()) {
-      return FallbackEngine.getSocraticResponse(topicTitle, lang, currentElo, isSecondMistake);
+      throw new Error('GEMINI_API_KEY_MISSING: Gemini API кілті орнатылмаған (GEMINI_API_KEY is not configured)');
     }
 
     try {
@@ -114,31 +134,15 @@ RULES:
 3. Always include LaTeX formulas enclosed without extra escapes.
 4. Output ONLY valid JSON, no markdown outside the JSON block.`;
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }] }],
-          generationConfig: {
-            temperature: 0.3,
-            responseMimeType: 'application/json'
-          }
-        })
+      const text = await callGeminiApi(activeModel, activeKey!, {
+        contents: [{ parts: [{ text: systemPrompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: 'application/json'
+        }
       });
 
-      if (!response.ok) {
-        console.warn(`[SocraticService] Gemini error (${response.status}), switching to Zero-Crash Fallback`);
-        return FallbackEngine.getSocraticResponse(topicTitle, lang, currentElo, isSecondMistake);
-      }
-
-      const rawData = await response.json() as any;
-      const text = rawData?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!text) {
-        return FallbackEngine.getSocraticResponse(topicTitle, lang, currentElo, isSecondMistake);
-      }
-
-      const parsed = JSON.parse(this.cleanJson(text));
+      const parsed = JSON.parse(sanitizeJsonString(text));
       
       // Strict Zod Validation
       const validated = SocraticResponseSchema.parse({
@@ -149,8 +153,8 @@ RULES:
       return validated;
 
     } catch (err) {
-      console.warn('[SocraticService] AI generation exception, activating Zero-Crash Fallback:', (err as Error).message);
-      return FallbackEngine.getSocraticResponse(topicTitle, lang, currentElo, isSecondMistake);
+      console.error('[SocraticService] AI generation exception:', (err as Error).message);
+      throw err;
     }
   }
 }

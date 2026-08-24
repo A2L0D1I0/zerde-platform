@@ -234,7 +234,7 @@ export const CourseCatalogScreen: React.FC<CourseCatalogScreenProps> = ({
 
           <Badge variant="accent" className="font-mono text-xs px-3 py-1 flex items-center gap-1.5">
             <School className="w-3.5 h-3.5" />
-            <span>{userGrade} • {user?.school || 'NIS IB Astana'}</span>
+            <span>{userGrade}{user?.school ? ` • ${user.school}` : ''}</span>
           </Badge>
         </div>
 

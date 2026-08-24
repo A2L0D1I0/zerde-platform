@@ -79,7 +79,7 @@ export const StudentProfileScreen: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [grade, setGrade] = useState(user?.grade || '10-сынып');
-  const [school, setSchool] = useState(user?.school || 'NIS IB Astana');
+  const [school, setSchool] = useState(user?.school || '');
 
   // Add Org Token Modal
   const [isAddTokenModalOpen, setIsAddTokenModalOpen] = useState(false);
@@ -229,7 +229,7 @@ export const StudentProfileScreen: React.FC = () => {
               </div>
               <p className="text-xs text-primer-fg-muted flex items-center gap-1.5 mt-1">
                 <School className="w-3.5 h-3.5" />
-                <span>{user?.school || 'NIS IB Astana'}</span>
+                <span>{user?.school || (lang === 'KZ' ? 'Жеке оқушы' : lang === 'RU' ? 'Независимый ученик' : 'Individual Learner')}</span>
               </p>
               <p className="text-[11px] text-primer-fg-subtle font-mono mt-0.5">
                 {user?.email || 'student@school.kz'}

@@ -1,7 +1,6 @@
 import { seed } from '../db/seed';
 import { getDb } from '../db/database';
 import { socraticService } from '../ai/socratic.service';
-import { FallbackEngine } from '../ai/fallback-engine';
 import { SocraticResponseSchema } from '../ai/schemas';
 
 export async function runPhase4And5Verification() {
@@ -29,55 +28,26 @@ export async function runPhase4And5Verification() {
   // ==========================================================================
   // 1. ТЕСТЫ БЭКЕНДА СОКРАТА «АҒА» (POST /api/tutor/socrates)
   // ==========================================================================
-  console.log('\n--- 🦉 1. ТЕСТЫ СОКРАТИЧЕСКОГО СЕРВИСА И ZOD ВАЛИДАЦИИ ---');
+  console.log('\n--- 🦉 1. ТЕСТЫ СОКРАТИЧЕСКОГО СЕРВИСА И ОБРАБОТКИ ОШИБОК ---');
 
-  // Test 1.1: Генерация ответа Сократа на казахском языке
-  const socraticKz = await socraticService.generateGuidance({
-    topicTitle: 'Квадраттық теңсіздіктер және интервалдар әдісі',
-    studentAnswer: 'Мен жауапты таба алмадым',
-    currentElo: 1000,
-    language: 'KZ',
-    isSecondMistake: false
-  });
-
-  const parsedKz = SocraticResponseSchema.safeParse(socraticKz);
-  assert(parsedKz.success === true, 'Ответ Сократа на 100% соответствует Zod-схеме SocraticResponseSchema');
-  assert(socraticKz.thought_forks.length === 3, `Сократ вернул ровно 3 развилки Thought-Forks (получено: ${socraticKz.thought_forks.length})`);
-  assert(socraticKz.question_line.length >= 5, 'Сократ вернул ровно 1-2 наводящие строки вопроса');
-
-  // Test 1.2: Проверка 3 типов развилок мысли
-  const forkTypes = socraticKz.thought_forks.map(f => f.type);
-  assert(forkTypes.includes('true_step'), 'Развилка A содержит истинный шаг мысли (type: true_step)');
-  assert(forkTypes.includes('cognitive_trap'), 'Развилка B содержит когнитивную ловушку (type: cognitive_trap)');
-  assert(forkTypes.includes('basic_rule'), 'Развилка C содержит базовое правило темы (type: basic_rule)');
-
-  // Test 1.3: Проверка KaTeX формул в развилках мысли
-  const hasLatex = socraticKz.thought_forks.some(f => Boolean(f.latex));
-  assert(hasLatex === true, 'Развилки мысли Сократа содержат математические формулы KaTeX');
-
-  // Test 1.4: Проверка языка (литературный казахский)
-  assert(socraticKz.question_line.includes('қара') || socraticKz.question_line.includes('теңсіздік') || socraticKz.thought_forks[0].title.length > 3, 'Текст вопроса сформулирован на казахском языке');
-
-  // ==========================================================================
-  // 2. ТЕСТЫ ZERO-CRASH FALLBACK ДЛЯ СОКРАТА
-  // ==========================================================================
-  console.log('\n--- 🛡️ 2. ТЕСТЫ ZERO-CRASH FALLBACK ENGINE ДЛЯ СОКРАТА ---');
-
-  // Test 2.1: Детерминированный ответ Fallback на KZ
-  const fallbackKz = FallbackEngine.getSocraticResponse('Квадраттық теңсіздіктер', 'KZ', 1200, false);
-  const valFallbackKz = SocraticResponseSchema.safeParse(fallbackKz);
-  assert(valFallbackKz.success === true, 'Fallback Сократа на казахском валидируется схемой SocraticResponseSchema');
-  assert(fallbackKz.thought_forks.length === 3, 'Fallback возвращает ровно 3 развилки Thought-Forks');
-
-  // Test 2.2: Детерминированный ответ Fallback на RU
-  const fallbackRu = FallbackEngine.getSocraticResponse('Квадратные неравенства', 'RU', 1200, false);
-  const valFallbackRu = SocraticResponseSchema.safeParse(fallbackRu);
-  assert(valFallbackRu.success === true, 'Fallback Сократа на русском валидируется схемой SocraticResponseSchema');
-
-  // Test 2.3: Поведение при повторной ошибке (isSecondMistake = true)
-  const fallbackSecondMistake = FallbackEngine.getSocraticResponse('Квадраттық теңсіздіктер', 'KZ', 1000, true);
-  assert(fallbackSecondMistake.reveal_answer === true, 'При повторной ошибке после Сократа флаг reveal_answer активируется');
-  assert(Boolean(fallbackSecondMistake.correct_answer_explanation), 'При повторной ошибке возвращается краткое объяснение решения');
+  // Test 1.1: Проверка честного выброса ошибки при отсутствии API ключа
+  let threwApiKey = false;
+  const originalKey = process.env.GEMINI_API_KEY;
+  try {
+    process.env.GEMINI_API_KEY = '';
+    process.env.GOOGLE_API_KEY = '';
+    process.env.AI_API_KEY = '';
+    await socraticService.generateGuidance({
+      topicTitle: 'Квадраттық теңсіздіктер',
+      studentAnswer: 'жауап жоқ',
+      language: 'KZ'
+    });
+  } catch (err: any) {
+    threwApiKey = err.message.includes('GEMINI_API_KEY_MISSING');
+  } finally {
+    process.env.GEMINI_API_KEY = originalKey;
+  }
+  assert(threwApiKey === true, 'При отсутствии API ключа SocraticService честно выбрасывает GEMINI_API_KEY_MISSING');
 
   // ==========================================================================
   // 3. ТЕСТЫ EUREKA MOMENT И ТЕЛЕМЕТРИИ В SQLITE

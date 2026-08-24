@@ -106,26 +106,7 @@ export class GeminiClient {
     }
 
     if (!this.apiKey) {
-      // Deterministic pedagogical response from SQLite logic
-      return {
-        question_line: language === 'ru'
-          ? `Как мы можем применить свойства темы «${topicTitle}» к этому шагу?`
-          : language === 'en'
-          ? `How can we apply principles of "${topicTitle}" to verify this step?`
-          : `«${topicTitle}» қасиеттерін осы қадамға қалай қолданамыз?`,
-        thought_forks: [
-          { key: 'A', title: language === 'ru' ? 'Проверить логическую корректность' : language === 'en' ? 'Verify logical consistency' : 'Логикалық дұрыстығын тексеру', type: 'true_step', description: language === 'ru' ? 'Шаг обоснован математически' : language === 'en' ? 'Step is mathematically sound' : 'Қадам теорияға сай' },
-          { key: 'B', title: language === 'ru' ? 'Поспешный вывод без проверки' : language === 'en' ? 'Hasty conclusion without proof' : 'Тексерусіз асығыс тұжырым (Тұзақ)', type: 'cognitive_trap', description: language === 'ru' ? 'Возможна потеря корней или смена знака' : language === 'en' ? 'Risk of extraneous roots' : 'Түбірді жоғалту қаупі бар' },
-          { key: 'C', title: language === 'ru' ? 'Сверить с базовой теоремой' : language === 'en' ? 'Check foundational theorem' : 'Негізгі теоремаға сүйену', type: 'basic_rule', description: language === 'ru' ? 'Опорный закон темы' : language === 'en' ? 'Core rule reference' : 'Тақырыптың тірек ережесі' },
-        ],
-        elo_delta: 10,
-        is_eureka: false,
-        is_jailbreak: false,
-        anti_stuck_active: false,
-        feedback_message: language === 'ru' ? 'Хороший ход! Выберите следующий шаг.' : language === 'en' ? 'Good reasoning! Choose next step.' : 'Жақсы ой! Келесі бағытты таңдаңыз.',
-        new_elo: currentElo + 10,
-        is_ai_connected: false,
-      };
+      throw new Error('GEMINI_API_KEY_MISSING: Gemini API кілті орнатылмаған (GEMINI_API_KEY is not configured)');
     }
 
     try {
@@ -144,37 +125,24 @@ export class GeminiClient {
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API HTTP ${response.status}`);
+        const errBody = await response.text();
+        throw new Error(`Gemini API HTTP ${response.status} - ${errBody}`);
       }
 
       const data = (await response.json()) as any;
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        throw new Error('Gemini API returned empty text candidate');
+      }
+
       const parsed = JSON.parse(this.cleanJson(rawText));
       return {
         ...parsed,
         is_ai_connected: true,
       };
     } catch (err) {
-      console.warn('[GeminiClient] API error, falling back to pedagogical rules:', err);
-      return {
-        question_line: language === 'ru'
-          ? `Как мы можем применить свойства темы «${topicTitle}» к этому шагу?`
-          : language === 'en'
-          ? `How can we apply principles of "${topicTitle}" to verify this step?`
-          : `«${topicTitle}» қасиеттерін осы қадамға қалай қолданамыз?`,
-        thought_forks: [
-          { key: 'A', title: language === 'ru' ? 'Проверить логическую корректность' : language === 'en' ? 'Verify logical consistency' : 'Логикалық дұрыстығын тексеру', type: 'true_step', description: language === 'ru' ? 'Шаг обоснован' : language === 'en' ? 'Step is verified' : 'Қадам теорияға сай' },
-          { key: 'B', title: language === 'ru' ? 'Поспешный вывод без проверки' : language === 'en' ? 'Hasty conclusion without proof' : 'Тексерусіз асығыс тұжырым (Тұзақ)', type: 'cognitive_trap', description: language === 'ru' ? 'Возможна ошибка' : language === 'en' ? 'Risk of error' : 'Түбірді жоғалту қаупі бар' },
-          { key: 'C', title: language === 'ru' ? 'Сверить с базовой теоремой' : language === 'en' ? 'Check foundational theorem' : 'Негізгі теоремаға сүйену', type: 'basic_rule', description: language === 'ru' ? 'Опорный закон темы' : language === 'en' ? 'Core rule reference' : 'Тақырыптың тірек ережесі' },
-        ],
-        elo_delta: 5,
-        is_eureka: false,
-        is_jailbreak: false,
-        anti_stuck_active: false,
-        feedback_message: language === 'ru' ? 'Продолжим!' : language === 'en' ? 'Let us continue!' : 'Жалғастырайық!',
-        new_elo: currentElo + 5,
-        is_ai_connected: false,
-      };
+      console.error('[GeminiClient] API error:', (err as Error).message);
+      throw err;
     }
   }
 }

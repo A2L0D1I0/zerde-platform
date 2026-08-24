@@ -218,6 +218,24 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
 
+              {/* Dual Role Switcher if account has multiple roles */}
+              {user?.roles && user.roles.length > 1 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => switchRole(role === 'teacher' ? 'student' : 'teacher')}
+                    className="gap-2 cursor-pointer text-primer-accent-fg font-bold"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-primer-accent-fg" />
+                    <span>
+                      {role === 'teacher'
+                        ? (lang === 'KZ' ? 'Оқушы режиміне өту' : lang === 'RU' ? 'Перейти в режим ученика' : 'Switch to Student')
+                        : (lang === 'KZ' ? 'Мұғалім режиміне өту' : lang === 'RU' ? 'Перейти в режим учителя' : 'Switch to Educator')}
+                    </span>
+                  </DropdownMenuItem>
+                </>
+              )}
+
               <DropdownMenuSeparator />
 
               {/* Theme Toggle */}
