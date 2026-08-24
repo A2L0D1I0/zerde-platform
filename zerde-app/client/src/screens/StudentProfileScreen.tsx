@@ -1,855 +1,404 @@
 import React, { useState, useEffect } from 'react';
-import {
-  User,
-  Shield,
-  Flame,
-  Award,
-  BookOpen,
-  CheckCircle2,
-  TrendingUp,
-  Settings,
-  Globe,
-  Sun,
-  Moon,
-  LogOut,
-  Sparkles,
-  Zap,
-  School,
-  Edit3,
-  Brain,
-  Layers,
-  Clock,
-  ChevronRight,
-  Check,
-  AlertCircle,
-  KeyRound,
-  Users,
-  Copy,
-  Plus,
-  Lock,
-  UserPlus,
-  ExternalLink,
-} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
-import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AppLanguage } from '@/types';
-import { userProgressService, UserProgressState, OrgMembership, FriendEntry } from '@/services/userProgressService';
-
-export const GRADE_STATUS_OPTIONS = [
-  { value: '7-сынып', labelKZ: '7-сынып', labelRU: '7 класс', labelEN: 'Grade 7' },
-  { value: '8-сынып', labelKZ: '8-сынып', labelRU: '8 класс', labelEN: 'Grade 8' },
-  { value: '9-сынып', labelKZ: '9-сынып', labelRU: '9 класс', labelEN: 'Grade 9' },
-  { value: '10-сынып', labelKZ: '10-сынып', labelRU: '10 класс', labelEN: 'Grade 10' },
-  { value: '11-сынып', labelKZ: '11-сынып', labelRU: '11 класс', labelEN: 'Grade 11' },
-  { value: '12-сынып', labelKZ: '12-сынып', labelRU: '12 класс', labelEN: 'Grade 12' },
-  { value: 'Колледж', labelKZ: 'Колледж', labelRU: 'Колледж', labelEN: 'College' },
-  { value: 'ЖОО (ВУЗ)', labelKZ: 'ЖОО (Университет)', labelRU: 'ВУЗ (Университет)', labelEN: 'University' },
-  { value: 'Басқа', labelKZ: 'Басқа (Еркін жазу)', labelRU: 'Другое', labelEN: 'Other' },
-];
+import {
+  User,
+  Shield,
+  Flame,
+  Award,
+  Globe,
+  Sun,
+  Moon,
+  LogOut,
+  Sparkles,
+  KeyRound,
+  CheckCircle2,
+  Building2,
+} from 'lucide-react';
+import api from '@/api/client';
 
 export const StudentProfileScreen: React.FC = () => {
   const { user, updateUser, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
 
-  const lang = (language as 'KZ' | 'RU' | 'EN') || 'KZ';
+  const isRU = language === 'RU';
+  const isEN = language === 'EN';
 
-  const [progressState, setProgressState] = useState<UserProgressState>(userProgressService.getState());
-
-  useEffect(() => {
-    const unsub = userProgressService.subscribe((state) => {
-      setProgressState(state);
-    });
-    return () => unsub();
-  }, []);
-
-  // Edit Profile Modal
+  const [dashboardData, setDashboardData] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [fullName, setFullName] = useState(user?.full_name || '');
-  const [grade, setGrade] = useState(user?.grade || '10-сынып');
-  const [school, setSchool] = useState(user?.school || 'NIS IB Astana');
+  const [grade, setGrade] = useState(user?.grade || '');
+  const [orgToken, setOrgToken] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Add Org Token Modal
-  const [isAddTokenModalOpen, setIsAddTokenModalOpen] = useState(false);
-  const [newTokenInput, setNewTokenInput] = useState('');
-  const [tokenError, setTokenError] = useState<string | null>(null);
-
-  // Add Friend Modal
-  const [isAddFriendModalOpen, setIsAddFriendModalOpen] = useState(false);
-  const [friendCodeInput, setFriendCodeInput] = useState('');
-  const [friendNameInput, setFriendNameInput] = useState('');
-  const [friendError, setFriendError] = useState<string | null>(null);
-
-  const [copiedCode, setCopiedCode] = useState(false);
-
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateUser({
-      full_name: fullName.trim(),
-      grade: grade.trim(),
-      school: school.trim(),
-    });
-    setIsEditModalOpen(false);
-    showToast({
-      type: 'success',
-      title: lang === 'KZ' ? 'Профиль жаңартылды!' : lang === 'RU' ? 'Профиль обновлен!' : 'Profile updated!',
-      message: fullName.trim(),
-    });
-  };
-
-  const handleAddOrgToken = (e: React.FormEvent) => {
-    e.preventDefault();
-    setTokenError(null);
-
-    const res = userProgressService.addOrgToken(newTokenInput);
-    if (!res.success) {
-      if (res.error === 'CANNOT_BE_STUDENT_IN_TEACHER_ORG') {
-        setTokenError(
-          lang === 'KZ'
-            ? 'Сіз бұл ұйымда мұғалімсіз! Бір ұйымда бір уақытта мұғалім әрі оқушы болуға болмайды.'
-            : lang === 'RU'
-            ? 'Вы уже состоите в этой организации как учитель! Нельзя быть учеником и учителем в одной организации.'
-            : 'You are an educator in this organization. Role exclusivity applies.'
-        );
-      } else if (res.error === 'ALREADY_LINKED') {
-        setTokenError(
-          lang === 'KZ'
-            ? 'Бұл токен немесе ұйым бұрыннан қосылған'
-            : lang === 'RU'
-            ? 'Эта организация уже привязана к аккаунту'
-            : 'Organization already linked'
-        );
-      } else {
-        setTokenError(
-          lang === 'KZ'
-            ? 'Жарамсыз токен пішімі (мысалы: STD-ORG-NIS-77)'
-            : lang === 'RU'
-            ? 'Неверный формат токена (например: STD-ORG-NIS-77)'
-            : 'Invalid token format (e.g. STD-ORG-NIS-77)'
-        );
-      }
-      return;
+  useEffect(() => {
+    if (user) {
+      setFullName(user.full_name || '');
+      setGrade(user.grade || '');
+      setOrgToken('');
     }
+  }, [user]);
 
-    setNewTokenInput('');
-    setIsAddTokenModalOpen(false);
-    showToast({
-      type: 'success',
-      title: lang === 'KZ' ? 'Ұйым қосылды!' : lang === 'RU' ? 'Организация привязана!' : 'Organization linked!',
-      message: res.membership?.orgName || '',
-    });
-  };
-
-  const handleAddFriend = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFriendError(null);
-
-    const res = userProgressService.addFriend(friendCodeInput, friendNameInput);
-    if (!res.success) {
-      if (res.error === 'CANNOT_ADD_SELF') {
-        setFriendError(
-          lang === 'KZ'
-            ? 'Өз жеке кодыңызды дос ретінде қоса алмайсыз'
-            : lang === 'RU'
-            ? 'Нельзя добавить свой собственный код'
-            : 'Cannot add yourself'
-        );
-      } else if (res.error === 'ALREADY_FRIENDS') {
-        setFriendError(
-          lang === 'KZ' ? 'Бұл студент бұрыннан достарыңызда' : 'Этот студент уже у вас в друзьях'
-        );
-      } else {
-        setFriendError(
-          lang === 'KZ'
-            ? 'Жарамсыз студент коды (мысалы: ST-7K4M2)'
-            : 'Неверный код студента (например: ST-7K4M2)'
-        );
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await api.get<any>(`/student/dashboard?studentId=${user?.id || user?.email || ''}`);
+        if (res) setDashboardData(res);
+      } catch (e) {
+        console.warn('[StudentProfileScreen] Failed to load dashboard', e);
       }
-      return;
-    }
+    };
+    loadProfile();
+  }, [user]);
 
-    setFriendCodeInput('');
-    setFriendNameInput('');
-    setIsAddFriendModalOpen(false);
-    showToast({
-      type: 'success',
-      title: lang === 'KZ' ? 'Дос қосылды!' : lang === 'RU' ? 'Друг добавлен!' : 'Friend added!',
-      message: res.friend?.name || '',
-    });
-  };
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
 
-  const handleCopyStudentCode = () => {
-    if (progressState.studentCode) {
-      navigator.clipboard.writeText(progressState.studentCode);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
-      showToast({
-        type: 'info',
-        title: lang === 'KZ' ? 'Код көшірілді!' : 'Код скопирован!',
-        message: progressState.studentCode,
+    try {
+      let updatedSchool = user?.school;
+      let updatedOrgId = user?.organizationId;
+
+      // If student provided an organization token, strictly validate with the server
+      if (orgToken.trim()) {
+        try {
+          const res: any = await api.post('/auth/link-org-token', {
+            org_token: orgToken.trim(),
+            targetRole: 'student',
+          });
+
+          if (res && res.success) {
+            updatedSchool = res.organization?.name || orgToken.trim();
+            updatedOrgId = res.organization?.id;
+            showToast({
+              type: 'success',
+              title: isEN ? 'Organization Verified! 🎉' : isRU ? 'Организация подтверждена! 🎉' : 'Ұйым расталды! 🎉',
+              message: res.message || updatedSchool,
+            });
+          }
+        } catch (err: any) {
+          const errMsg =
+            err?.response?.data?.error ||
+            (isEN ? 'Invalid organization token' : isRU ? 'Неверный токен организации' : 'Қате ұйым токені');
+          showToast({
+            type: 'danger',
+            title: isEN ? 'Token Error' : isRU ? 'Ошибка токена' : 'Токен қатесі',
+            message: errMsg,
+          });
+          setIsSaving(false);
+          return; // Stop saving to prevent saving gibberish as school name!
+        }
+      }
+
+      updateUser({
+        full_name: fullName.trim() || user?.full_name,
+        grade: grade.trim() || user?.grade,
+        school: updatedSchool || (isEN ? 'Self-study' : isRU ? 'Самостоятельное обучение' : 'Өз бетінше оқу'),
+        organizationId: updatedOrgId,
       });
+
+      setIsEditModalOpen(false);
+      showToast({
+        type: 'success',
+        title: isEN ? 'Profile Updated' : isRU ? 'Профиль обновлен' : 'Профиль сақталды',
+        message: fullName.trim() || user?.full_name || '',
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const eloLevel =
-    progressState.elo >= 1600 ? 'Самғау' : progressState.elo >= 1400 ? 'Қыран' : progressState.elo >= 1200 ? 'Тұғыр' : 'Өскін';
-  const eloSymbol =
-    progressState.elo >= 1600 ? '⭐' : progressState.elo >= 1400 ? '🦅' : progressState.elo >= 1200 ? '🌿' : '🌱';
+  const elo = dashboardData?.elo ?? user?.elo ?? 1000;
+  const streak = dashboardData?.streak_days ?? user?.streakDays ?? 0;
+
+  const formatDisplayGrade = (g?: string | null) => {
+    if (!g) return isEN ? 'Grade 10' : isRU ? '10 класс' : '10-сынып';
+    const str = String(g).trim();
+    if (str.includes('сынып') || str.includes('класс') || str.includes('Grade') || str.includes('Колледж') || str.includes('ВУЗ')) {
+      return str;
+    }
+    return `${str}-сынып`;
+  };
+
+  // Localized Rank
+  const getRankBadge = (eloVal: number) => {
+    if (eloVal >= 1600) return { icon: '⭐', label: isEN ? 'Ascend' : isRU ? 'Взлёт' : 'Самғау' };
+    if (eloVal >= 1400) return { icon: '🦅', label: isEN ? 'Eagle' : isRU ? 'Беркут' : 'Қыран' };
+    if (eloVal >= 1200) return { icon: '🌿', label: isEN ? 'Base' : isRU ? 'Опора' : 'Тұғыр' };
+    return { icon: '🌱', label: isEN ? 'Seedling' : isRU ? 'Росток' : 'Өскін' };
+  };
+
+  const rankInfo = getRankBadge(elo);
 
   return (
-    <div className="max-w-4xl mx-auto px-3.5 sm:px-6 py-4 space-y-4 animate-in fade-in duration-200">
-      {/* 1. Header Profile Banner Card */}
-      <div className="rounded-2xl border border-primer-border-default bg-primer-canvas-subtle p-4 sm:p-6 shadow-primer-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primer-accent-emphasis text-white flex items-center justify-center font-bold text-xl sm:text-2xl shadow-primer-xs shrink-0">
-              {user?.full_name?.charAt(0) || 'О'}
+    <div className="max-w-3xl mx-auto px-4 py-3 space-y-4">
+      {/* Profile Card */}
+      <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-5 shadow-primer-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-14 h-14 rounded-full bg-primer-accent-emphasis text-white flex items-center justify-center font-bold text-2xl shadow-primer-sm">
+              {rankInfo.icon}
             </div>
-
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg sm:text-xl font-bold text-primer-fg-default">
-                  {user?.full_name || 'Оқушы'}
-                </h1>
-                <Badge variant="accent" className="font-mono text-xs">
-                  {user?.grade || '10-сынып'}
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-primer-fg-default">
+                  {user?.full_name || (isEN ? 'Student' : isRU ? 'Ученик' : 'Оқушы')}
+                </h2>
+                <Badge variant="outline" className="text-xs font-mono">
+                  {formatDisplayGrade(user?.grade)}
                 </Badge>
               </div>
-              <p className="text-xs text-primer-fg-muted flex items-center gap-1.5 mt-1">
-                <School className="w-3.5 h-3.5" />
-                <span>{user?.school || 'NIS IB Astana'}</span>
-              </p>
-              <p className="text-[11px] text-primer-fg-subtle font-mono mt-0.5">
-                {user?.email || 'student@school.kz'}
-              </p>
+              <p className="text-xs text-primer-fg-muted">{user?.email}</p>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <Building2 className="w-3.5 h-3.5 text-primer-accent-fg" />
+                <span className="text-xs font-semibold text-primer-fg-default">
+                  {user?.school || (isEN ? 'Self-study' : isRU ? 'Самостоятельное обучение' : 'Өз бетінше оқу')}
+                </span>
+                {user?.organizationId && (
+                  <Badge variant="accent" className="text-[9px] py-0 font-mono">
+                    {isEN ? 'Verified' : isRU ? 'Верифицировано' : 'Расталған'}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsEditModalOpen(true)}
-            className="gap-1.5 font-semibold text-xs shrink-0"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>{lang === 'KZ' ? 'Өңдеу' : lang === 'RU' ? 'Редактировать' : 'Edit Profile'}</span>
+          <Button onClick={() => setIsEditModalOpen(true)} variant="outline" size="sm" className="text-xs font-semibold">
+            {isEN ? 'Edit Profile' : isRU ? 'Редактировать профиль' : 'Профильді өзгерту'}
           </Button>
         </div>
-      </div>
 
-      {/* 2. ELO & Rank Progression Card */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-        {/* Left: ELO League Card (7 cols) */}
-        <div className="md:col-span-7 rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-primer-border-muted/60">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primer-accent-subtle text-primer-accent-fg border border-primer-accent-muted/40">
-                <Shield className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-                  {lang === 'KZ' ? 'Академиялық ELO дәрежесі' : lang === 'RU' ? 'Академический ELO ранг' : 'Academic ELO Rank'}
-                </h3>
-                <p className="text-[10px] text-primer-fg-muted">
-                  {lang === 'KZ' ? 'Сократикалық модель бойынша когнитивті даму' : 'Когнитивное развитие по модели CDM'}
-                </p>
-              </div>
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2 border-t border-primer-border-muted">
+          <div className="p-3 rounded-lg bg-primer-canvas-inset border border-primer-border-muted text-center space-y-1">
+            <div className="text-[11px] text-primer-fg-muted font-medium flex items-center justify-center gap-1">
+              <Award className="w-3.5 h-3.5 text-primer-accent-fg" />
+              <span>{isEN ? 'ELO Rating' : isRU ? 'Рейтинг ELO' : 'Рейтинг ELO'}</span>
             </div>
-
-            <Badge variant="accent" className="font-mono text-xs">
-              {eloSymbol} {eloLevel}
+            <div className="text-base font-bold text-primer-accent-fg font-mono">{elo}</div>
+            <Badge variant="outline" className="text-[10px]">
+              {rankInfo.icon} {rankInfo.label}
             </Badge>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <div className="p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted/40 text-center">
-              <div className="text-[10px] text-primer-fg-muted font-semibold uppercase">
-                {lang === 'KZ' ? 'Рейтинг' : 'Рейтинг'}
-              </div>
-              <div className="text-lg font-extrabold font-mono text-primer-success-fg mt-0.5">
-                {progressState.elo}
-              </div>
+          <div className="p-3 rounded-lg bg-primer-canvas-inset border border-primer-border-muted text-center space-y-1">
+            <div className="text-[11px] text-primer-fg-muted font-medium flex items-center justify-center gap-1">
+              <Flame className="w-3.5 h-3.5 text-primer-danger-fg" />
+              <span>{isEN ? 'Streak (days)' : isRU ? 'Стрик (дней)' : 'Стрик (күндер)'}</span>
             </div>
-
-            <div className="p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted/40 text-center">
-              <div className="text-[10px] text-primer-fg-muted font-semibold uppercase">
-                {lang === 'KZ' ? 'Стрик' : 'Стрик'}
-              </div>
-              <div className="text-lg font-extrabold font-mono text-primer-attention-fg mt-0.5 flex items-center justify-center gap-1">
-                <Flame className="w-4 h-4 fill-current" />
-                <span>{progressState.streakDays}</span>
-              </div>
+            <div className="text-base font-bold text-primer-danger-fg font-mono">
+              {streak} {isEN ? 'days' : isRU ? 'дней' : 'күн'}
             </div>
-
-            <div className="p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted/40 text-center">
-              <div className="text-[10px] text-primer-fg-muted font-semibold uppercase">
-                {lang === 'KZ' ? 'Рекорд' : 'Рекорд'}
-              </div>
-              <div className="text-lg font-extrabold font-mono text-primer-fg-default mt-0.5">
-                {progressState.longestStreak}к
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Streak Saver Protection Card (5 cols) */}
-        <div className="md:col-span-5 rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b border-primer-border-muted/60">
-            <div className="p-1.5 rounded-lg bg-primer-attention-subtle text-primer-attention-fg border border-primer-attention-muted/40">
-              <Flame className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-                {lang === 'KZ' ? 'Стрикті қорғау' : lang === 'RU' ? 'Заморозка стрика' : 'Streak Protection'}
-              </h3>
-              <p className="text-[10px] text-primer-fg-muted">
-                {lang === 'KZ' ? 'Күнделікті ырғақты үзбеу токендері' : 'Токены сохранения серии'}
-              </p>
-            </div>
+            <Badge variant="outline" className="text-[10px]">
+              🔥 {isEN ? 'Active' : isRU ? 'Активный' : 'Үздіксіз'}
+            </Badge>
           </div>
 
-          <div className="p-3 rounded-lg bg-primer-canvas-inset border border-primer-border-muted space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-primer-fg-default">
-                {lang === 'KZ' ? 'Қолжетімді токендер:' : 'Доступные токены:'}
-              </span>
-              <Badge variant="attention" className="font-mono text-xs">
-                🛡️ {progressState.streakFreezeTokens} / 2
-              </Badge>
+          <div className="col-span-2 sm:col-span-1 p-3 rounded-lg bg-primer-canvas-inset border border-primer-border-muted text-center space-y-1">
+            <div className="text-[11px] text-primer-fg-muted font-medium flex items-center justify-center gap-1">
+              <Shield className="w-3.5 h-3.5 text-emerald-500" />
+              <span>{isEN ? 'Role' : isRU ? 'Роль' : 'Рөл'}</span>
             </div>
-            <p className="text-[10px] text-primer-fg-muted">
-              {lang === 'KZ'
-                ? 'Әр 7 күндік үздіксіз стрик үшін 1 қорғау токені беріледі (активация үшін стрик 3+ күн болуы қажет).'
-                : 'За каждые 7 дней непрерывной серии выдается 1 токен заморозки (требуется стрик от 3 дней).'}
-            </p>
+            <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono capitalize">
+              {user?.role || 'student'}
+            </div>
+            <Badge variant="outline" className="text-[10px]">
+              {formatDisplayGrade(user?.grade)}
+            </Badge>
           </div>
         </div>
       </div>
 
-      {/* 3. MULTI-ORGANIZATION TOKENS CARD */}
-      <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-primer-border-muted/60">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primer-done-subtle text-primer-done-fg border border-primer-done-muted/40">
-              <KeyRound className="w-4 h-4" />
-            </div>
+      {/* Settings Section */}
+      <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-5 shadow-primer-xs space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-primer-fg-muted">
+          {isEN ? 'Settings' : isRU ? 'Настройки' : 'Баптаулар'}
+        </h3>
+
+        {/* Language Selection */}
+        <div className="flex items-center justify-between py-2 border-b border-primer-border-muted">
+          <div className="flex items-center gap-2.5">
+            <Globe className="w-4 h-4 text-primer-fg-muted" />
             <div>
-              <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-                {lang === 'KZ'
-                  ? 'Байланыстырылған Ұйымдар мен Токендер'
-                  : lang === 'RU'
-                  ? 'Организации и токены аккредитации'
-                  : 'Linked Organizations & Tokens'}
-              </h3>
-              <p className="text-[10px] text-primer-fg-muted">
-                {lang === 'KZ'
-                  ? 'Школа, ВУЗ, колледж немесе репетиторлық орталықтардың расталған токендері'
-                  : 'Подтвержденные токены школы, колледжа, ВУЗа или учебных центров'}
+              <div className="text-xs font-bold text-primer-fg-default">
+                {isEN ? 'Language' : isRU ? 'Язык' : 'Тіл'}
+              </div>
+              <p className="text-[11px] text-primer-fg-muted">
+                {isEN ? 'Interface language' : isRU ? 'Язык интерфейса' : 'Интерфейс тілі'}
               </p>
             </div>
           </div>
 
-          <Button
-            variant="secondary"
-            size="xs"
-            onClick={() => setIsAddTokenModalOpen(true)}
-            className="gap-1 text-xs font-bold"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{lang === 'KZ' ? 'Токен қосу' : lang === 'RU' ? 'Добавить токен' : 'Add Token'}</span>
-          </Button>
-        </div>
-
-        {/* Organizations List */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {progressState.orgMemberships.map((org) => (
-            <div
-              key={org.tokenId}
-              className="p-3 rounded-lg border border-primer-border-muted bg-primer-canvas-inset flex items-start justify-between gap-2"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <School className="w-3.5 h-3.5 text-primer-accent-fg shrink-0" />
-                  <span className="text-xs font-bold text-primer-fg-default truncate">
-                    {org.orgName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[9px] font-mono py-0">
-                    {org.tokenId}
-                  </Badge>
-                  <span className="text-[10px] text-primer-fg-muted">
-                    {org.roleInOrg === 'teacher' ? 'Преподаватель' : 'Ученик'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1 text-[10px] text-primer-fg-subtle shrink-0">
-                <Lock className="w-3 h-3" />
-                <span title="Токенді өшіру үшін ұйым әкімшісіне хабарласыңыз">Бекітілген</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-[10px] text-primer-fg-muted flex items-center gap-1 pt-1">
-          <Lock className="w-3 h-3 text-primer-attention-fg shrink-0" />
-          <span>
-            {lang === 'KZ'
-              ? 'Токенді жою немесе өзгерту академиялық есептілік үшін ұйым әкімшісі арқылы ғана орындалады.'
-              : 'Отвязка токена выполняется через обращение к администрации организации для сохранения академической истории.'}
-          </span>
-        </p>
-      </div>
-
-      {/* 4. ACADEMIC SOCIAL & FRIENDS SYSTEM CARD */}
-      <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3">
-        <div className="flex items-center justify-between pb-2 border-b border-primer-border-muted/60">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primer-sponsors-subtle text-primer-sponsors-fg border border-primer-sponsors-muted/40">
-              <Users className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-                {lang === 'KZ'
-                  ? 'Академиялық достар мен Сокурсниктер'
-                  : lang === 'RU'
-                  ? 'Друзья и сокурсники'
-                  : 'Study Buddies & Peer Network'}
-              </h3>
-              <p className="text-[10px] text-primer-fg-muted">
-                {lang === 'KZ' ? 'Бірге оқу, стрик салыстыру және Socratic дуэльдер' : 'Совместное обучение и сравнение стриков'}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            variant="secondary"
-            size="xs"
-            onClick={() => setIsAddFriendModalOpen(true)}
-            className="gap-1 text-xs font-bold"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>{lang === 'KZ' ? 'Дос қосу' : lang === 'RU' ? 'Добавить друга' : 'Add Friend'}</span>
-          </Button>
-        </div>
-
-        {/* Shareable Student Code Banner */}
-        <div className="p-3 rounded-lg bg-primer-accent-subtle/30 border border-primer-accent-muted flex items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-primer-accent-fg">
-              {lang === 'KZ' ? 'Сіздің жеке студенттік кодыңыз:' : 'Ваш персональный код студента:'}
-            </div>
-            <div className="text-sm font-extrabold font-mono text-primer-fg-default">
-              {progressState.studentCode}
-            </div>
-          </div>
-
-          <Button
-            variant="secondary"
-            size="xs"
-            onClick={handleCopyStudentCode}
-            className="gap-1 text-xs font-bold shrink-0"
-          >
-            {copiedCode ? <Check className="w-3.5 h-3.5 text-primer-success-fg" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedCode ? (lang === 'KZ' ? 'Көшірілді' : 'Скопировано') : (lang === 'KZ' ? 'Көшіру' : 'Копировать')}</span>
-          </Button>
-        </div>
-
-        {/* Friends List */}
-        {progressState.friends.length === 0 ? (
-          <div className="text-center py-4 text-xs text-primer-fg-muted space-y-1">
-            <p>
-              {lang === 'KZ'
-                ? 'Сізде әзірге қосылған достар жоқ.'
-                : 'У вас пока нет добавленных друзей.'}
-            </p>
-            <p className="text-[10px]">
-              {lang === 'KZ'
-                ? 'Студенттік код арқылы сыныптастарыңызды қосып, олардың прогресін бақылаңыз.'
-                : 'Добавьте сокурсников по их коду (ST-XXXXX), чтобы соревноваться в рейтинге.'}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {progressState.friends.map((friend) => (
-              <div
-                key={friend.id}
-                className="p-2.5 rounded-lg border border-primer-border-muted bg-primer-canvas-inset flex items-center justify-between gap-2"
+          <div className="flex items-center gap-1 bg-primer-canvas-inset p-1 rounded-lg border border-primer-border-default">
+            {(['KZ', 'RU', 'EN'] as const).map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setLanguage(lang)}
+                className={`px-2.5 py-1 rounded text-xs font-bold transition ${
+                  language === lang
+                    ? 'bg-primer-accent-emphasis text-white shadow-xs'
+                    : 'text-primer-fg-muted hover:text-primer-fg-default'
+                }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-primer-accent-emphasis text-white flex items-center justify-center font-bold text-xs shrink-0">
-                    {friend.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-primer-fg-default">{friend.name}</span>
-                      <span className="text-[9px] font-mono text-primer-fg-muted">({friend.studentCode})</span>
-                    </div>
-                    <div className="text-[10px] text-primer-fg-muted flex items-center gap-1.5">
-                      <span>{friend.gradeOrStatus}</span>
-                      <span>•</span>
-                      <span className="text-primer-attention-fg flex items-center gap-0.5">
-                        <Flame className="w-2.5 h-2.5 fill-current" />
-                        {friend.streakDays}к
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <div className="text-xs font-mono font-bold text-primer-success-fg">
-                    {friend.elo} ELO
-                  </div>
-                  <div className="text-[9px] text-primer-fg-subtle">
-                    {friend.isStudyingNow ? (
-                      <span className="text-primer-success-fg font-semibold flex items-center gap-1 justify-end">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primer-success-fg animate-pulse" />
-                        Оқуда
-                      </span>
-                    ) : (
-                      'Офлайн'
-                    )}
-                  </div>
-                </div>
-              </div>
+                {lang}
+              </button>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* 5. System Settings Card */}
-      <div className="rounded-xl border border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-primer-border-muted/60">
-          <div className="p-1.5 rounded-lg bg-primer-canvas-inset text-primer-fg-muted border border-primer-border-muted">
-            <Settings className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xs sm:text-sm font-bold text-primer-fg-default">
-              {lang === 'KZ' ? 'Жүйелік баптаулар' : lang === 'RU' ? 'Системные настройки' : 'System Settings'}
-            </h3>
-            <p className="text-[10px] text-primer-fg-muted">
-              {lang === 'KZ' ? 'Тіл мен интерфейс көрінісі' : 'Язык и тема приложения'}
-            </p>
-          </div>
         </div>
 
-        <div className="space-y-3">
-          {/* Language Selector */}
-          <div className="flex items-center justify-between p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted text-xs">
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-primer-accent-fg" />
-              <div>
-                <div className="font-bold text-primer-fg-default">
-                  {lang === 'KZ' ? 'Интерфейс тілі' : lang === 'RU' ? 'Язык интерфейса' : 'Language'}
-                </div>
-                <div className="text-[10px] text-primer-fg-muted">
-                  {language === 'KZ' ? 'Қазақша (KZ)' : language === 'RU' ? 'Русский (RU)' : 'English (EN)'}
-                </div>
+        {/* Theme Selection */}
+        <div className="flex items-center justify-between py-2 border-b border-primer-border-muted">
+          <div className="flex items-center gap-2.5">
+            {theme === 'dark' ? (
+              <Moon className="w-4 h-4 text-primer-fg-muted" />
+            ) : (
+              <Sun className="w-4 h-4 text-primer-fg-muted" />
+            )}
+            <div>
+              <div className="text-xs font-bold text-primer-fg-default">
+                {isEN ? 'Theme' : isRU ? 'Тема оформления' : 'Тақырып'}
               </div>
-            </div>
-
-            <div className="flex gap-1">
-              {(['KZ', 'RU', 'EN'] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLanguage(l)}
-                  className={`px-2.5 py-1 rounded text-xs font-bold font-mono transition cursor-pointer ${
-                    language === l
-                      ? 'bg-primer-accent-emphasis text-white shadow-xs'
-                      : 'bg-primer-canvas-subtle text-primer-fg-muted hover:text-primer-fg-default border border-primer-border-default'
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
+              <p className="text-[11px] text-primer-fg-muted">
+                {isEN ? 'Light or Dark mode' : isRU ? 'Светлая или темная' : 'Ашық немесе күңгірт режим'}
+              </p>
             </div>
           </div>
 
-          {/* Theme Selector */}
-          <div className="flex items-center justify-between p-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted text-xs">
-            <div className="flex items-center gap-2">
-              {theme === 'dark' ? (
-                <Moon className="w-4 h-4 text-primer-attention-fg" />
-              ) : (
-                <Sun className="w-4 h-4 text-primer-attention-fg" />
-              )}
-              <div>
-                <div className="font-bold text-primer-fg-default">
-                  {lang === 'KZ' ? 'Тема (Түс реңкі)' : lang === 'RU' ? 'Тема оформления' : 'Theme Mode'}
-                </div>
-                <div className="text-[10px] text-primer-fg-muted">
-                  {theme === 'dark' ? 'Dark' : 'Light'}
-                </div>
-              </div>
-            </div>
-
-            <Button
-              variant="secondary"
-              size="xs"
-              onClick={toggleTheme}
-              className="text-xs font-semibold"
-            >
-              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-            </Button>
-          </div>
+          <Button onClick={toggleTheme} variant="outline" size="sm" className="text-xs gap-1.5">
+            {theme === 'dark' ? (
+              <>
+                <Moon className="w-3.5 h-3.5" />
+                <span>{isEN ? 'Dark' : isRU ? 'Тёмная' : 'Күңгірт'}</span>
+              </>
+            ) : (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                <span>{isEN ? 'Light' : isRU ? 'Светлая' : 'Ашық'}</span>
+              </>
+            )}
+          </Button>
         </div>
 
-        {/* Logout Action */}
-        <div className="pt-2 flex justify-end">
+        {/* Logout */}
+        <div className="pt-2">
           <Button
-            variant="ghost"
-            size="sm"
             onClick={logout}
-            className="text-primer-danger-fg hover:bg-primer-danger-subtle/20 gap-1.5 text-xs font-bold"
+            variant="outline"
+            size="sm"
+            className="w-full text-xs font-bold text-primer-danger-fg hover:bg-primer-danger-subtle hover:border-primer-danger-emphasis gap-1.5"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>{lang === 'KZ' ? 'Шығу' : lang === 'RU' ? 'Выйти из аккаунта' : 'Sign Out'}</span>
+            <span>{isEN ? 'Log out' : isRU ? 'Выйти из аккаунта' : 'Шығу'}</span>
           </Button>
         </div>
       </div>
 
-      {/* MODAL 1: Edit Profile */}
+      {/* Edit Profile Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-primer-canvas-overlay border border-primer-border-default shadow-primer-overlay">
-          <div className="px-4 py-3 border-b border-primer-border-default bg-primer-canvas-subtle">
-            <DialogTitle className="text-sm font-bold text-primer-fg-default">
-              {lang === 'KZ' ? 'Профильді өңдеу' : lang === 'RU' ? 'Редактирование профиля' : 'Edit Profile'}
+        <DialogContent className="max-w-md bg-primer-canvas-overlay border border-primer-border-default shadow-primer-overlay rounded-2xl p-5 space-y-4">
+          <DialogHeader className="pb-2 border-b border-primer-border-muted">
+            <DialogTitle className="text-sm sm:text-base font-bold text-primer-fg-default">
+              {isEN ? 'Edit Profile' : isRU ? 'Редактировать профиль' : 'Профильді өзгерту'}
             </DialogTitle>
-          </div>
+          </DialogHeader>
 
-          <form onSubmit={handleSaveProfile} className="p-4 space-y-3">
-            <div>
-              <label className="block text-xs font-bold text-primer-fg-default mb-1">
-                {lang === 'KZ' ? 'Аты-жөні' : lang === 'RU' ? 'ФИО' : 'Full Name'}
+          <form onSubmit={handleSaveProfile} className="space-y-3.5 text-xs">
+            {/* Full Name */}
+            <div className="space-y-1">
+              <label className="font-bold text-primer-fg-default">
+                {isEN ? 'Full Name:' : isRU ? 'ФИО:' : 'Толық аты-жөні:'}
               </label>
               <Input
-                type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                placeholder={isEN ? 'e.g. Ivan Ivanov' : isRU ? 'например: Иван Иванов' : 'мысалы: Азамат Темірханов'}
+                className="text-xs"
                 required
-                className="w-full text-xs"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-primer-fg-default mb-1">
-                  {lang === 'KZ' ? 'Сынып / Деңгей' : lang === 'RU' ? 'Класс / Статус' : 'Grade / Level'}
-                </label>
-                <select
-                  value={GRADE_STATUS_OPTIONS.some((o) => o.value === grade) ? grade : 'Басқа'}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val !== 'Басқа') {
-                      setGrade(val);
-                    } else {
-                      setGrade('');
-                    }
-                  }}
-                  className="w-full text-xs p-2 rounded-lg bg-primer-canvas-default border border-primer-border-default text-primer-fg-default mb-1.5"
-                >
-                  {GRADE_STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {lang === 'KZ' ? opt.labelKZ : lang === 'RU' ? opt.labelRU : opt.labelEN}
-                    </option>
-                  ))}
-                </select>
-
-                {(!GRADE_STATUS_OPTIONS.some((o) => o.value === grade) || grade === '' || grade === 'Басқа') && (
-                  <Input
-                    type="text"
-                    value={grade === 'Басқа' ? '' : grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                    placeholder={lang === 'KZ' ? 'Мысалы: 10 «А»' : lang === 'RU' ? 'Например: 10 «А»' : 'e.g. 10th Grade'}
-                    required
-                    className="w-full text-xs"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-primer-fg-default mb-1">
-                  {lang === 'KZ' ? 'Мектеп / Оқу орны' : lang === 'RU' ? 'Школа / Учебное заведение' : 'School / Institution'}
-                </label>
-                <Input
-                  type="text"
-                  value={school}
-                  onChange={(e) => setSchool(e.target.value)}
-                  required
-                  className="w-full text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-primer-border-default">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsEditModalOpen(false)}
-              >
-                {lang === 'KZ' ? 'Бас тарту' : lang === 'RU' ? 'Отмена' : 'Cancel'}
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                className="font-bold"
-              >
-                {lang === 'KZ' ? 'Сақтау' : lang === 'RU' ? 'Сохранить' : 'Save Changes'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL 2: Add Organization Token */}
-      <Dialog open={isAddTokenModalOpen} onOpenChange={setIsAddTokenModalOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-primer-canvas-overlay border border-primer-border-default shadow-primer-overlay">
-          <div className="px-4 py-3 border-b border-primer-border-default bg-primer-canvas-subtle">
-            <DialogTitle className="text-sm font-bold text-primer-fg-default flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-primer-done-fg" />
-              <span>
-                {lang === 'KZ'
-                  ? 'Ұйым токенін қосу'
-                  : lang === 'RU'
-                  ? 'Добавить токен организации'
-                  : 'Link Organization Token'}
-              </span>
-            </DialogTitle>
-          </div>
-
-          <form onSubmit={handleAddOrgToken} className="p-4 space-y-3">
-            {tokenError && (
-              <div className="p-3 rounded-lg bg-primer-danger-subtle/20 border border-primer-danger-muted text-primer-danger-fg text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{tokenError}</span>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold text-primer-fg-default mb-1">
-                {lang === 'KZ' ? 'Ұйым токені (STD-ORG-XXXXX)' : 'Токен организации (STD-ORG-XXXXX)'}
+            {/* Grade */}
+            <div className="space-y-1">
+              <label className="font-bold text-primer-fg-default">
+                {isEN ? 'Grade / Class:' : isRU ? 'Класс:' : 'Сынып:'}
               </label>
               <Input
-                type="text"
-                value={newTokenInput}
-                onChange={(e) => setNewTokenInput(e.target.value)}
-                placeholder="STD-ORG-DOSTYK-2026"
-                required
-                className="w-full text-xs font-mono uppercase"
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                placeholder={isEN ? 'e.g. Grade 10' : isRU ? 'например: 10-класс' : 'мысалы: 10-сынып'}
+                className="text-xs"
               />
-              <p className="text-[10px] text-primer-fg-muted mt-1">
-                {lang === 'KZ'
-                  ? 'Токен мектеп, орталық немесе репетитор тарапынан беріледі. Ол курс мазмұнын бірден ашады.'
-                  : 'Токен выдается учебным заведением или центром. Он открывает доступ ко всем материалам организации.'}
+            </div>
+
+            {/* Organization Token (Strict Student Token Verification) */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-primer-fg-default flex items-center gap-1">
+                  <KeyRound className="w-3.5 h-3.5 text-primer-accent-fg" />
+                  <span>
+                    {isEN
+                      ? 'Organization Token (Student Token):'
+                      : isRU
+                      ? 'Токен организации (Токен ученика):'
+                      : 'Ұйым токені (Оқушы токені):'}
+                  </span>
+                </label>
+              </div>
+              <Input
+                value={orgToken}
+                onChange={(e) => setOrgToken(e.target.value)}
+                placeholder={
+                  user?.school && user?.organizationId
+                    ? `${user.school} (${isEN ? 'Linked' : isRU ? 'Привязано' : 'Қосылған'})`
+                    : isEN
+                    ? 'e.g. NIS-STUDENT-2026 or BIL-STUDENT-2026'
+                    : isRU
+                    ? 'например: NIS-STUDENT-2026 или BIL-STUDENT-2026'
+                    : 'мысалы: NIS-STUDENT-2026 немесе BIL-STUDENT-2026'
+                }
+                className="text-xs font-mono"
+              />
+              <p className="text-[10px] text-primer-fg-muted leading-tight">
+                {isEN
+                  ? 'Enter student token to link official school courses. Leave blank for self-study.'
+                  : isRU
+                  ? 'Введите токен ученика для доступа к закрытым курсам школы. Оставьте пустым для самостоятельного обучения.'
+                  : 'Мектеп курстарына қосылу үшін оқушы токенін енгізіңіз. Өз бетінше оқу үшін бос қалдырыңыз.'}
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-primer-border-default">
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-primer-border-muted">
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                onClick={() => {
-                  setIsAddTokenModalOpen(false);
-                  setTokenError(null);
-                }}
+                onClick={() => setIsEditModalOpen(false)}
+                disabled={isSaving}
+                className="text-xs"
               >
-                {lang === 'KZ' ? 'Бас тарту' : 'Отмена'}
+                {isEN ? 'Cancel' : isRU ? 'Отмена' : 'Бас тарту'}
               </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                className="font-bold"
-              >
-                {lang === 'KZ' ? 'Растау' : 'Подтвердить'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL 3: Add Friend */}
-      <Dialog open={isAddFriendModalOpen} onOpenChange={setIsAddFriendModalOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-primer-canvas-overlay border border-primer-border-default shadow-primer-overlay">
-          <div className="px-4 py-3 border-b border-primer-border-default bg-primer-canvas-subtle">
-            <DialogTitle className="text-sm font-bold text-primer-fg-default flex items-center gap-2">
-              <UserPlus className="w-4 h-4 text-primer-sponsors-fg" />
-              <span>
-                {lang === 'KZ' ? 'Дос қосу' : lang === 'RU' ? 'Добавить друга' : 'Add Study Buddy'}
-              </span>
-            </DialogTitle>
-          </div>
-
-          <form onSubmit={handleAddFriend} className="p-4 space-y-3">
-            {friendError && (
-              <div className="p-3 rounded-lg bg-primer-danger-subtle/20 border border-primer-danger-muted text-primer-danger-fg text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{friendError}</span>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold text-primer-fg-default mb-1">
-                {lang === 'KZ' ? 'Студенттің жеке коды (ST-XXXXX) *' : 'Код студента (ST-XXXXX) *'}
-              </label>
-              <Input
-                type="text"
-                value={friendCodeInput}
-                onChange={(e) => setFriendCodeInput(e.target.value)}
-                placeholder="ST-8K9P2"
-                required
-                className="w-full text-xs font-mono uppercase"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-primer-fg-default mb-1">
-                {lang === 'KZ' ? 'Есімі (Қосымша)' : 'Имя сокурсника (Необязательно)'}
-              </label>
-              <Input
-                type="text"
-                value={friendNameInput}
-                onChange={(e) => setFriendNameInput(e.target.value)}
-                placeholder={lang === 'KZ' ? 'Мысалы: Батырхан' : 'Например: Батырхан'}
-                className="w-full text-xs"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-primer-border-default">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setIsAddFriendModalOpen(false);
-                  setFriendError(null);
-                }}
-              >
-                {lang === 'KZ' ? 'Бас тарту' : 'Отмена'}
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                className="font-bold"
-              >
-                {lang === 'KZ' ? 'Қосу' : 'Добавить'}
+              <Button type="submit" size="sm" disabled={isSaving} className="text-xs font-bold">
+                {isSaving ? (
+                  isEN ? 'Verifying...' : isRU ? 'Проверка...' : 'Тексерілуде...'
+                ) : (
+                  isEN ? 'Save' : isRU ? 'Сохранить' : 'Сақтау'
+                )}
               </Button>
             </div>
           </form>

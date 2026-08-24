@@ -1,43 +1,31 @@
 import React, { useState } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   LayoutDashboard,
-  BookPlus,
   Maximize2,
-  Users,
   Sparkles,
-  Layers,
-  Award,
-  CheckCircle2,
-  Flame,
   Calendar,
 } from 'lucide-react';
 import { TeacherDashboard } from './TeacherDashboard';
 import { CourseBuilderScreen } from './CourseBuilderScreen';
-import { SmartboardScreen } from './SmartboardScreen';
 import { TeacherCalendarScreen } from './TeacherCalendarScreen';
 
-export type TeacherPortalTab = 'dashboard' | 'calendar' | 'builder' | 'smartboard' | 'enrollments';
+export type TeacherPortalTab = 'dashboard' | 'calendar' | 'builder';
 
 export const TeacherPortal: React.FC = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
-
   const [activeTab, setActiveTab] = useState<TeacherPortalTab>('dashboard');
-  const [activeSmartboardClassId, setActiveSmartboardClassId] = useState<string>('1');
 
-  // If in Smartboard full studio mode
-  if (activeTab === 'smartboard') {
-    return (
-      <SmartboardScreen
-        classroomId={activeSmartboardClassId}
-        onBack={() => setActiveTab('dashboard')}
-      />
-    );
-  }
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -83,23 +71,22 @@ export const TeacherPortal: React.FC = () => {
             </button>
 
             <button
-              onClick={() => {
-                setActiveSmartboardClassId('1');
-                setActiveTab('smartboard');
-              }}
+              onClick={toggleFullscreen}
               className="px-3 py-1.5 font-bold rounded-md transition flex items-center gap-1.5 whitespace-nowrap text-primer-attention-fg hover:bg-primer-attention-subtle/30 cursor-pointer"
+              title="Журналды толық экранға шығару"
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              <span>{t('teacher.tab_smartboard')}</span>
+              <span>Толық экран (F11)</span>
             </button>
           </div>
 
-
-          <div className="hidden sm:flex items-center gap-2">
-            <Badge variant="outline" className="text-[11px] font-mono py-1">
-              {user?.school || 'NIS IB Astana'}
-            </Badge>
-          </div>
+          {user?.school && (
+            <div className="hidden sm:flex items-center gap-2">
+              <Badge variant="outline" className="text-[11px] font-mono py-1">
+                {user.school}
+              </Badge>
+            </div>
+          )}
         </div>
       </div>
 
@@ -107,17 +94,13 @@ export const TeacherPortal: React.FC = () => {
       <main className="animate-in fade-in duration-150">
         {activeTab === 'dashboard' && (
           <TeacherDashboard
-            onOpenSmartboard={(classId) => {
-              setActiveSmartboardClassId(classId);
-              setActiveTab('smartboard');
-            }}
             onOpenCourseBuilder={() => setActiveTab('builder')}
           />
         )}
 
         {activeTab === 'calendar' && (
           <TeacherCalendarScreen
-            onOpenClassJournal={(classId) => {
+            onOpenClassJournal={() => {
               setActiveTab('dashboard');
             }}
           />

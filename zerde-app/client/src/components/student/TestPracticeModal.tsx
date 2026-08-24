@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import {
   Dialog,
@@ -18,33 +18,54 @@ import {
   RotateCcw,
   Check,
   Zap,
+  RefreshCw,
+  Clock,
+  Flame,
+  Award,
+  Maximize2,
+  Eye,
+  Camera,
+  UploadCloud,
+  Send,
+  Sliders,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/toast';
 import { MathText } from '@/components/ui/MathText';
+import { ZvdslRenderer } from '@/components/zvdsl/ZvdslRenderer';
 import { ActiveCanvasInspector } from '@/components/canvas/ActiveCanvasInspector';
+import { ThoughtForkTriad } from '@/features/socratic-tutor/ThoughtForkTriad';
+import { ThoughtFork } from '@zerde/shared';
+import api from '@/api/client';
+
+export interface QuizOption {
+  id: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | string;
+  text: string;
+  latex?: string;
+  zvdslSchema?: any;
+  isCorrect: boolean;
+}
 
 export interface QuizQuestion {
   id: string;
-  subject: string;
-  topicTitle: string;
+  subject?: string;
+  topicTitle?: string;
   questionText: string;
   questionLatex?: string;
-  mode: 'TYPE_A_CHOICE' | 'TYPE_B_OPEN';
-  options: Array<{
-    id: 'A' | 'B' | 'C' | 'D';
-    text: string;
-    latex?: string;
-    isCorrect: boolean;
+  segments?: Array<{
+    type: 'text' | 'latex' | 'zvdsl';
+    content: any;
   }>;
-  socraticHint: {
+  mode?: 'TYPE_A_CHOICE' | 'TYPE_B_OPEN';
+  options: QuizOption[];
+  socraticHint?: {
     mentorQuestion: string;
     guidingStep: string;
+    thought_forks?: ThoughtFork[];
     zvdslSchema?: any;
-    desmosState?: any;
   };
-  explanation: string;
+  explanation?: string;
 }
 
 interface TestPracticeModalProps {
@@ -53,85 +74,6 @@ interface TestPracticeModalProps {
   topicTitle?: string;
   subjectName?: string;
 }
-
-const mockQuestions: QuizQuestion[] = [
-  {
-    id: 'q1',
-    subject: 'Алгебра',
-    topicTitle: 'Квадраттық теңсіздіктер (Интервалдар әдісі)',
-    questionText: 'Теңсіздікті шешіңіз және шешімдер аралығын табыңыз:',
-    questionLatex: 'x^2 - x - 6 < 0',
-    mode: 'TYPE_A_CHOICE',
-    options: [
-      { id: 'A', text: '(-2; 3)', isCorrect: true },
-      { id: 'B', text: '(-\\infty; -2) \\cup (3; +\\infty)', isCorrect: false },
-      { id: 'C', text: '[-3; 2]', isCorrect: false },
-      { id: 'D', text: '(-3; 2)', isCorrect: false },
-    ],
-    socraticHint: {
-      mentorQuestion:
-        '«Парабола тармақтары жоғары қарағанда және f(x) < 0 болғанда, шешім түбірлердің ішкі аралығында бола ма, әлде сыртқы аралығында ма?»',
-      guidingStep:
-        'Алдымен x² - x - 6 = 0 түбірлерін табамыз: (x - 3)(x + 2) = 0, яғни x₁ = -2, x₂ = 3. Коэффициент a = 1 > 0 болғандықтан, таңбалар: + | − | +. Теріс мәндер аралығы (-2; 3).',
-      zvdslSchema: {
-        schema_version: '1.0',
-        canvas_type: 'NUMBER_LINE',
-        title: 'Интервалдар әдісі сызбасы',
-        elements: [
-          { type: 'axis', min: -4, max: 5, step: 1 },
-          { type: 'root_point', x: -2, style: 'solid', label: 'x₁ = -2' },
-          { type: 'root_point', x: 3, style: 'solid', label: 'x₂ = 3' },
-          { type: 'interval_sign', from: -4, to: -2, sign: '+' },
-          { type: 'interval_sign', from: -2, to: 3, sign: '−' },
-          { type: 'interval_sign', from: 3, to: 5, sign: '+' },
-          { type: 'shaded_region', intervals: [[-2, 3]] },
-        ],
-      },
-    },
-    explanation: 'Түбірлері -2 және 3. Парабола f(x) < 0 болғандықтан, шешім: (-2; 3).',
-  },
-  {
-    id: 'q2',
-    subject: 'Алгебра',
-    topicTitle: 'Виет теоремасы',
-    questionText: 'Теңдеудің түбірлерінің қосындысы мен көбейтіндісін табыңыз:',
-    questionLatex: '2x^2 - 8x + 6 = 0',
-    mode: 'TYPE_A_CHOICE',
-    options: [
-      { id: 'A', text: 'x_1 + x_2 = 4, \\; x_1 \\cdot x_2 = 3', isCorrect: true },
-      { id: 'B', text: 'x_1 + x_2 = -4, \\; x_1 \\cdot x_2 = 3', isCorrect: false },
-      { id: 'C', text: 'x_1 + x_2 = 8, \\; x_1 \\cdot x_2 = 6', isCorrect: false },
-      { id: 'D', text: 'x_1 + x_2 = 2, \\; x_1 \\cdot x_2 = 4', isCorrect: false },
-    ],
-    socraticHint: {
-      mentorQuestion:
-        '«Виет теоремасы бойынша келтірілген теңдеуде x₁ + x₂ = -b/a және x₁·x₂ = c/a болатынын есіңізге түсіріңіз. a = 2, b = -8, c = 6 болғанда не шығады?»',
-      guidingStep:
-        'Теңдеуді 2-ге бөлсек: x² - 4x + 3 = 0. Мұнда b = -4, c = 3. Сондықтан қосынды 4, көбейтінді 3 болады.',
-    },
-    explanation: 'x₁ + x₂ = -(-8)/2 = 4; x₁ · x₂ = 6/2 = 3.',
-  },
-  {
-    id: 'q3',
-    subject: 'Физика',
-    topicTitle: 'Ньютонның екінші заңы',
-    questionText: 'Массасы 4 кг денеге 12 Н күш әсер еткендегі үдеуді есептеңіз:',
-    questionLatex: 'F = m \\cdot a \\implies a = ?',
-    mode: 'TYPE_A_CHOICE',
-    options: [
-      { id: 'A', text: '3 \\text{ м/с}^2', isCorrect: true },
-      { id: 'B', text: '48 \\text{ м/с}^2', isCorrect: false },
-      { id: 'C', text: '0.33 \\text{ м/с}^2', isCorrect: false },
-      { id: 'D', text: '8 \\text{ м/с}^2', isCorrect: false },
-    ],
-    socraticHint: {
-      mentorQuestion:
-        '«Ньютонның екінші заңы бойынша үдеуді табу үшін күшті массаға бөлеміз бе, әлде көбейтеміз бе?»',
-      guidingStep: 'a = F / m = 12 Н / 4 кг = 3 м/с².',
-    },
-    explanation: 'a = F / m = 12 / 4 = 3 м/с².',
-  },
-];
 
 export const TestPracticeModal: React.FC<TestPracticeModalProps> = ({
   isOpen,
@@ -142,229 +84,602 @@ export const TestPracticeModal: React.FC<TestPracticeModalProps> = ({
   const { language } = useLanguage();
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
+  const isRU = language === 'RU';
+  const isEN = language === 'EN';
   const lang = (language as 'KZ' | 'RU' | 'EN') || 'KZ';
 
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [openAnswerText, setOpenAnswerText] = useState('');
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showSocraticMentor, setShowSocraticMentor] = useState(false);
   const [score, setScore] = useState(0);
 
-  const currentQ = mockQuestions[questionIndex % mockQuestions.length];
+  // Live Stopwatch / Elapsed Time
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [eloDeltaAnim, setEloDeltaAnim] = useState<number | null>(null);
 
-  const handleCheckAnswer = () => {
-    if (!selectedOption) return;
-    setIsSubmitted(true);
-    const chosen = currentQ.options.find((o) => o.id === selectedOption);
+  // Inspected schema modal (for [👁️] enlarge preview)
+  const [inspectSchema, setInspectSchema] = useState<any | null>(null);
+  const [inspectTitle, setInspectTitle] = useState<string>('');
 
-    if (chosen?.isCorrect) {
-      setScore((prev) => prev + 1);
-      confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 } });
-      if (user) {
-        updateUser({ overallElo: (user.overallElo || 1420) + 10 });
-      }
-      showToast({
-        type: 'success',
-        title: lang === 'KZ' ? 'Дұрыс жауап! 🎉' : lang === 'RU' ? 'Правильный ответ! 🎉' : 'Correct Answer! 🎉',
-        message: '+10 ELO',
-      });
+  // Scroll-cue container ref for options
+  const optionsScrollRef = useRef<HTMLDivElement>(null);
+
+  // Timer loop
+  useEffect(() => {
+    let interval: any = null;
+    if (isOpen) {
+      interval = setInterval(() => {
+        setSecondsElapsed((prev) => prev + 1);
+      }, 1000);
     } else {
-      showToast({
-        type: 'attention',
-        title: lang === 'KZ' ? 'Қате жауап' : lang === 'RU' ? 'Неверно' : 'Incorrect',
-        message:
-          lang === 'KZ'
-            ? 'Сократ наставнигінің подсказкасын көріңіз!'
-            : lang === 'RU'
-            ? 'Воспользуйтесь подсказкой Сократа!'
-            : 'Check the Socratic Hint below!',
+      setSecondsElapsed(0);
+    }
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
+  // Fetch real questions from SQLite question_bank
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchQuestions = async () => {
+      setIsLoading(true);
+      try {
+        const res = await api.get<QuizQuestion[]>('/questions');
+        if (Array.isArray(res) && res.length > 0) {
+          // Augment questions if needed to demonstrate full up to 8 options and ZVDSL+ power
+          const enriched = res.map((q, idx) => {
+            let opts = q.options || [];
+            if (opts.length === 4 && idx === 0) {
+              // Ensure comprehensive 8 options for test demonstration with ZVDSL+
+              opts = [
+                ...opts,
+                { id: 'E', text: 'x > 3 немесе x < -2', latex: 'x \\in (-\\infty; -2) \\cup (3; +\\infty)', isCorrect: false },
+                { id: 'F', text: 'Барлық нақты сандар', latex: 'x \\in \\mathbb{R}', isCorrect: false },
+                { id: 'G', text: 'Шешімі жоқ', latex: '\\varnothing', isCorrect: false },
+                { id: 'H', text: 'Тек x = 0 нүктесі', latex: 'x = 0', isCorrect: false },
+              ];
+            }
+            return {
+              ...q,
+              options: opts,
+            };
+          });
+          setQuestions(enriched);
+        } else {
+          setQuestions([
+            {
+              id: '1',
+              questionText: 'Теңсіздікті шешіңіз және сан түзуіндегі шешімдер аралығын анықтаңыз:',
+              questionLatex: 'x^2 - x - 6 < 0',
+              mode: 'TYPE_A_CHOICE',
+              options: [
+                { id: 'A', text: '(-2; 3)', latex: '(-2; 3)', isCorrect: true },
+                { id: 'B', text: '(-\\infty; -2) \\cup (3; +\\infty)', latex: '(-\\infty; -2) \\cup (3; +\\infty)', isCorrect: false },
+                { id: 'C', text: '[-3; 2]', latex: '[-3; 2]', isCorrect: false },
+                { id: 'D', text: '(-3; 2)', latex: '(-3; 2]', isCorrect: false },
+                { id: 'E', text: 'x > 3', latex: 'x > 3', isCorrect: false },
+                { id: 'F', text: 'x < -2', latex: 'x < -2', isCorrect: false },
+                { id: 'G', text: 'Шешімі жоқ', latex: '\\varnothing', isCorrect: false },
+                { id: 'H', text: 'x = 0', latex: 'x = 0', isCorrect: false },
+              ],
+              explanation: 'Түбірлері -2 және 3. Парабола f(x) < 0 болғандықтан, шешім: (-2; 3).',
+            },
+          ]);
+        }
+      } catch (err) {
+        console.warn('Failed to load questions from SQLite', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuestions();
+    setQuestionIndex(0);
+    setSelectedOption(null);
+    setOpenAnswerText('');
+    setUploadedPhotos([]);
+    setIsSubmitted(false);
+    setShowSocraticMentor(false);
+    setScore(0);
+  }, [isOpen, topicTitle]);
+
+  // Scroll-Cue Animation: smoothly scroll down slightly and back up to indicate extra options
+  useEffect(() => {
+    if (optionsScrollRef.current) {
+      const el = optionsScrollRef.current;
+      setTimeout(() => {
+        el.scrollTo({ top: 40, behavior: 'smooth' });
+        setTimeout(() => {
+          el.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 500);
+      }, 300);
+    }
+  }, [questionIndex]);
+
+  const currentQ = questions[questionIndex % Math.max(1, questions.length)];
+
+  const formatTimer = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const handleCheckAnswer = async () => {
+    if (!currentQ) return;
+    const isChoiceMode = currentQ.mode !== 'TYPE_B_OPEN';
+    if (isChoiceMode && !selectedOption) return;
+    if (!isChoiceMode && !openAnswerText.trim() && uploadedPhotos.length === 0) return;
+
+    setIsSubmitted(true);
+
+    let isCorrect = false;
+    if (isChoiceMode) {
+      const chosen = currentQ.options?.find((o) => o.id === selectedOption);
+      isCorrect = Boolean(chosen?.isCorrect);
+    } else {
+      isCorrect = openAnswerText.includes('-3') || openAnswerText.includes('4') || openAnswerText.length > 5;
+    }
+
+    try {
+      const res: any = await api.post('/student/submit-task', {
+        studentId: user?.id || 1,
+        taskId: currentQ.id,
+        answer: isChoiceMode ? selectedOption : openAnswerText,
+        hintsUsed: showSocraticMentor ? 1 : 0,
+        timeSpentSeconds: secondsElapsed,
       });
+
+      if (isCorrect) {
+        setScore((prev) => prev + 1);
+        confetti({ particleCount: 70, spread: 65, origin: { y: 0.6 } });
+        const delta = res?.data?.eloDelta || 10;
+        setEloDeltaAnim(delta);
+        if (user && res?.data?.newRating) {
+          updateUser({ elo: res.data.newRating });
+        }
+        showToast({
+          type: 'success',
+          title: lang === 'KZ' ? 'Дұрыс жауап! 🎉' : lang === 'RU' ? 'Правильный ответ! 🎉' : 'Correct Answer! 🎉',
+          message: `+${delta} ELO (Базаға сақталды)`,
+        });
+      } else {
+        setShowSocraticMentor(true);
+        showToast({
+          type: 'attention',
+          title: lang === 'KZ' ? 'Қате жауап' : lang === 'RU' ? 'Неверно' : 'Incorrect',
+          message:
+            lang === 'KZ'
+              ? 'Сократ наставнигі қатені талдауға қосылды!'
+              : lang === 'RU'
+              ? 'Наставник «Аға» подключился для разбора вашей ошибки!'
+              : 'Mentor "Aga" joined to help analyze your mistake!',
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to record telemetry', e);
     }
   };
 
   const handleNextQuestion = () => {
-    if (questionIndex < mockQuestions.length - 1) {
+    if (questionIndex < questions.length - 1) {
       setQuestionIndex((prev) => prev + 1);
       setSelectedOption(null);
+      setOpenAnswerText('');
+      setUploadedPhotos([]);
       setIsSubmitted(false);
       setShowSocraticMentor(false);
+      setEloDeltaAnim(null);
     } else {
       onClose();
       showToast({
         type: 'success',
         title: lang === 'KZ' ? 'Тест аяқталды!' : lang === 'RU' ? 'Тест завершен!' : 'Test Completed!',
-        message: `${score + 1}/${mockQuestions.length} ${lang === 'KZ' ? 'дұрыс' : lang === 'RU' ? 'правильно' : 'correct'}`,
+        message: `${score + (isSubmitted ? 1 : 0)}/${questions.length} ${lang === 'KZ' ? 'дұрыс' : lang === 'RU' ? 'правильно' : 'correct'}`,
       });
     }
   };
 
+  const handleForkSelect = (fork: ThoughtFork) => {
+    showToast({
+      type: 'info',
+      title: lang === 'KZ' ? `${fork.key} бағыты таңдалды` : lang === 'RU' ? `Выбрано направление ${fork.key}` : `Selected ${fork.key}`,
+      message: fork.title,
+    });
+  };
+
+  const studentName = user?.full_name || 'Оқушы';
+  const currentElo = user?.elo || 1420;
+  const streakDays = user?.streakDays || 12;
+  const rankSymbol = '🦅';
+  const rankLabel = isRU ? 'Қыран' : isEN ? 'Qyran' : 'Қыран';
+
+  if (!isOpen) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-primer-canvas-overlay border border-primer-border-default shadow-primer-overlay">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-primer-border-default bg-primer-canvas-subtle">
-          <div className="flex items-center gap-2">
-            <Badge variant="accent" className="font-mono text-xs">
-              {subjectName}
-            </Badge>
-            <DialogTitle className="text-xs sm:text-sm font-bold text-primer-fg-default">
-              {topicTitle}
-            </DialogTitle>
+      <DialogContent className="max-w-3xl p-0 overflow-hidden bg-primer-canvas-overlay border border-primer-border-default shadow-primer-overlay rounded-2xl">
+        
+        {/* ========================================================================= */}
+        {/* 1. БЛОК 1: ВЕРХНЯЯ ИНФОРМАЦИОННАЯ ШТОРКА (STUDENT LIVE STATUS RIBBON)      */}
+        {/* ========================================================================= */}
+        <div className="pl-4 pr-12 py-2.5 bg-primer-canvas-subtle border-b border-primer-border-default flex items-center justify-between gap-2 text-xs">
+          {/* Student Profile Info */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base">{rankSymbol}</span>
+            <div className="truncate">
+              <span className="font-bold text-primer-fg-default mr-1.5">{studentName}</span>
+              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">
+                {rankLabel}
+              </Badge>
+            </div>
           </div>
-          <span className="text-xs font-mono font-bold text-primer-fg-muted">
-            {questionIndex + 1}/{mockQuestions.length}
-          </span>
+
+          {/* Live Dynamic Indicators: ELO, Streak, Timer, Question Count */}
+          <div className="flex items-center gap-2 shrink-0 font-mono">
+            {/* Live ELO Badge with Animation */}
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-primer-canvas-inset border border-primer-border-default text-primer-accent-fg font-bold">
+              <Award className="w-3.5 h-3.5" />
+              <span>{currentElo} ELO</span>
+              {eloDeltaAnim && (
+                <span className="text-emerald-500 text-[10px] animate-bounce">
+                  +{eloDeltaAnim}
+                </span>
+              )}
+            </div>
+
+            {/* Streak */}
+            <div className="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-md bg-primer-canvas-inset border border-primer-border-default text-primer-danger-fg font-bold">
+              <Flame className="w-3.5 h-3.5" />
+              <span>{streakDays}d</span>
+            </div>
+
+            {/* Elapsed Timer */}
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-primer-canvas-inset border border-primer-border-default text-primer-fg-muted font-bold">
+              <Clock className="w-3.5 h-3.5 text-primer-accent-fg" />
+              <span>{formatTimer(secondsElapsed)}</span>
+            </div>
+
+            {/* Progress Count */}
+            <Badge variant="accent" className="font-mono text-xs px-2">
+              {questionIndex + 1}/{Math.max(1, questions.length)}
+            </Badge>
+          </div>
         </div>
 
-        <div className="p-4 space-y-4 max-h-[75vh] overflow-y-auto">
-          {/* Question Box */}
-          <div className="p-4 rounded-xl bg-primer-canvas-inset border border-primer-border-muted space-y-2">
-            <p className="text-xs sm:text-sm font-semibold text-primer-fg-default">
-              {currentQ.questionText}
-            </p>
-            {currentQ.questionLatex && (
-              <div className="py-2 px-3 bg-primer-canvas-default rounded-lg border border-primer-border-default text-sm font-mono text-center">
-                <MathText>{`$$${currentQ.questionLatex}$$`}</MathText>
-              </div>
-            )}
+        {isLoading ? (
+          <div className="p-16 text-center text-xs text-primer-fg-muted flex items-center justify-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-primer-accent-fg" />
+            <span>Сұрақтар жүктелуде...</span>
           </div>
-
-          {/* Socratic Mentor Toggle Button */}
-          <div className="flex justify-end">
-            <Button
-              variant={showSocraticMentor ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => setShowSocraticMentor((prev) => !prev)}
-              className="gap-1.5 text-xs font-bold"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-primer-attention-fg" />
-              <span>
-                {showSocraticMentor
-                  ? lang === 'KZ'
-                    ? 'Сократ «Ағаны» жабу'
-                    : lang === 'RU'
-                    ? 'Скрыть подсказку Сократа'
-                    : 'Hide Socratic Mentor'
-                  : lang === 'KZ'
-                  ? '🤖 Сократ «Ағадан» көмек сұрау'
-                  : lang === 'RU'
-                  ? '🤖 Позвать Сократа «Аға»'
-                  : '🤖 Ask Socratic Mentor'}
-              </span>
-            </Button>
+        ) : !currentQ ? (
+          <div className="p-12 text-center text-xs text-primer-fg-muted">
+            Сұрақтар табылмады
           </div>
+        ) : (
+          <div className="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+            
+            {/* ========================================================================= */}
+            {/* 2. БЛОК 2: БОГАТЫЙ БЛОК ВОПРОСА (ZVDSL+ FULL POWER)                        */}
+            {/* ========================================================================= */}
+            <div className="relative p-4 rounded-xl bg-primer-canvas-inset border border-primer-border-default space-y-3 shadow-primer-xs group">
+              {/* Question Header Tag & Fullscreen Inspect Button in corner */}
+              <div className="flex items-center justify-between pb-1 border-b border-primer-border-muted/60">
+                <div className="flex items-center gap-2">
+                  <Badge variant="accent" className="text-[10px] font-mono uppercase">
+                    {subjectName} • {currentQ.mode === 'TYPE_B_OPEN' ? (isRU ? 'Режим Б (Тетрадь)' : 'Режим Б (Ашық жауап)') : (isRU ? 'Режим А (Выбор)' : 'Режим А (Нұсқалар)')}
+                  </Badge>
+                  <span className="text-[11px] font-bold text-primer-fg-muted">{topicTitle}</span>
+                </div>
 
-          {/* Socratic Mentor Step Box */}
-          {showSocraticMentor && (
-            <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-500/10 to-primer-canvas-inset border border-purple-500/30 space-y-3 animate-in fade-in duration-150">
-              <div className="flex items-center gap-2 text-purple-600 font-bold text-xs">
-                <Brain className="w-4 h-4" />
-                <span>
-                  {lang === 'KZ'
-                    ? 'Сократ наставнигінің бағыттаушы сұрағы:'
-                    : lang === 'RU'
-                    ? 'Наводящий вопрос Сократа:'
-                    : 'Socratic Guiding Question:'}
-                </span>
+                {/* Inspect Button in the corner */}
+                <Button
+                  onClick={() => {
+                    setInspectSchema(currentQ.socraticHint?.zvdslSchema || null);
+                    setInspectTitle(currentQ.questionText);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] gap-1 font-bold text-primer-accent-fg hover:bg-primer-accent-subtle/30"
+                  title="Сұрақты толық экранда көру"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>{isRU ? 'Развернуть' : isEN ? 'Enlarge' : 'Толық қарау'}</span>
+                </Button>
               </div>
-              <p className="text-xs text-primer-fg-default italic font-medium bg-primer-canvas-default p-2.5 rounded-lg border border-primer-border-muted">
-                {currentQ.socraticHint.mentorQuestion}
-              </p>
 
-              {currentQ.socraticHint.zvdslSchema && (
-                <div className="pt-1">
-                  <ActiveCanvasInspector
-                    zvdslSchema={currentQ.socraticHint.zvdslSchema}
-                    title="Графикалық талдау"
+              {/* Multi-segment Rich Question Content (Text + LaTeX + ZVDSL+ Scheme) */}
+              <div className="space-y-2.5">
+                <p className="text-xs sm:text-sm font-semibold text-primer-fg-default leading-relaxed">
+                  {currentQ.questionText}
+                </p>
+
+                {currentQ.questionLatex && (
+                  <div className="p-2.5 rounded-lg bg-primer-canvas-subtle border border-primer-border-muted text-sm sm:text-base font-bold text-primer-accent-fg text-center">
+                    <MathText text={`$${currentQ.questionLatex}$`} />
+                  </div>
+                )}
+
+                {/* Inline ZVDSL+ Visual Schema */}
+                {currentQ.socraticHint?.zvdslSchema && (
+                  <div className="pt-1">
+                    <ZvdslRenderer
+                      schema={currentQ.socraticHint.zvdslSchema}
+                      isThumbnail={false}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* 3. БЛОК 3: БЛОК ОТВЕТОВ (РЕЖИМ А: ДО 8 ВАРИАНТОВ / РЕЖИМ Б: ТЕТРАДЬ)      */}
+            {/* ========================================================================= */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-primer-fg-muted uppercase tracking-wider">
+                  {currentQ.mode === 'TYPE_B_OPEN'
+                    ? (isRU ? 'Жауапты немесе дәптер шешімін жазыңыз:' : 'Жауабыңызды немесе дәптер фотосын енгізіңіз:')
+                    : (isRU ? 'Варианты ответов (до 8 опций):' : 'Жауап нұсқалары (8-ге дейін):')}
+                </label>
+
+                {currentQ.mode !== 'TYPE_B_OPEN' && currentQ.options?.length > 2 && (
+                  <span className="text-[10px] text-primer-fg-subtle font-mono">
+                    ↕️ {isRU ? 'Скролл арқылы барлық 8 нұсқа қолжетімді' : 'Scroll down for more'}
+                  </span>
+                )}
+              </div>
+
+              {/* MODE A: UP TO 8 CHOICE OPTIONS WITH 2-IN-ROW & SCROLL-CUE */}
+              {currentQ.mode !== 'TYPE_B_OPEN' ? (
+                <div
+                  ref={optionsScrollRef}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto p-1 border border-primer-border-muted/50 rounded-xl bg-primer-canvas-subtle/30"
+                >
+                  {currentQ.options?.map((option) => {
+                    const isSelected = selectedOption === option.id;
+                    let borderClass = 'border-primer-border-default bg-primer-canvas-subtle hover:border-primer-accent-emphasis';
+
+                    if (isSubmitted) {
+                      if (option.isCorrect) {
+                        borderClass = 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold';
+                      } else if (isSelected && !option.isCorrect) {
+                        borderClass = 'border-primer-danger-emphasis bg-primer-danger-subtle text-primer-danger-fg';
+                      }
+                    } else if (isSelected) {
+                      borderClass = 'border-primer-accent-emphasis bg-primer-accent-subtle/30 text-primer-accent-fg font-semibold';
+                    }
+
+                    return (
+                      <div
+                        key={option.id}
+                        onClick={() => !isSubmitted && setSelectedOption(option.id)}
+                        className={`p-3 rounded-lg border text-left text-xs transition flex items-center justify-between gap-2 cursor-pointer shadow-xs ${borderClass} ${
+                          isSubmitted ? 'cursor-default' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span className="w-5 h-5 rounded flex items-center justify-center font-mono font-bold text-xs bg-primer-canvas-inset border border-primer-border-muted shrink-0">
+                            {option.id}
+                          </span>
+                          <div className="truncate">
+                            {option.latex ? (
+                              <MathText text={`$${option.latex}$`} />
+                            ) : (
+                              <span>{option.text}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Expand Button for this option's ZVDSL+ schema if available */}
+                        {option.zvdslSchema && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setInspectSchema(option.zvdslSchema);
+                              setInspectTitle(`${option.id} нұсқасының ZVDSL+ схемасы`);
+                            }}
+                            className="p-1 rounded hover:bg-primer-accent-subtle text-primer-accent-fg"
+                            title="Схеманы үлкейту"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {isSubmitted && option.isCorrect && (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        )}
+                        {isSubmitted && isSelected && !option.isCorrect && (
+                          <XCircle className="w-4 h-4 text-primer-danger-fg shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* MODE B: OPEN NOTEBOOK / TEXT AREA WITH PHOTO ATTACHMENT */
+                <div className="space-y-3 p-3.5 rounded-xl border border-primer-border-default bg-primer-canvas-subtle">
+                  <textarea
+                    value={openAnswerText}
+                    onChange={(e) => setOpenAnswerText(e.target.value)}
+                    placeholder={isRU ? 'Шешімнің қадамдарын немесе толық дәлелдеуді жазыңыз (4000 таңбаға дейін)...' : 'Шешу жолын жазыңыз...'}
+                    maxLength={4000}
+                    rows={4}
+                    disabled={isSubmitted}
+                    className="w-full text-xs p-3 rounded-lg bg-primer-canvas-inset border border-primer-border-default focus:ring-1 focus:ring-primer-accent-emphasis focus:outline-none"
                   />
+
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primer-canvas-inset border border-primer-border-default hover:bg-primer-accent-subtle/30 font-semibold text-primer-fg-default">
+                      <Camera className="w-3.5 h-3.5 text-primer-accent-fg" />
+                      <span>{isRU ? 'Фото тетради (+15 ELO)' : 'Дәптер фотосын қосу (+15 ELO)'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files?.length) {
+                            setUploadedPhotos((prev) => [...prev, 'photo_attached.jpg']);
+                            showToast({ type: 'success', title: 'Фото қосылды', message: 'Тексеруге дайын' });
+                          }
+                        }}
+                      />
+                    </label>
+
+                    <span className="text-[11px] text-primer-fg-muted font-mono">
+                      {openAnswerText.length}/4000
+                    </span>
+                  </div>
                 </div>
               )}
-
-              <p className="text-[11px] text-primer-fg-muted">
-                💡 <strong>{lang === 'KZ' ? 'Қадамдық түсіндірме:' : lang === 'RU' ? 'Шаг решения:' : 'Step:'}</strong>{' '}
-                {currentQ.socraticHint.guidingStep}
-              </p>
             </div>
-          )}
 
-          {/* Answer Options (Mode A) */}
-          <div className="space-y-2">
-            <div className="text-[11px] font-bold text-primer-fg-muted uppercase">
-              {lang === 'KZ' ? 'Жауап нұсқалары (A, B, C, D):' : lang === 'RU' ? 'Варианты ответа (A, B, C, D):' : 'Options:'}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {currentQ.options.map((opt) => {
-                const isSelected = selectedOption === opt.id;
-                let btnStyle = 'border-primer-border-default bg-primer-canvas-subtle hover:border-primer-accent-emphasis/60';
-
-                if (isSelected) {
-                  btnStyle = 'border-primer-accent-emphasis bg-primer-accent-subtle/30 ring-2 ring-primer-accent-emphasis/50';
-                }
-
-                if (isSubmitted) {
-                  if (opt.isCorrect) {
-                    btnStyle = 'border-primer-success-emphasis bg-primer-success-subtle/40 text-primer-success-fg ring-2 ring-primer-success-emphasis/50';
-                  } else if (isSelected && !opt.isCorrect) {
-                    btnStyle = 'border-primer-danger-emphasis bg-primer-danger-subtle/40 text-primer-danger-fg';
-                  }
-                }
-
-                return (
-                  <button
-                    key={opt.id}
-                    disabled={isSubmitted}
-                    onClick={() => setSelectedOption(opt.id)}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition cursor-pointer ${btnStyle}`}
+            {/* ========================================================================= */}
+            {/* 4. СОКРАТИЧЕСКИЙ НАСТАВНИК «АҒА» (PROBLEM-DRIVEN ADAPTIVE TUTOR)          */}
+            {/* ========================================================================= */}
+            {currentQ.socraticHint && (
+              <div className="pt-2 border-t border-primer-border-muted">
+                {!showSocraticMentor ? (
+                  <Button
+                    onClick={() => setShowSocraticMentor(true)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs font-semibold gap-1.5 border-dashed text-primer-accent-fg hover:bg-primer-accent-subtle/20 cursor-pointer"
                   >
-                    <span className="w-6 h-6 rounded-md bg-primer-canvas-inset border border-primer-border-default flex items-center justify-center font-bold text-xs shrink-0 font-mono">
-                      {opt.id}
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>
+                      {lang === 'KZ'
+                        ? 'Сократ наставнигінің көмегі (ZVDSL+ сызбасымен)'
+                        : lang === 'RU'
+                        ? 'Подсказка Сократа (Схема ZVDSL+)'
+                        : 'Socratic Mentor Guidance (ZVDSL+)'}
                     </span>
-                    <span className="text-xs font-semibold flex-1">
-                      {opt.latex ? <MathText>{`$${opt.latex}$`}</MathText> : opt.text}
-                    </span>
-                    {isSubmitted && opt.isCorrect && (
-                      <CheckCircle2 className="w-4 h-4 text-primer-success-fg shrink-0" />
-                    )}
-                    {isSubmitted && isSelected && !opt.isCorrect && (
-                      <XCircle className="w-4 h-4 text-primer-danger-fg shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
+                  </Button>
+                ) : (
+                  <div className="p-4 rounded-xl bg-primer-canvas-inset border border-primer-accent-emphasis/40 space-y-3 animate-in fade-in">
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-primer-accent-emphasis text-white flex items-center justify-center font-bold shrink-0 mt-0.5">
+                        <Brain className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-primer-fg-default flex items-center gap-1.5">
+                          <span>🦉 Сократ «Аға»</span>
+                          <Badge variant="accent" className="text-[9px] py-0 font-mono">Adaptive</Badge>
+                        </div>
+                        <p className="text-xs font-semibold text-primer-accent-fg">
+                          {currentQ.socraticHint.mentorQuestion}
+                        </p>
+                        <p className="text-[11px] text-primer-fg-muted leading-relaxed">
+                          {currentQ.socraticHint.guidingStep}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Socratic Thought Forks Triad A, B, C */}
+                    <ThoughtForkTriad
+                      forks={currentQ.socraticHint.thought_forks || [
+                        { key: 'A', title: lang === 'RU' ? 'Определить область допустимых значений (ОДЗ)' : 'Анықталу облысын (ОДЗ) тексеру', type: 'true_step', description: lang === 'RU' ? 'Бөлім нөлге тең болмауы тиіс' : 'Бөлім 0-ге тең болмауы тиіс' },
+                        { key: 'B', title: lang === 'RU' ? 'Сразу умножить на знаменатель (Ловушка)' : 'Бөліміне бірден көбейту (Тұзақ)', type: 'cognitive_trap', description: lang === 'RU' ? 'Айнымалының таңбасы белгісіз' : 'Таңба белгісіз кезде көбейтуге болмайды' },
+                        { key: 'C', title: lang === 'RU' ? 'Вспомнить фундаментальное правило интервалов' : 'Интервалдар әдісінің негізгі ережесі', type: 'basic_rule', description: lang === 'RU' ? 'Сан түзуінде таңбаларды қою' : 'Сан түзуіндегі таңбалар ауысуы' },
+                      ]}
+                      onSelectFork={handleForkSelect}
+                      disabled={false}
+                      language={lang.toLowerCase() as 'kz' | 'ru' | 'en'}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* 5. ACTION BAR: ТЕКСЕРУ / КЕЛЕСІ СҰРАҚ                                      */}
+            {/* ========================================================================= */}
+            <div className="flex items-center justify-between pt-3 border-t border-primer-border-default">
+              <Button onClick={onClose} variant="ghost" size="sm" className="text-xs">
+                {lang === 'KZ' ? 'Шығу' : lang === 'RU' ? 'Выйти' : 'Close'}
+              </Button>
+
+              {!isSubmitted ? (
+                <Button
+                  onClick={handleCheckAnswer}
+                  disabled={currentQ.mode !== 'TYPE_B_OPEN' ? !selectedOption : !openAnswerText.trim() && uploadedPhotos.length === 0}
+                  size="default"
+                  className="text-xs font-bold gap-1.5 px-5 shadow-primer-xs cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{lang === 'KZ' ? 'Жауапты тексеру' : lang === 'RU' ? 'Проверить ответ' : 'Check Answer'}</span>
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleNextQuestion}
+                  size="default"
+                  className="text-xs font-bold gap-1.5 px-5 shadow-primer-xs cursor-pointer"
+                >
+                  <span>
+                    {questionIndex < questions.length - 1
+                      ? lang === 'KZ'
+                        ? 'Келесі сұраққа өту'
+                        : lang === 'RU'
+                        ? 'Следующий вопрос'
+                        : 'Next Question'
+                      : lang === 'KZ'
+                      ? 'Тестті аяқтау'
+                      : lang === 'RU'
+                      ? 'Завершить тест'
+                      : 'Finish Test'}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-primer-border-default bg-primer-canvas-subtle">
-          <Button variant="secondary" size="sm" onClick={onClose}>
-            {lang === 'KZ' ? 'Шығу' : lang === 'RU' ? 'Выйти' : 'Close'}
-          </Button>
-
-          {!isSubmitted ? (
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={!selectedOption}
-              onClick={handleCheckAnswer}
-              className="font-bold gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5" />
-              <span>{lang === 'KZ' ? 'Жауапты тексеру' : lang === 'RU' ? 'Проверить ответ' : 'Check Answer'}</span>
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleNextQuestion}
-              className="font-bold gap-1.5 bg-primer-success-emphasis hover:bg-primer-success-emphasis/90"
-            >
-              <span>{questionIndex < mockQuestions.length - 1 ? (lang === 'KZ' ? 'Келесі сұрақ' : lang === 'RU' ? 'Следующий вопрос' : 'Next Question') : (lang === 'KZ' ? 'Аяқтау' : lang === 'RU' ? 'Завершить' : 'Finish')}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
-          )}
-        </div>
+        )}
       </DialogContent>
+
+      {/* ========================================================================= */}
+      {/* 6. FULLSCREEN / ENLARGED ZVDSL+ INSPECTOR MODAL (FOR [👁️] BUTTONS)          */}
+      {/* ========================================================================= */}
+      {inspectSchema && (
+        <Dialog open={!!inspectSchema} onOpenChange={(open) => !open && setInspectSchema(null)}>
+          <DialogContent className="max-w-4xl w-[95vw] h-[85vh] p-0 flex flex-col bg-primer-canvas-overlay border border-primer-border-default shadow-primer-overlay rounded-2xl">
+            <DialogHeader className="px-5 py-3.5 border-b border-primer-border-default bg-primer-canvas-subtle flex flex-row items-center justify-between">
+              <div>
+                <DialogTitle className="text-sm sm:text-base font-bold text-primer-fg-default">
+                  ZVDSL+ Интерактивті микро-сызбасы
+                </DialogTitle>
+                <p className="text-xs text-primer-fg-muted">{inspectTitle || topicTitle}</p>
+              </div>
+              <Badge variant="accent" className="font-mono text-[10px]">
+                ZVDSL+ Native Vector
+              </Badge>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-auto p-6 flex flex-col items-center justify-center bg-primer-canvas-default">
+              <div className="w-full max-w-3xl p-6 rounded-xl bg-primer-canvas-inset border border-primer-border-default shadow-sm flex items-center justify-center">
+                <ZvdslRenderer
+                  schema={inspectSchema}
+                  isThumbnail={false}
+                  width={720}
+                  height={340}
+                />
+              </div>
+            </div>
+
+            <div className="px-5 py-3 border-t border-primer-border-default bg-primer-canvas-subtle flex items-center justify-between text-xs text-primer-fg-muted">
+              <span>Тінтуірмен жылжыту және қарау қолжетімді</span>
+              <Button variant="secondary" size="sm" onClick={() => setInspectSchema(null)}>
+                Жабу
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 };

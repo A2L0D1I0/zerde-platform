@@ -9,7 +9,9 @@ export type TopicStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 export interface Organization {
   id: string;
   name: string;
-  org_token: string; // e.g. 'ORG-8F3K9A', 'ZK-7492-X'
+  org_token: string; // legacy fallback
+  teacher_token: string; // e.g. 'TCH-NIS-8F3K9A', 'TCH-EKB-7492X'
+  student_token: string; // e.g. 'STD-NIS-4N9P1A', 'STD-EKB-3M8K2B'
   type: 'school' | 'university' | 'college' | 'academy' | 'tutoring';
   created_at: string;
 }
@@ -20,6 +22,7 @@ export interface User {
   password_hash: string;
   full_name: string;
   role: UserRole;
+  roles?: UserRole[];
   bio?: string;
   grade?: string;
   school?: string;

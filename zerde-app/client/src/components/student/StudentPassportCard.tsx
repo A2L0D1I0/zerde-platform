@@ -60,7 +60,7 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
           </div>
           <p className="text-[11px] text-primer-fg-muted flex items-center gap-1 mt-0.5 truncate">
             <School className="w-3 h-3 shrink-0" />
-            <span>{user?.school || 'NIS IB Astana'}</span>
+            <span>{user?.school || (lang === 'KZ' ? 'Жеке оқушы' : lang === 'RU' ? 'Независимый ученик' : 'Individual Learner')}</span>
           </p>
         </div>
       </div>

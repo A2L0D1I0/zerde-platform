@@ -35,7 +35,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const { role, switchRole } = useAuth();
+  const { role } = useAuth();
   const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
 

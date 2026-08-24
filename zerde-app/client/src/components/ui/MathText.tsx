@@ -2,34 +2,38 @@ import React, { useMemo } from 'react';
 import katex from 'katex';
 
 interface MathTextProps {
-  children: string;
+  children?: string;
+  text?: string;
   className?: string;
   displayMode?: boolean;
 }
 
 export const MathText: React.FC<MathTextProps> = ({
   children,
+  text,
   className = '',
   displayMode = false,
 }) => {
+  const content = text !== undefined ? text : children || '';
+
   const html = useMemo(() => {
-    if (!children) return '';
+    if (!content) return '';
 
     // If pure LaTeX mode requested
     if (displayMode) {
       try {
-        return katex.renderToString(children, {
+        return katex.renderToString(content, {
           displayMode: true,
           throwOnError: false,
         });
       } catch {
-        return children;
+        return content;
       }
     }
 
     // Split by block ($$...$$) and inline ($...$) formulas
     const regex = /(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g;
-    const parts = children.split(regex);
+    const parts = content.split(regex);
 
     return parts
       .map((part) => {
@@ -64,12 +68,12 @@ export const MathText: React.FC<MathTextProps> = ({
         }
       })
       .join('');
-  }, [children, displayMode]);
+  }, [content, displayMode]);
 
   return (
     <span
       className={`math-text-content ${className}`}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: html || '' }}
     />
   );
 };

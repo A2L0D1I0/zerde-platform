@@ -2,12 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
-import courseRoutes from './routes/course.routes';
-import studentRoutes from './routes/student.routes';
-import notificationsRoutes from './routes/notifications.routes';
-import aiRoutes from './routes/ai.routes';
-import analyticsRoutes from './routes/analytics.routes';
-import ttsRoutes from './routes/tts.routes';
+import studentRoutes from './modules/student/student.routes';
+import teacherRoutes from './modules/teacher/teacher.routes';
+import tutorRoutes from './modules/tutor/tutor.routes';
+import calendarRoutes from './modules/calendar/calendar.routes';
+import courseRoutes from './modules/courses/course.routes';
+import questionRoutes from './modules/questions/question.routes';
+import notificationRoutes from './modules/notifications/notification.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 dotenv.config();
@@ -40,21 +41,24 @@ app.use((req, res, next) => {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
-    platform: 'Zerde Intelligent Educational Platform',
-    version: '1.0.0',
+    platform: 'Zerde Intelligent Educational Platform (Clean Feature-Driven MVP)',
+    version: '2.0.0',
     timestamp: new Date().toISOString()
   });
 });
 
-// API Routes
-app.use('/api', analyticsRoutes);
-app.use('/api/analytics', analyticsRoutes);
+// API Feature-Driven Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/courses', courseRoutes);
 app.use('/api/student', studentRoutes);
-app.use('/api/notifications', notificationsRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/tts', ttsRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/teacher', teacherRoutes);
+app.use('/api/teachers', teacherRoutes);
+app.use('/api/tutor', tutorRoutes);
+app.use('/api/ai', tutorRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 Not Found Handler
 app.use('*', (req, res) => {

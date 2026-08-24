@@ -1,15 +1,40 @@
--- 0. Организации и Токены Доступа (Школы, ВУЗы, Центры)
+-- ============================================================================
+-- ZERDE PRODUCTION SQLITE 3 DDL SCHEMA (PHASE 1 CORE MVP + AGENTIC SYSTEM)
+-- Strictly 14 tables without external dependencies, no mock data, no Desmos/Kundelik.
+-- File: d:/future-minds-mvp/zerde-app/server/src/db/schema.sql
+-- ============================================================================
+
+PRAGMA foreign_keys = ON;
+
+-- 1. Организации и Токены Доступа (Школы, Лицеи)
 CREATE TABLE IF NOT EXISTS organizations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    org_token TEXT UNIQUE NOT NULL,              -- e.g. 'ORG-8F3K9A', 'ZK-7492-X'
-    type TEXT NOT NULL DEFAULT 'school',        -- 'school', 'university', 'college', 'academy'
+    teacher_token TEXT UNIQUE NOT NULL,          -- e.g. 'NIS-TEACHER-2026'
+    student_token TEXT UNIQUE NOT NULL,          -- e.g. 'NIS-STUDENT-2026'
+    type TEXT NOT NULL DEFAULT 'school',        -- 'school', 'university', 'college'
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_organizations_token ON organizations(org_token);
+CREATE INDEX IF NOT EXISTS idx_organizations_teacher_token ON organizations(teacher_token);
+CREATE INDEX IF NOT EXISTS idx_organizations_student_token ON organizations(student_token);
 
--- 1. Пользователи (Ученики, Учителя, Администраторы)
+-- 2. Роли пользователя в организациях (Anti-Conflict of Interest Matrix)
+CREATE TABLE IF NOT EXISTS user_organization_roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    organization_id INTEGER NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('student', 'teacher', 'admin')),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    UNIQUE(user_id, organization_id, role)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_org_roles_uid ON user_organization_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_org_roles_org ON user_organization_roles(organization_id);
+
+-- 3. Пользователи (Ученики, Учителя, Администраторы)
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uuid TEXT UNIQUE NOT NULL,
@@ -17,37 +42,35 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL CHECK(role IN ('student', 'teacher', 'admin')),
-    bio TEXT,                                    -- 'О себе / Научные интересы'
-    grade INTEGER,                                -- 1..12 или курс
-    school TEXT,                                 -- Название организации
-    organization_id INTEGER,                     -- ID организации
-    curator_id INTEGER,                          -- куратор / наставник
-    parent_contact TEXT,                         -- телефон / контакт
-    notify_on_risk INTEGER NOT NULL DEFAULT 1,   -- 1 = вкл, 0 = выкл
+    grade INTEGER,                               -- 1..12
+    school TEXT,                                -- Название организации
+    organization_id INTEGER,                    -- ID организации
+    streak_days INTEGER NOT NULL DEFAULT 0,     -- Реальный стрик дней
+    longest_streak INTEGER NOT NULL DEFAULT 0,  -- Рекорд стрика
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL,
-    FOREIGN KEY (curator_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_uuid ON users(uuid);
+CREATE INDEX IF NOT EXISTS idx_users_org ON users(organization_id);
 
--- 2. Классы и Учебные Группы
+-- 4. Классы и Учебные Группы Учителя (Classroom Sandbox)
 CREATE TABLE IF NOT EXISTS classrooms (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,                          -- 'Группа A-101', 'IT-2026'
+    name TEXT NOT NULL,                         -- '9 «А»', '10 «Б»', 'Олимпиадники'
     school TEXT NOT NULL,
-    teacher_id INTEGER,
+    teacher_id INTEGER NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_classrooms_teacher ON classrooms(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_classrooms_school ON classrooms(school);
 
--- Связь учеников с учебными группами
+-- 5. Связь Реальных Учеников с Группами
 CREATE TABLE IF NOT EXISTS classroom_students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     classroom_id INTEGER NOT NULL,
@@ -58,17 +81,17 @@ CREATE TABLE IF NOT EXISTS classroom_students (
     UNIQUE(classroom_id, student_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_classroom_students_cls ON classroom_students(classroom_id);
-CREATE INDEX IF NOT EXISTS idx_classroom_students_std ON classroom_students(student_id);
+CREATE INDEX IF NOT EXISTS idx_cls_students_cls ON classroom_students(classroom_id);
+CREATE INDEX IF NOT EXISTS idx_cls_students_std ON classroom_students(student_id);
 
--- 3. Курсы (Предметы)
+-- 6. Курсы (Предметы)
 CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    short_code TEXT UNIQUE NOT NULL,             -- Автоматический случайный токен, e.g. '7X9K2M', 'K8F42A'
-    title TEXT NOT NULL,                         -- 'Алгебра және анализ бастамалары'
+    short_code TEXT UNIQUE NOT NULL,            -- e.g. 'ZR-7K9M2', 'MATH-9A'
+    title TEXT NOT NULL,                        -- 'Алгебра 9 сынып'
     description TEXT,
-    subject_type TEXT NOT NULL,                  -- 'algebra', 'physics', 'kazakh_lang'
-    language TEXT NOT NULL CHECK(language IN ('KZ', 'RU', 'EN', 'ANY')) DEFAULT 'KZ',
+    subject_type TEXT NOT NULL,                 -- 'algebra', 'physics', 'kazakh_lang'
+    language TEXT NOT NULL CHECK(language IN ('KZ', 'RU', 'EN', 'ALL')) DEFAULT 'KZ',
     icon TEXT DEFAULT '📐',
     teacher_id INTEGER,
     organization_id INTEGER,
@@ -82,41 +105,82 @@ CREATE INDEX IF NOT EXISTS idx_courses_short_code ON courses(short_code);
 CREATE INDEX IF NOT EXISTS idx_courses_teacher ON courses(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_courses_subject ON courses(subject_type);
 
--- 3.1. Приглашения студентов в курс (Инвайты от преподавателя)
-CREATE TABLE IF NOT EXISTS course_invitations (
+-- 7. Слоты Учебных Материалов Курса (до 5 слотов для Context-Injection)
+CREATE TABLE IF NOT EXISTS course_material_slots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     course_id INTEGER NOT NULL,
-    teacher_id INTEGER NOT NULL,
-    student_name TEXT NOT NULL,
-    student_email TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('pending', 'accepted', 'declined')) DEFAULT 'pending',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    classroom_id INTEGER,                               -- NULL = общий для курса, либо для конкретной группы
+    slot_number INTEGER NOT NULL CHECK(slot_number BETWEEN 1 AND 5),
+    title TEXT NOT NULL,                                -- 'ГОСО Алгебра 9', 'Учебник Часть 1'
+    file_type TEXT NOT NULL DEFAULT 'text',             -- 'text', 'pdf', 'docx'
+    content_text TEXT NOT NULL DEFAULT '',              -- Извлеченный текстовый контент для Context-Injection
+    file_size INTEGER DEFAULT 0,
+    is_locked INTEGER NOT NULL DEFAULT 0,               -- 1 = заблокирован вне окна каникул/первых 2 дней
+    uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+    UNIQUE(course_id, classroom_id, slot_number)
 );
 
-CREATE INDEX IF NOT EXISTS idx_invitations_email ON course_invitations(student_email);
-CREATE INDEX IF NOT EXISTS idx_invitations_course ON course_invitations(course_id);
+CREATE INDEX IF NOT EXISTS idx_mat_slots_course ON course_material_slots(course_id, classroom_id);
 
--- 4. Запись на курс (Enrollments)
+-- Алиас таблица course_slots для обратной совместимости
+CREATE TABLE IF NOT EXISTS course_slots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id INTEGER NOT NULL,
+    slot_number INTEGER NOT NULL CHECK(slot_number BETWEEN 1 AND 5),
+    file_name TEXT NOT NULL,
+    file_url TEXT,
+    file_size INTEGER DEFAULT 0,
+    summary TEXT,
+    uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    UNIQUE(course_id, slot_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_course_slots_course ON course_slots(course_id);
+
+-- 8. Учебные Планы Четверти (Markdown Curriculum Plans)
+CREATE TABLE IF NOT EXISTS course_curriculum_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id INTEGER NOT NULL,
+    classroom_id INTEGER NOT NULL,
+    quarter INTEGER NOT NULL CHECK(quarter BETWEEN 1 AND 4) DEFAULT 1,
+    markdown_plan TEXT NOT NULL,                        -- Полный Markdown-план с дескрипторами и неделями
+    status TEXT NOT NULL CHECK(status IN ('DRAFT_QUESTIONNAIRE', 'APPROVED', 'ARCHIVED')) DEFAULT 'DRAFT_QUESTIONNAIRE',
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+    UNIQUE(course_id, classroom_id, quarter, version)
+);
+
+CREATE INDEX IF NOT EXISTS idx_curr_plans_cls ON course_curriculum_plans(classroom_id, quarter);
+CREATE INDEX IF NOT EXISTS idx_curr_plans_course ON course_curriculum_plans(course_id);
+
+-- 9. Воронка Заявок и Зачисление на Курс (Admission Pipeline)
 CREATE TABLE IF NOT EXISTS course_enrollments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     course_id INTEGER NOT NULL,
     student_id INTEGER NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('pending_approval', 'enrolled', 'completed', 'expelled')) DEFAULT 'enrolled',
+    assigned_classroom_id INTEGER,                      -- Назначенная учителем группа ('9 «А»', 'Олимпиадники')
+    status TEXT NOT NULL CHECK(status IN ('pending_approval', 'enrolled', 'completed', 'expelled')) DEFAULT 'pending_approval',
+    motivation_text TEXT NOT NULL DEFAULT '',           -- Мотивационное письмо ученика
     requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     approved_at DATETIME,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (assigned_classroom_id) REFERENCES classrooms(id) ON DELETE SET NULL,
     UNIQUE(course_id, student_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_enrollments_course ON course_enrollments(course_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_student ON course_enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_status ON course_enrollments(status);
+CREATE INDEX IF NOT EXISTS idx_enrollments_assigned_cls ON course_enrollments(assigned_classroom_id);
 
-
--- 5. Темы курса (Разбивка по четвертям)
+-- 10. Темы Курса по Четвертям
 CREATE TABLE IF NOT EXISTS topics (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     course_id INTEGER NOT NULL,
@@ -132,23 +196,7 @@ CREATE TABLE IF NOT EXISTS topics (
 
 CREATE INDEX IF NOT EXISTS idx_topics_course_quarter ON topics(course_id, quarter, order_index);
 
--- 6. Статус освоения темы учеником
-CREATE TABLE IF NOT EXISTS student_topic_status (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL,
-    topic_id INTEGER NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('queued', 'in_progress', 'pending_teacher', 'mastered')) DEFAULT 'queued',
-    success_streak INTEGER NOT NULL DEFAULT 0,
-    mastered_at DATETIME,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
-    UNIQUE(student_id, topic_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_student_topic_status ON student_topic_status(student_id, topic_id);
-CREATE INDEX IF NOT EXISTS idx_topic_status_val ON student_topic_status(status);
-
--- 7. Банк вопросов (Active Canvas ZVDSL+ и Desmos)
+-- 11. Банк Вопросов (Режимы А и Б с формулами KaTeX и Solution Models)
 CREATE TABLE IF NOT EXISTS question_bank (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     topic_id INTEGER NOT NULL,
@@ -156,33 +204,38 @@ CREATE TABLE IF NOT EXISTS question_bank (
     question_kz TEXT NOT NULL,
     question_ru TEXT NOT NULL,
     question_en TEXT NOT NULL,
-    zvdsl_canvas_json TEXT,                      -- Схема микро-чертежа ZVDSL+
-    desmos_state TEXT,                           -- Состояние графика Desmos
-    options_json TEXT,                           -- JSON массив вариантов для Режима A
-    correct_answer TEXT NOT NULL,                -- Идентификатор ответа или значение
+    katex_snippet TEXT,                         -- Формула или сан түзуі в KaTeX
+    options_json TEXT,                          -- JSON массив вариантов для Режима A
+    correct_answer TEXT NOT NULL,               -- Правильный ответ или ключ
+    solution_model TEXT,                        -- Эталон решения для Silent Grader (Тип Б)
     explanation_kz TEXT,
     explanation_ru TEXT,
     explanation_en TEXT,
-    difficulty INTEGER NOT NULL DEFAULT 1,       -- 1..5
-    micro_skills_json TEXT,                      -- JSON массив кодов микро-навыков (Q-matrix)
+    difficulty INTEGER NOT NULL DEFAULT 1 CHECK(difficulty BETWEEN 1 AND 5),
+    skill_code TEXT NOT NULL DEFAULT 'GENERAL', -- Код микронавыка
+    topic_tag TEXT,                             -- e.g. 'inequalities_quadratic'
+    target_tier TEXT DEFAULT 'INTERMEDIATE',    -- 'BASIC', 'INTERMEDIATE', 'ADVANCED', 'OLYMPIAD'
+    quarter_index INTEGER DEFAULT 1,            -- 1..4
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_question_bank_topic ON question_bank(topic_id, mode);
-CREATE INDEX IF NOT EXISTS idx_question_bank_diff ON question_bank(difficulty);
+CREATE INDEX IF NOT EXISTS idx_question_bank_skill ON question_bank(skill_code);
+CREATE INDEX IF NOT EXISTS idx_question_bank_tier ON question_bank(target_tier);
+CREATE INDEX IF NOT EXISTS idx_question_bank_quarter ON question_bank(quarter_index);
 
--- 8. Попытки решений учеников (Тренажер «Аға»)
+-- 12. Попытки Решений и Диалоги Сократа
 CREATE TABLE IF NOT EXISTS student_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER NOT NULL,
     question_id INTEGER NOT NULL,
     chosen_option TEXT,
     text_response TEXT,
-    photo_urls_json TEXT,                        -- JSON массив фото тетради
+    photo_urls_json TEXT,                       -- Фото тетради до 10 шт
     is_correct INTEGER NOT NULL DEFAULT 0,
     elo_delta INTEGER NOT NULL DEFAULT 0,
-    socratic_dialogue_json TEXT,                 -- История Сократического диалога
+    socratic_dialogue_json TEXT,                -- История подсказок Сократа «Аға»
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES question_bank(id) ON DELETE CASCADE
@@ -191,141 +244,45 @@ CREATE TABLE IF NOT EXISTS student_attempts (
 CREATE INDEX IF NOT EXISTS idx_student_attempts_std ON student_attempts(student_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_student_attempts_q ON student_attempts(question_id);
 
--- 9. Рейтинг ELO ученика по предметам
-CREATE TABLE IF NOT EXISTS student_elo (
+-- 13. Изолированный Паспорт Ученика по Курсам (Subpassport с логами попыток)
+CREATE TABLE IF NOT EXISTS student_course_passports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER NOT NULL,
     course_id INTEGER NOT NULL,
-    current_elo INTEGER NOT NULL DEFAULT 1000,
-    rank TEXT NOT NULL CHECK(rank IN ('OSKIN', 'TUGYR', 'QYRAN', 'SAMGAU')) DEFAULT 'OSKIN',
-    highest_elo INTEGER NOT NULL DEFAULT 1000,
+    subject_elo INTEGER NOT NULL DEFAULT 1000,
+    rank_tier TEXT NOT NULL CHECK(rank_tier IN ('OSKIN', 'TUGYR', 'KYRAN', 'SAMGHAU')) DEFAULT 'OSKIN',
+    skills_progress_json TEXT NOT NULL DEFAULT '{}',     -- { [skill_code]: { total_attempts, correct_answers, mastery_percent, status } }
+    teacher_daily_notes_json TEXT NOT NULL DEFAULT '[]', -- [ { date, note } ]
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
     UNIQUE(student_id, course_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_student_elo_std ON student_elo(student_id);
-CREATE INDEX IF NOT EXISTS idx_student_elo_rank ON student_elo(rank);
+CREATE INDEX IF NOT EXISTS idx_course_passports_std ON student_course_passports(student_id);
+CREATE INDEX IF NOT EXISTS idx_course_passports_course ON student_course_passports(course_id);
 
--- 10. Аудируемый Ledger истории изменений ELO
-CREATE TABLE IF NOT EXISTS student_elo_history (
+-- 14. Сквозной Журнал Аудита и Телеметрии (Стандартные академические события)
+CREATE TABLE IF NOT EXISTS system_audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL,
-    delta INTEGER NOT NULL,
-    reason TEXT NOT NULL CHECK(reason IN ('EUREKA', 'FULL_STEP', 'SHORT_STEP', 'DIRECT_ANSWER', 'JAILBREAK_PENALTY')),
-    current_elo INTEGER NOT NULL,
+    actor_user_id INTEGER,
+    actor_role TEXT CHECK(actor_role IN ('student', 'teacher', 'admin', 'system', 'ai')),
+    target_user_id INTEGER,
+    course_id INTEGER,
+    event_type TEXT NOT NULL CHECK(event_type IN (
+        'TEST_ATTEMPT', 'THOUGHT_FORK_CLICK', 'EUREKA_MOMENT', 
+        'COURSE_CREATED', 'SLOT_UPLOADED', 'COPILOT_GENERATION', 
+        'ENROLLMENT_CHANGE', 'NOTE_ADDED', 'SILENT_GRADER_EVAL'
+    )),
+    payload_json TEXT NOT NULL,
+    elo_delta INTEGER DEFAULT 0,
+    ip_address TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_elo_history_std ON student_elo_history(student_id, created_at DESC);
-
--- 11. Матрица учебной активности (Heatmap)
-CREATE TABLE IF NOT EXISTS student_heatmap (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL,
-    date TEXT NOT NULL,                          -- YYYY-MM-DD
-    activity_count INTEGER NOT NULL DEFAULT 0,
-    level INTEGER NOT NULL CHECK(level BETWEEN 0 AND 4) DEFAULT 0,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE(student_id, date)
-);
-
-CREATE INDEX IF NOT EXISTS idx_heatmap_std_date ON student_heatmap(student_id, date);
-
--- 12. Карточки интервального повторения (Spaced Repetition SM-2)
-CREATE TABLE IF NOT EXISTS spaced_repetition_cards (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL,
-    topic_id INTEGER NOT NULL,
-    card_title TEXT NOT NULL,
-    card_content TEXT NOT NULL,
-    easiness_factor REAL NOT NULL DEFAULT 2.5,
-    interval_days INTEGER NOT NULL DEFAULT 1,
-    repetitions INTEGER NOT NULL DEFAULT 0,
-    next_review_date TEXT NOT NULL,              -- YYYY-MM-DD
-    last_reviewed_at DATETIME,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_spaced_rep_review ON spaced_repetition_cards(student_id, next_review_date);
-
--- 13. Уведомления системы Retention (Duolingo-style)
-CREATE TABLE IF NOT EXISTS retention_notifications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('STREAK_SAVER', 'AGA_REMINDER', 'MEMORY_BURN', 'WEEKLY_DIGEST')),
-    title TEXT NOT NULL,
-    message TEXT NOT NULL,
-    is_read INTEGER NOT NULL DEFAULT 0,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_retention_std_unread ON retention_notifications(student_id, is_read, created_at DESC);
-
--- 14. Пресеты учебных курсов и слотов (Course Presets)
-CREATE TABLE IF NOT EXISTS course_presets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    teacher_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
-    subject_type TEXT NOT NULL,
-    syllabus_json TEXT NOT NULL,                 -- Структура тем, микро-навыков, банка вопросов
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_course_presets_teacher ON course_presets(teacher_id);
-
--- 15. Утренние проактивные брифинги учителя от Co-Pilot
-CREATE TABLE IF NOT EXISTS morning_briefings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    teacher_id INTEGER NOT NULL,
-    classroom_id INTEGER,
-    date TEXT NOT NULL,                          -- YYYY-MM-DD
-    briefing_text TEXT NOT NULL,
-    action_items_json TEXT,                      -- Рекомендации по корректировке плана урока
-    status TEXT NOT NULL CHECK(status IN ('pending', 'approved', 'adjusted')) DEFAULT 'pending',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE SET NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_morning_briefings ON morning_briefings(teacher_id, date);
-
--- 16. Когнитивный Паспорт Ученика (Student Passport)
-CREATE TABLE IF NOT EXISTS student_passports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER UNIQUE NOT NULL,
-    cognitive_summary TEXT NOT NULL,
-    strengths_json TEXT NOT NULL DEFAULT '[]',
-    gaps_json TEXT NOT NULL DEFAULT '[]',
-    recommendations_json TEXT NOT NULL DEFAULT '[]',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_student_passports_std ON student_passports(student_id);
-
--- 17. Электронный журнал Kundelik.kz с дескрипторами и СОР/СОЧ
-CREATE TABLE IF NOT EXISTS kundelik_journal (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    classroom_id INTEGER NOT NULL,
-    student_id INTEGER NOT NULL,
-    topic_id INTEGER NOT NULL,
-    date TEXT NOT NULL,                          -- YYYY-MM-DD
-    score INTEGER NOT NULL,                      -- 1..10
-    work_type TEXT NOT NULL DEFAULT 'formative', -- formative, sor, soch
-    descriptor TEXT NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_kundelik_journal ON kundelik_journal(classroom_id, date);
+CREATE INDEX IF NOT EXISTS idx_audit_actor ON system_audit_logs(actor_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_event ON system_audit_logs(event_type);
+CREATE INDEX IF NOT EXISTS idx_audit_course ON system_audit_logs(course_id);

@@ -2,8 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types';
 import { api } from '@/api/client';
 
-import { userProgressService } from '@/services/userProgressService';
-
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -13,7 +11,6 @@ interface AuthContextType {
   login: (email: string, password?: string, role?: UserRole) => Promise<void>;
   register: (data: Partial<User> & { password?: string; org_token?: string; bio?: string }) => Promise<void>;
   logout: () => void;
-  switchRole: (role: UserRole) => void;
   updateUser: (data: Partial<User>) => void;
 }
 
@@ -24,13 +21,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return localStorage.getItem('zerde_token') || null;
   });
 
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('zerde_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
 
   const [role, setRole] = useState<UserRole>(() => {
-    const savedRole = localStorage.getItem('zerde_role') as UserRole;
-    return savedRole && ['student', 'teacher', 'admin'].includes(savedRole)
-      ? savedRole
-      : 'student';
+    const saved = localStorage.getItem('zerde_user');
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        return u.role || 'student';
+      } catch {
+        return 'student';
+      }
+    }
+    return 'student';
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(() => {
@@ -50,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       localStorage.setItem('zerde_user', JSON.stringify(user));
       localStorage.setItem('zerde_role', user.role);
+      setRole(user.role);
     } else {
       localStorage.removeItem('zerde_user');
       localStorage.removeItem('zerde_role');
@@ -97,26 +111,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password = '', targetRole: UserRole = 'student') => {
-    setIsLoading(true);
     try {
-      const response: any = await api.post('/auth/login', { email, password });
+      const response: any = await api.post('/auth/login', { email, password, role: targetRole });
       if (response?.token && response?.user) {
         setToken(response.token);
         setUser(response.user);
-        setRole(response.user.role || targetRole);
+        // Strictly determine role from backend response (Zero-Fake)
+        setRole(response.user.role || 'student');
         return;
       }
       throw new Error('Invalid login response from server');
     } catch (apiError: any) {
       console.warn('[Auth] Login failed:', apiError);
       throw apiError;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const register = async (userData: Partial<User> & { password?: string; org_token?: string; bio?: string }) => {
-    setIsLoading(true);
     try {
       const response: any = await api.post('/auth/register', {
         email: userData.email,
@@ -133,15 +144,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response?.token && response?.user) {
         setToken(response.token);
         setUser(response.user);
-        setRole(response.user.role);
+        setRole(response.user.role || 'student');
         return;
       }
       throw new Error('Registration failed');
     } catch (apiError: any) {
       console.warn('[Auth] API register error:', apiError);
       throw apiError;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -151,16 +160,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRole('student');
     try {
       localStorage.clear();
-      userProgressService.reset();
     } catch (e) {
       // ignore
     }
-  };
-
-  const switchRole = (newRole: UserRole) => {
-    setRole(newRole);
-    localStorage.setItem('zerde_role', newRole);
-    setUser((prev) => (prev ? { ...prev, role: newRole } : null));
   };
 
   const updateUser = (data: Partial<User>) => {
@@ -178,7 +180,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
-        switchRole,
         updateUser,
       }}
     >

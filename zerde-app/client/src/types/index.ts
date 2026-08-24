@@ -10,13 +10,17 @@ export interface User {
   email: string;
   full_name: string;
   role: UserRole;
+  roles?: UserRole[];
   grade?: string;
   school?: string;
+  organizationId?: number | null;
+  organization_id?: number | null;
   language: AppLanguage;
   theme: AppTheme;
   avatar_url?: string;
-  overallElo: number;
-  streakDays: number;
+  elo?: number;
+  overallElo?: number;
+  streakDays?: number;
   eloRank: {
     level: EloRankLevel;
     symbol: string;
