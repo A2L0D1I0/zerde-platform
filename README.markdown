@@ -14,7 +14,11 @@
 
 > **Тестовые аккаунты для проверки:**  
 > • **Ученик:** `student.nis@nis.kz` (Пароль: `Password2026!`)  
-> • **Учитель:** `teacher.nis@nis.kz` (Пароль: `Password2026!`)
+> • **Учитель:** `teacher.nis@nis.kz` (Пароль: `Password2026!`)  
+>  
+> **Токены организаций (для регистрации новых пользователей):**  
+> • **NIS IB Astana:** Ученик: `NIS-STUDENT-2026` | Учитель: `NIS-TEACHER-2026`  
+> • **Ekibastuz BIL:** Ученик: `BIL-STUDENT-2026` | Учитель: `BIL-TEACHER-2026`
 
 ---
 
