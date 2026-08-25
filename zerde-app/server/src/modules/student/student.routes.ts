@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { studentRepository } from './student.repository';
-import { calculateEloDelta, calculateSM2, getRankByElo, TaskSubmissionSchema } from '@zerde/shared';
+import { calculateEloDelta, calculateSM2, getRankByElo, TaskSubmissionSchema } from '../../shared';
 import { authenticate, requireRole, AuthRequest } from '../../middleware/auth.middleware';
 import { getDb, updatePassportTransaction } from '../../db/database';
 import { formatGrade } from '../../routes/auth.routes';

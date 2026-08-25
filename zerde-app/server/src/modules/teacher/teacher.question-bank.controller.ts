@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import { getDb } from '../../db/database';
-import { getRankByElo } from '@zerde/shared';
+import { getRankByElo } from '../../shared';
 
 export class TeacherQuestionBankController {
   /**

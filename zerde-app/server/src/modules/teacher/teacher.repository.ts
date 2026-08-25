@@ -1,5 +1,5 @@
 import { getDb } from '../../db/database';
-import { getRankByElo, SkillMeta, ClassMatrixStudent, SkillMastery } from '@zerde/shared';
+import { getRankByElo, SkillMeta, ClassMatrixStudent, SkillMastery } from '../../shared';
 
 export class TeacherRepository {
   /**

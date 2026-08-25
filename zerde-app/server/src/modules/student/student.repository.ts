@@ -1,5 +1,5 @@
 import { getDb } from '../../db/database';
-import { getRankByElo } from '@zerde/shared';
+import { getRankByElo } from '../../shared';
 
 export interface DbStudent {
   id: number;
