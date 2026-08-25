@@ -9,7 +9,7 @@
 ### 🔗 1. ССЫЛКИ И ДОСТУП ДЛЯ ЖЮРИ
 
 * 📊 **Презентация (Pitch Deck PDF / Canva):** [https://canva.link/64s2s6z9cyaq32o](https://canva.link/64s2s6z9cyaq32o) *(PDF Файл загружен в папку Ekiboston)*
-* 💻 **Публичный репозиторий с кодом (GitHub):** `[ВСТАВЬТЕ_ССЫЛКУ_НА_GITHUB]`
+* 💻 **Публичный репозиторий с кодом (GitHub):** [https://github.com/A2L0D1I0/zerde-platform](https://github.com/A2L0D1I0/zerde-platform)
 * 🌐 **Рабочий Live MVP (деплой):** [https://follow-anybody-original-antenna.trycloudflare.com](https://follow-anybody-original-antenna.trycloudflare.com)
 
 > **Тестовые аккаунты для проверки:**  
