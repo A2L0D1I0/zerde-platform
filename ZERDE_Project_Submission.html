@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>ZERDE — Описание проекта</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.25;
+    color: #1f2328;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+  }
+  h1 {
+    font-size: 14pt;
+    color: #0969da;
+    margin: 0 0 4px 0;
+  }
+  .meta {
+    font-size: 9pt;
+    color: #57606a;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 6px;
+  }
+  h2 {
+    font-size: 11pt;
+    color: #1f2328;
+    margin: 8px 0 4px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  ul {
+    margin: 2px 0 6px 18px;
+    padding: 0;
+  }
+  li {
+    margin-bottom: 3px;
+  }
+  .box {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 6px 0;
+    font-size: 9pt;
+  }
+  .highlight {
+    color: #0969da;
+    font-weight: bold;
+  }
+  b {
+    color: #1f2328;
+  }
+</style>
+</head>
+<body>
+
+<h1>ZERDE (ЗЕРДЕ) — Интеллектуальная Образовательная Платформа</h1>
+<div class="meta">
+  <b>Хакатон:</b> Future Minds Hackathon 2026 (г. Астана, NIS IB) | <b>Трек:</b> Трек 2 — Social Impact Challenge<br>
+  <b>Команда:</b> Zerde | <b>Продукт:</b> Веб-платформа адаптивного обучения для школьников
+</div>
+
+<h2>1. Ссылки и доступ для жюри</h2>
+<ul>
+  <li>📊 <b>Презентация (Pitch Deck PDF / Canva):</b> [ВСТАВЬТЕ_ССЫЛКУ_НА_CANVA_ИЛИ_PDF]</li>
+  <li>💻 <b>Публичный репозиторий с кодом (GitHub):</b> [ВСТАВЬТЕ_ССЫЛКУ_НА_GITHUB]</li>
+  <li>🌐 <b>Рабочий Live MVP (деплой):</b> [ВСТАВЬТЕ_ССЫЛКУ_НА_ВЕБ_ДЕПЛОЙ]</li>
+</ul>
+
+<div class="box">
+  🔑 <b>Тестовые аккаунты для проверки:</b><br>
+  • <b>Ученик:</b> <span class="highlight">student.nis@nis.kz</span> (Пароль: <code>password123</code>)<br>
+  • <b>Учитель:</b> <span class="highlight">teacher.nis@nis.kz</span> (Пароль: <code>password123</code>)
+</div>
+
+<h2>2. Краткое техническое объяснение</h2>
+<ul>
+  <li><b>A. Использованный стек технологий:</b> <i>Frontend:</i> React 18, TypeScript, Vite 5, Tailwind CSS, Radix UI, Framer Motion, KaTeX (быстрый локальный рендеринг математических формул), Canvas-Confetti. <i>Backend:</i> Node.js, Express, TypeScript, Better-SQLite3 (режим WAL, 14 реляционных таблиц, транзакционная целостность), JWT-аутентификация и разделение ролей (Оқушы / Мұғалім). <i>AI:</i> Google Gemini 2.5 Flash API (структурированные JSON-ответы через Zod). <i>Математика:</i> модель CDM DINA (диагностика микронавыков), XP Rating и SM-2 (интервальное повторение).</li>
+  
+  <li><b>B. Разграничение: Реальная логика vs Mock Data:</b> <i>Реальная работающая логика:</i> Аутентификация и сессии, пересчет XP и рангов, сократический диалог наставника «Аға» с генерацией 3 развилок мысли (Thought-Forks), 2D-матрица дефицитов класса, триязычие (KZ/RU/EN), темная/светлая тема. <i>Тестовые данные (Mock):</i> Базовые организации (NIS IB, BIL), демонстрационный курс Алгебры и стартовая база вопросов для проверки.</li>
+  
+  <li><b>C. Баланс разработки (ИИ vs Собственный код):</b> <i>Написано разработчиком вручную:</i> Проектирование структуры UI/UX, верстка на React и Tailwind CSS, настройка маршрутизации, реляционная схема SQLite и начальные сиды, валидация форм, словари локализации (KZ/RU/EN), интеграция KaTeX для формул. <i>Использование ИИ:</i> Генерация развилок мысли сократического ментора «Аға» (пошаговое наведение на мысль при ошибках), анализ открытых решений в Silent Grader, генерация дистракторов для тестов.</li>
+  
+  <li><b>D. Сценарии проверки функционала (User Flows):</b> <i>Ученик:</i> Вход ➔ Просмотр «Фокуса дня» от Навигатора ➔ Запуск тренажера ➔ Ошибка ➔ 3 сократические развилки ➔ Выбор верного шага ➔ Начисление XP. <i>Учитель:</i> Вход ➔ Кабинет классов ➔ 2D-матрица успеваемости и проблемных зон класса ➔ Добавление и редактирование материалов/заданий.</li>
+  
+  <li><b>E. Планы развития (Roadmap):</b> 1) <i>ZVDSL+ (Zerde Visual DSL)</i> — специализированный декларативный движок для химических связей, физических схем и синтаксического разбора. 2) <i>PWA & Offline Mode</i> — кеширование заданий в IndexedDB для работы без интернета с фоновой синхронизацией. 3) <i>Voice Socratic Mentor</i> — голосовое интерактивное общение с наставником «Аға» через WebRTC.</li>
+</ul>
+
+</body>
+</html>
