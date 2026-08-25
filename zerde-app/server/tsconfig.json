@@ -15,7 +15,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@zerde/shared": ["../shared/dist/index.d.ts"]
+      "@zerde/shared": ["./src/shared/index.ts"]
     }
   },
   "include": ["src/**/*"],

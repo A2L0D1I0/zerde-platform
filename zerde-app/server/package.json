@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@types/multer": "^2.2.0",
-    "@zerde/shared": "file:../shared",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^13.0.3",
     "cors": "^2.8.5",
