@@ -18,7 +18,7 @@ export const ru = {
   'header.search_placeholder': 'Поиск курсов, тем и навыков... (⌘K)',
   'header.search': 'Поиск',
   'header.streak': 'дней стрик',
-  'header.elo': 'ELO',
+  'header.elo': 'XP',
   'header.notifications': 'Уведомления',
   'header.no_notifications': 'Нет новых уведомлений',
   'header.mark_all_read': 'Отметить все как прочитанные',
@@ -59,7 +59,7 @@ export const ru = {
   'rank.samgau': 'Самғау ⭐ (Парение)',
   'rank.current_rank': 'Текущий ранг',
   'rank.next_rank': 'Следующий ранг',
-  'rank.elo_points': 'Баллы ELO',
+  'rank.elo_points': 'Баллы XP',
 
   // =========================================================================
   // 5. AUTH & REGISTRATION (Аутентификация)
@@ -180,9 +180,9 @@ export const ru = {
   'trainer.retry': 'Пройти повторно',
   'trainer.finish_session': 'Завершить сессию',
   'trainer.session_completed': 'Сессия успешно завершена 🎉',
-  'trainer.eureka_moment': 'Эврика! (Eureka Moment) 🎉 +15 ELO',
-  'trainer.eureka_desc': 'Логический шаг выполнен безупречно! Рейтинг ELO повышен.',
-  'trainer.ethics_violation': 'Нарушение академической этики -20 ELO',
+  'trainer.eureka_moment': 'Эврика! (Eureka Moment) 🎉 +15 XP',
+  'trainer.eureka_desc': 'Логический шаг выполнен безупречно! Начислено +15 XP.',
+  'trainer.ethics_violation': 'Нарушение академической этики -20 XP',
   'trainer.ethics_violation_desc': 'Обнаружена попытка несанкционированного списывания или использования готовых ответов.',
   'trainer.scientific_explanation': 'Полное научное объяснение',
   'trainer.cognitive_trap': 'Когнитивная ловушка',

@@ -189,7 +189,7 @@ export const StudentProfileScreen: React.FC = () => {
           <div className="p-3 rounded-lg bg-primer-canvas-inset border border-primer-border-muted text-center space-y-1">
             <div className="text-[11px] text-primer-fg-muted font-medium flex items-center justify-center gap-1">
               <Award className="w-3.5 h-3.5 text-primer-accent-fg" />
-              <span>{isEN ? 'ELO Rating' : isRU ? 'Рейтинг ELO' : 'Рейтинг ELO'}</span>
+              <span>{isEN ? 'XP Rating' : isRU ? 'Рейтинг XP' : 'Рейтинг XP'}</span>
             </div>
             <div className="text-base font-bold text-primer-accent-fg font-mono">{elo}</div>
             <Badge variant="outline" className="text-[10px]">

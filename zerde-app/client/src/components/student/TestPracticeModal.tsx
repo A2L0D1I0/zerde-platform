@@ -210,7 +210,7 @@ export const TestPracticeModal: React.FC<TestPracticeModalProps> = ({
         showToast({
           type: 'success',
           title: lang === 'KZ' ? 'Дұрыс жауап! 🎉' : lang === 'RU' ? 'Правильный ответ! 🎉' : 'Correct Answer! 🎉',
-          message: `+${delta} ELO (Базаға сақталды)`,
+          message: `+${delta} XP (Базаға сақталды)`,
         });
       } else {
         setShowSocraticMentor(true);
@@ -290,7 +290,7 @@ export const TestPracticeModal: React.FC<TestPracticeModalProps> = ({
             {/* Live ELO Badge with Animation */}
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-primer-canvas-inset border border-primer-border-default text-primer-accent-fg font-bold">
               <Award className="w-3.5 h-3.5" />
-              <span>{currentElo} ELO</span>
+              <span>{currentElo} XP</span>
               {eloDeltaAnim && (
                 <span className="text-emerald-500 text-[10px] animate-bounce">
                   +{eloDeltaAnim}
@@ -483,7 +483,7 @@ export const TestPracticeModal: React.FC<TestPracticeModalProps> = ({
                   <div className="flex items-center justify-between gap-2 text-xs">
                     <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primer-canvas-inset border border-primer-border-default hover:bg-primer-accent-subtle/30 font-semibold text-primer-fg-default">
                       <Camera className="w-3.5 h-3.5 text-primer-accent-fg" />
-                      <span>{isRU ? 'Фото тетради (+15 ELO)' : 'Дәптер фотосын қосу (+15 ELO)'}</span>
+                      <span>{isRU ? 'Фото тетради (+15 XP)' : 'Дәптер фотосын қосу (+15 XP)'}</span>
                       <input
                         type="file"
                         accept="image/*"

@@ -134,8 +134,8 @@ export const StreakSaverModal: React.FC<StreakSaverModalProps> = ({
           <div className="p-3 rounded-lg bg-primer-canvas-subtle border border-primer-border-default leading-relaxed text-primer-fg-muted">
             <p>
               {language === 'KZ'
-                ? `Бүгінгі күнді өткізіп алсаң, ${streakDays} күндік үздіксіз еңбегің мен жиналған ELO бонустарың нөлден басталуы мүмкін! «Аға» наставнигі жеңіл 3-минуттық экспресс-фокусты дайындап қойды.`
-                : `Если пропустить сегодняшний день, твой стрик в ${streakDays} дней и ELO-бонусы сгорят! Наставник «Аға» уже подготовил легкий 3-минутный фокус.`}
+                ? `Бүгінгі күнді өткізіп алсаң, ${streakDays} күндік үздіксіз еңбегің мен жиналған XP бонустарың нөлден басталуы мүмкін! «Аға» наставнигі жеңіл 3-минуттық экспресс-фокусты дайындап қойды.`
+                : `Если пропустить сегодняшний день, твой стрик в ${streakDays} дней и XP-бонусы сгорят! Наставник «Аға» уже подготовил легкий 3-минутный фокус.`}
             </p>
           </div>
 
@@ -143,7 +143,7 @@ export const StreakSaverModal: React.FC<StreakSaverModalProps> = ({
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div className="flex items-center gap-2 p-2 rounded-md bg-primer-success-subtle/30 border border-primer-success-muted/40 text-primer-success-fg">
               <Zap className="w-3.5 h-3.5 fill-current shrink-0" />
-              <span>+15 ELO рейтнг өсімі</span>
+              <span>+15 XP рейтинг өсімі</span>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-md bg-primer-accent-subtle/30 border border-primer-accent-muted/40 text-primer-accent-fg">
               <Sparkles className="w-3.5 h-3.5 shrink-0" />
@@ -163,7 +163,7 @@ export const StreakSaverModal: React.FC<StreakSaverModalProps> = ({
               className="w-full justify-center font-bold text-xs sm:text-sm py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 border-none shadow-md gap-2"
             >
               <Flame className="w-4 h-4 fill-white" />
-              <span>🔥 3 минутта стрикті құтқару (+15 ELO)</span>
+              <span>🔥 3 минутта стрикті құтқару (+15 XP)</span>
             </Button>
 
             {freezeAvailable && !freezeUsed && (

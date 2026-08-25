@@ -184,7 +184,7 @@ export const AuthScreen: React.FC = () => {
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span className="font-semibold flex items-center gap-1.5">
                     <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>ELO Динамикасы</span>
+                    <span>XP Динамикасы</span>
                   </span>
                   <span className="font-mono text-emerald-400 font-bold">+15 XP</span>
                 </div>
@@ -193,7 +193,7 @@ export const AuthScreen: React.FC = () => {
                   <span className="text-xs text-slate-400">🌱 Өскін</span>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Әр дұрыс шығарылған есеп үшін объективті ELO есептеледі
+                  Әр дұрыс шығарылған есеп үшін объективті XP есептеледі
                 </p>
               </div>
 
