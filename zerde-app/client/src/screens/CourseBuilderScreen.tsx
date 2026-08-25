@@ -794,7 +794,7 @@ export const CourseBuilderScreen: React.FC = () => {
                   <p className="text-xs text-primer-fg-muted">
                     {lang === 'KZ'
                       ? 'AI CoPilot арқылы жүктелген 5 оқулық слотына қатаң сәйкес жасалған жоспар'
-                      : 'План КТП, заземленный на 5 слотов документов'}
+                      : 'План КТП, основанный на 5 материалах курса'}
                   </p>
                 </div>
 

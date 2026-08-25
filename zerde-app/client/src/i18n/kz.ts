@@ -473,7 +473,7 @@ export const kz = {
   'builder.slot_restore_btn': 'Үлгіні қайтару',
   'builder.chat_placeholder': 'Копилоттан сұраңыз (мысалы: Квадраттық теңсіздіктерге сабақ жоспарын жасап бер)...',
   'builder.chat_send_btn': 'Жіберу',
-  'builder.chat_grounded_badge': '5 слот материалымен заземленген',
+  'builder.chat_grounded_badge': '5 оқулық материалына негізделген',
   'builder.chat_welcome': 'Сәлеметсіз бе! Мен сіздің Екінші Миыңызбын (Teacher Co-Pilot). Курстың 5 слотындағы материалдар негізінде кез келген педагогикалық сұраққа жауап беруге дайынмын.',
   'course.single_language_lock': 'Тек бір тілде бекіту',
   'course.single_language_lock_desc': 'Тілдік пәндер үшін (Қазақ әдебиеті, English) тапсырмаларды түпнұсқа тілінде сақтау',

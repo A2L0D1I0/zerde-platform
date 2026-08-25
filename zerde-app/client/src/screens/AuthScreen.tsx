@@ -169,10 +169,10 @@ export const AuthScreen: React.FC = () => {
                 <span>Жаңа буын зияткерлік білім жүйесі</span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                Мемлекеттік стандартқа заземленген оқыту.
+                Мемлекеттік стандартқа негізделген оқыту.
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg">
-                5 оқулықтық слот, нақты ELO рейтингі, күнделікті коммиттер стригі және AI CoPilot көмегімен сабақ жоспарлау.
+                5 оқулықтық слот, нақты XP рейтингі, күнделікті коммиттер стригі және AI CoPilot көмегімен сабақ жоспарлау.
               </p>
             </div>
 
@@ -224,7 +224,7 @@ export const AuthScreen: React.FC = () => {
               </div>
               <div className="text-xs text-slate-300">
                 <strong className="text-white block font-semibold">Gemini 2.5 Flash Grounding</strong>
-                0% галлюцинация • 5 оқулық слоты бойынша қатаң заземление
+                0% галлюцинация • 5 оқулық слоты бойынша нақты негізделген
               </div>
             </div>
           </motion.div>

@@ -455,7 +455,7 @@ export const ru = {
   'builder.slot_restore_btn': 'Восстановить ГОСО',
   'builder.chat_placeholder': 'Спросите Копилота (например: Составь план урока по квадратным неравенствам)...',
   'builder.chat_send_btn': 'Отправить',
-  'builder.chat_grounded_badge': 'Заземлено на 5 слотов курса',
+  'builder.chat_grounded_badge': 'Основано на 5 материалах курса',
   'builder.chat_welcome': 'Здравствуйте! Я ваш Второй Мозг (Teacher Co-Pilot). Готов помочь спланировать уроки, составить тесты и проанализировать дефициты на основе 5 слотов материалов.',
   'teacher.delta_diff_title': 'AI Delta-Diff: анализ изменений',
   'teacher.delta_diff_confirm': 'Утвердить новый план',
