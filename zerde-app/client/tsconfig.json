@@ -23,7 +23,8 @@
     /* Paths */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@zerde/shared": ["./src/shared/index.ts"]
     }
   },
   "include": ["src"],

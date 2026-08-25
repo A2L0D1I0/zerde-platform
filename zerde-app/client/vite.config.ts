@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@zerde/shared': path.resolve(__dirname, '../shared/src/index.ts'),
+      '@zerde/shared': path.resolve(__dirname, './src/shared/index.ts'),
     },
   },
   server: {
