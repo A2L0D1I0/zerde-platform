@@ -58,7 +58,7 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
               {user?.grade || '9 «А»'}
             </Badge>
             <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-700/60">
-              {user?.uuid?.startsWith('MP-') ? user.uuid : `MP-${user?.school?.includes('BIL') ? 'BIL' : 'NIS'}-${(user?.grade?.match(/\d+/)?.[0] || '09').padStart(2, '0')}-${String(user?.id || 1).padStart(4, '0')}`}
+              {user?.uuid?.startsWith('MP-') ? user.uuid : `MP-${user?.school?.includes('BIL') ? 'BIL' : 'NIS'}-${(String(user?.grade || '').match(/\d+/)?.[0] || '09').padStart(2, '0')}-${String(user?.id || 1).padStart(4, '0')}`}
             </span>
           </div>
           <p className="text-[11px] text-primer-fg-muted flex items-center gap-1 mt-0.5 truncate">

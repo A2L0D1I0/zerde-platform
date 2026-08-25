@@ -40,14 +40,14 @@ export const StudentProfileScreen: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [fullName, setFullName] = useState(user?.full_name || '');
-  const [grade, setGrade] = useState(user?.grade || '');
+  const [grade, setGrade] = useState(user?.grade ? String(user.grade) : '');
   const [orgToken, setOrgToken] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
       setFullName(user.full_name || '');
-      setGrade(user.grade || '');
+      setGrade(user.grade ? String(user.grade) : '');
       setOrgToken('');
     }
   }, [user]);
@@ -105,7 +105,7 @@ export const StudentProfileScreen: React.FC = () => {
 
       updateUser({
         full_name: fullName.trim() || user?.full_name,
-        grade: grade.trim() || user?.grade,
+        grade: (typeof grade === 'string' ? grade.trim() : String(grade || '')) || user?.grade,
         school: updatedSchool || (isEN ? 'Self-study' : isRU ? 'Самостоятельное обучение' : 'Өз бетінше оқу'),
         organizationId: updatedOrgId,
       });
@@ -124,7 +124,7 @@ export const StudentProfileScreen: React.FC = () => {
   const elo = dashboardData?.elo ?? user?.elo ?? 1000;
   const streak = dashboardData?.streak_days ?? user?.streakDays ?? 0;
 
-  const formatDisplayGrade = (g?: string | null) => {
+  const formatDisplayGrade = (g?: string | number | null) => {
     if (!g) return isEN ? 'Grade 10' : isRU ? '10 класс' : '10-сынып';
     const str = String(g).trim();
     if (str.includes('сынып') || str.includes('класс') || str.includes('Grade') || str.includes('Колледж') || str.includes('ВУЗ')) {
@@ -168,7 +168,7 @@ export const StudentProfileScreen: React.FC = () => {
                   {user?.school || (isEN ? 'Self-study' : isRU ? 'Самостоятельное обучение' : 'Өз бетінше оқу')}
                 </span>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-700/60">
-                  Master Passport: {user?.uuid?.startsWith('MP-') ? user.uuid : `MP-${user?.school?.includes('BIL') ? 'BIL' : 'NIS'}-${(user?.grade?.match(/\d+/)?.[0] || '09').padStart(2, '0')}-${String(user?.id || 1).padStart(4, '0')}`}
+                  Master Passport: {user?.uuid?.startsWith('MP-') ? user.uuid : `MP-${user?.school?.includes('BIL') ? 'BIL' : 'NIS'}-${(String(user?.grade || '').match(/\d+/)?.[0] || '09').padStart(2, '0')}-${String(user?.id || 1).padStart(4, '0')}`}
                 </span>
                 {user?.organizationId && (
                   <Badge variant="accent" className="text-[9px] py-0 font-mono">
