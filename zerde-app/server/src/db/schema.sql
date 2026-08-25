@@ -287,3 +287,28 @@ CREATE TABLE IF NOT EXISTS system_audit_logs (
 CREATE INDEX IF NOT EXISTS idx_audit_actor ON system_audit_logs(actor_user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_event ON system_audit_logs(event_type);
 CREATE INDEX IF NOT EXISTS idx_audit_course ON system_audit_logs(course_id);
+
+-- 15. Календарь и Уведомления
+CREATE TABLE IF NOT EXISTS calendar_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    event_date TEXT NOT NULL,
+    event_time TEXT DEFAULT '12:00',
+    color TEXT DEFAULT 'purple',
+    is_completed INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS retention_notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    type TEXT DEFAULT 'streak',
+    is_read INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+

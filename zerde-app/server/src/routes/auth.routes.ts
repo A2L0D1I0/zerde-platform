@@ -26,7 +26,8 @@ export function formatGrade(grade?: string | number | null): string {
 
 const loginSchema = z.object({
   email: z.string().email('Жарамсыз email форматы (Invalid email format)'),
-  password: z.string().min(1, 'Құпиясөз бос болмауы керек (Password is required)')
+  password: z.string().min(1, 'Құпиясөз бос болмауы керек (Password is required)'),
+  role: z.enum(['student', 'teacher', 'admin']).optional()
 });
 
 const registerSchema = z.object({
@@ -194,7 +195,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
  */
 router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    const { email, password, role: requestedRole } = loginSchema.parse(req.body);
     const db = getDb();
 
     const user = db.prepare(`
@@ -214,6 +215,16 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
       return res.status(401).json({
         success: false,
         error: 'Email немесе құпиясөз қате (Invalid email or password)'
+      });
+    }
+
+    // Role Verification: Prevent Student from logging in via Teacher tab, and vice versa
+    if (requestedRole && user.role !== requestedRole && user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: requestedRole === 'teacher'
+          ? 'Бұл аккаунт оқушыға тиесілі! Мұғалім бөліміне кіру үшін мұғалім аккаунтын пайдаланыңыз (Student account cannot log in as Teacher).'
+          : 'Бұл аккаунт мұғалімге тиесілі! Оқушы бөліміне кіру үшін оқушы аккаунтын пайдаланыңыз (Teacher account cannot log in as Student).'
       });
     }
 

@@ -21,7 +21,8 @@ import {
   RotateCcw,
   RefreshCw,
   ArrowRight,
-  Sliders
+  Sliders,
+  X
 } from 'lucide-react';
 import api from '@/api/client';
 
@@ -71,6 +72,7 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
   const [isSilentGrading, setIsSilentGrading] = useState(false);
   const [silentGraderResult, setSilentGraderResult] = useState<any | null>(null);
   const [silentGradingError, setSilentGradingError] = useState<string | null>(null);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const answersGridRef = useRef<HTMLDivElement>(null);
 
@@ -89,25 +91,26 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Rank badge label
-  const getRankBadge = (elo: number) => {
-    if (elo >= 1600) return { label: '⭐ Самғау (1600+)', color: 'text-purple-400 bg-purple-950/40 border-purple-800' };
-    if (elo >= 1400) return { label: '🦅 Қыран (1400+)', color: 'text-amber-400 bg-amber-950/40 border-amber-800' };
-    if (elo >= 1200) return { label: '🌿 Тұғыр (1200+)', color: 'text-blue-400 bg-blue-950/40 border-blue-800' };
-    return { label: '🌱 Өскін (1000+)', color: 'text-emerald-400 bg-emerald-950/40 border-emerald-800' };
+  // Rank badge label with XP
+  const getRankBadge = (xp: number) => {
+    if (xp >= 1600) return { label: 'Самғау (1600+ XP)', color: 'text-purple-400 bg-purple-950/40 border-purple-800' };
+    if (xp >= 1400) return { label: 'Қыран (1400+ XP)', color: 'text-amber-400 bg-amber-950/40 border-amber-800' };
+    if (xp >= 1200) return { label: 'Тұғыр (1200+ XP)', color: 'text-blue-400 bg-blue-950/40 border-blue-800' };
+    return { label: 'Өскін (1000+ XP)', color: 'text-emerald-400 bg-emerald-950/40 border-emerald-800' };
   };
 
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Load questions on mount
+  // Load questions on mount: strictly 4 questions per session
   const loadQuestions = async () => {
     setIsLoadingQuestions(true);
     setLoadError(null);
     try {
       const res = await api.get<any[]>(`/questions?topic=${encodeURIComponent(topicTitle)}&language=${lang}`);
       if (Array.isArray(res) && res.length > 0) {
-        setQuestions(res);
+        // Enforce exactly up to 4 questions per training session
+        setQuestions(res.slice(0, 4));
       } else {
         setQuestions([]);
         setLoadError(lang === 'KZ' ? 'Бұл тақырып бойынша әзірге сұрақтар табылмады' : lang === 'RU' ? 'Вопросы по данной теме не найдены' : 'No questions found for this topic');
@@ -126,6 +129,23 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
   }, [topicTitle, lang]);
 
   const currentQuestion = questions[currentIndex] || null;
+
+  // Auto-sync mode and reset form on question change
+  useEffect(() => {
+    if (currentQuestion) {
+      if (currentQuestion.options && currentQuestion.options.length > 0) {
+        setMode('A');
+      } else {
+        setMode('B');
+      }
+      setSelectedOption(null);
+      setIsSubmitted(false);
+      setIsCorrect(false);
+      setOpenSolutionText('');
+      setSilentGraderResult(null);
+      setIsSocratesOpen(false);
+    }
+  }, [currentIndex, currentQuestion]);
 
   // --- Call Socrates "Aga" ---
   const handleCallSocrates = async (isMistakeTrigger: boolean = false) => {
@@ -196,8 +216,12 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
   const handleSubmitAnswer = () => {
     if (!selectedOption || isSubmitted) return;
 
-    const opt = currentQuestion.options.find((o: any) => o.id === selectedOption);
-    const correct = Boolean(opt?.isCorrect);
+    const opt = currentQuestion.options?.find((o: any) => o.id === selectedOption);
+    const correct = Boolean(
+      opt?.isCorrect === true ||
+      currentQuestion.correctAnswer === selectedOption ||
+      currentQuestion.correct_answer === selectedOption
+    );
 
     setIsSubmitted(true);
     setIsCorrect(correct);
@@ -209,8 +233,7 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
       setConsecutiveErrors(0);
     } else {
       setConsecutiveErrors((prev) => prev + 1);
-      // Auto-trigger Socrates "Aga" on error
-      handleCallSocrates(true);
+      // Socrates is strictly voluntary: no auto-popup
     }
   };
 
@@ -323,9 +346,9 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
 
           {/* Indicators Pill */}
           <div className="flex items-center gap-2">
-            {/* ELO Rank */}
+            {/* XP Rank */}
             <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${currentRank.color}`}>
-              {currentRank.label} • {currentElo} ELO
+              {currentRank.label} • {currentElo} XP
             </span>
 
             {/* Streak */}
@@ -415,7 +438,7 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
                   <div className="p-2.5 bg-emerald-950/40 border border-emerald-600/50 rounded-lg flex items-center justify-between text-xs text-emerald-300 animate-in fade-in">
                     <span className="flex items-center gap-1.5 font-bold">
                       <span>🎉</span>
-                      <span>Керемет озарение (Eureka Moment)! +15 ELO қосылды!</span>
+                      <span>Керемет озарение (Eureka Moment)! +15 XP қосылды!</span>
                     </span>
                   </div>
                 )}
@@ -495,48 +518,37 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
 
           {/* БЛОК 3: ИНТЕРАКТИВНЫЕ ОТВЕТЫ (РЕЖИМ А или РЕЖИМ Б) */}
           <div ref={answersGridRef} className="bg-primer-canvas-subtle border border-primer-border-default rounded-2xl p-5 shadow-primer-sm space-y-4">
-            {/* Mode Selector Header */}
+            {/* Header: Task Type (Automatic from CoPilot / Question Model) */}
             <div className="flex items-center justify-between border-b border-primer-border-muted pb-3">
               <span className="text-xs font-bold text-primer-fg-muted uppercase tracking-wider">
-                Жауап беру тәсілі
+                {lang === 'KZ' ? 'Жауап беру формасы' : 'Форма ответа'}
               </span>
 
-              <div className="flex items-center gap-1 bg-primer-canvas-inset p-1 rounded-lg border border-primer-border-muted">
-                <button
-                  onClick={() => setMode('A')}
-                  className={`px-3 py-1 rounded text-xs font-semibold transition cursor-pointer ${
-                    mode === 'A'
-                      ? 'bg-primer-accent-emphasis text-white shadow-primer-xs'
-                      : 'text-primer-fg-muted hover:text-primer-fg-default'
-                  }`}
-                >
-                  Режим А (Тест)
-                </button>
-                <button
-                  onClick={() => setMode('B')}
-                  className={`px-3 py-1 rounded text-xs font-semibold transition cursor-pointer ${
-                    mode === 'B'
-                      ? 'bg-primer-accent-emphasis text-white shadow-primer-xs'
-                      : 'text-primer-fg-muted hover:text-primer-fg-default'
-                  }`}
-                >
-                  Режим Б (Ашық шешім / Фото)
-                </button>
-              </div>
+              <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-primer-canvas-inset border border-primer-border-muted text-primer-accent-fg">
+                {(currentQuestion.mode === 'B' || currentQuestion.mode === 'TYPE_B_OPEN' || !currentQuestion.options || currentQuestion.options.length === 0)
+                  ? (lang === 'KZ' ? '✍️ Ашық шешім (Тип Б)' : '✍️ Развернутое решение (Тип Б)')
+                  : (lang === 'KZ' ? '🎯 Тесттік тапсырма (Тип А)' : '🎯 Тестовое задание (Тип А)')}
+              </span>
             </div>
 
             {/* РЕЖИМ А: Тестовая сетка */}
-            {mode === 'A' && (
+            {!(currentQuestion.mode === 'B' || currentQuestion.mode === 'TYPE_B_OPEN' || !currentQuestion.options || currentQuestion.options.length === 0) && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {currentQuestion.options?.map((opt: any) => {
                     const isSelected = selectedOption === opt.id;
+                    const isOptCorrect = Boolean(
+                      opt.isCorrect === true ||
+                      currentQuestion.correctAnswer === opt.id ||
+                      currentQuestion.correct_answer === opt.id
+                    );
+
                     let cardStyle = 'bg-primer-canvas-inset border-primer-border-default hover:border-primer-accent-emphasis hover:bg-primer-accent-subtle/10';
 
                     if (isSubmitted) {
-                      if (opt.isCorrect) {
+                      if (isOptCorrect) {
                         cardStyle = 'bg-emerald-950/40 border-emerald-600 text-emerald-300';
-                      } else if (isSelected && !opt.isCorrect) {
+                      } else if (isSelected && !isOptCorrect) {
                         cardStyle = 'bg-rose-950/40 border-rose-600 text-rose-300';
                       }
                     } else if (isSelected) {
@@ -561,10 +573,10 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
                           </span>
                         </div>
 
-                        {isSubmitted && opt.isCorrect && (
+                        {isSubmitted && isOptCorrect && (
                           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
                         )}
-                        {isSubmitted && isSelected && !opt.isCorrect && (
+                        {isSubmitted && isSelected && !isOptCorrect && (
                           <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
                         )}
                       </button>
@@ -584,24 +596,33 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
                       disabled={!selectedOption}
                       className="px-5 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
                     >
-                      <span>Жауапты тексеру</span>
+                      <span>{lang === 'KZ' ? 'Жауапты тексеру' : 'Проверить ответ'}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   ) : (
-                    <button
-                      onClick={handleNextQuestion}
-                      className="px-5 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 transition shadow-primer-xs cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>Келесі есеп</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleCallSocrates(false)}
+                        className="px-3.5 py-2 rounded-xl bg-purple-600/10 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-bold text-xs hover:bg-purple-500/20 transition shadow-primer-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>🦉</span>
+                        <span>{lang === 'KZ' ? 'Сократты шақыру' : 'Вызвать Сократа'}</span>
+                      </button>
+                      <button
+                        onClick={handleNextQuestion}
+                        className="px-5 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>{lang === 'KZ' ? 'Келесі есеп' : 'Следующая задача'}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
             {/* РЕЖИМ Б: Открытый ответ / Фото тетради / Silent Grader */}
-            {mode === 'B' && (
+            {(currentQuestion.mode === 'B' || currentQuestion.mode === 'TYPE_B_OPEN' || !currentQuestion.options || currentQuestion.options.length === 0) && (
               <div className="space-y-3">
                 {isSilentGrading ? (
                   <div className="p-8 rounded-xl bg-primer-canvas-inset border border-primer-accent-emphasis/40 text-center space-y-3 animate-pulse">
@@ -724,7 +745,7 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
 
                         {uploadedPhotos.length < 10 && (
                           <button
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => setIsPhotoModalOpen(true)}
                             className="w-16 h-16 rounded-lg border border-dashed border-primer-border-default bg-primer-canvas-inset hover:border-primer-accent-emphasis flex flex-col items-center justify-center text-primer-fg-muted hover:text-primer-accent-fg transition cursor-pointer text-[10px]"
                           >
                             <Camera className="w-4 h-4 mb-0.5" />
@@ -746,7 +767,9 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
                     {/* Submit Mode B */}
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-[11px] text-primer-fg-muted">
-                        ИИ-бағалау: толық дәлелдемеге +15 ELO, жартылай шешімге +7 ELO
+                        {lang === 'KZ'
+                          ? 'ИИ-бағалау: толық дәлелдемеге +15 XP, қысқа шешімге +7 XP'
+                          : 'ИИ-оценка: полное решение +15 XP, краткое +7 XP'}
                       </span>
 
                       <button
@@ -755,7 +778,7 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
                         className="px-5 py-2 rounded-xl bg-primer-accent-emphasis text-white font-bold text-xs hover:bg-primer-accent-emphasis/90 transition shadow-primer-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>Шешімді тексеруге жіберу</span>
+                        <span>{lang === 'KZ' ? 'Шешімді тексеруге жіберу' : 'Отправить решение'}</span>
                       </button>
                     </div>
                   </>
@@ -764,6 +787,45 @@ export const TaskTrainerScreen: React.FC<TaskTrainerScreenProps> = ({
             )}
           </div>
         </>
+      )}
+
+      {/* Vision OCR Paid API Budget Modal */}
+      {isPhotoModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="rounded-2xl border border-primer-border-default bg-primer-canvas-overlay max-w-md w-full p-5 space-y-4 shadow-primer-xl text-primer-fg-default">
+            <div className="flex items-center justify-between pb-3 border-b border-primer-border-default">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold">
+                  {lang === 'KZ' ? 'Қолжазба фотосын тану (Vision OCR)' : 'Распознавание рукописного текста (Vision OCR)'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsPhotoModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-primer-canvas-subtle text-primer-fg-muted hover:text-primer-fg-default cursor-pointer transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-primer-fg-muted leading-relaxed">
+              {lang === 'KZ'
+                ? 'Бұл функцияны іске асыру үшін бізге Vision OCR API кілтіне қаражат қажет. Сондықтан дәлелдемеңіз бен есептің шешу қадамдарын жоғарыдағы өріске мәтін түрінде қолмен жазыңыз.'
+                : 'Для реализации распознавания рукописного текста по фото требуется дополнительный бюджет/API ключ для Vision OCR. Пожалуйста, введите текстовое решение вручную в поле выше.'}
+            </p>
+
+            <div className="flex justify-end pt-2 border-t border-primer-border-default">
+              <button
+                onClick={() => setIsPhotoModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-primer-accent-emphasis text-white text-xs font-bold shadow-xs hover:bg-primer-accent-emphasis/90 transition cursor-pointer"
+              >
+                {lang === 'KZ' ? 'Түсінікті' : 'Понятно'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

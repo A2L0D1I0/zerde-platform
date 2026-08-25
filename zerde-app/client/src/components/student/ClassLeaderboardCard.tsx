@@ -70,7 +70,7 @@ export const ClassLeaderboardCard: React.FC<ClassLeaderboardCardProps> = ({
               {lang === 'KZ' ? 'Курс рейтингі' : lang === 'RU' ? 'Рейтинг курсов' : 'Course Leaderboard'}
             </h3>
             <p className="text-[10px] text-primer-fg-muted">
-              {lang === 'KZ' ? 'Сокурсниктер арасындағы ELO рейтингі' : lang === 'RU' ? 'Рейтинг ELO среди сокурсников' : 'Peer ELO ranking'}
+              {lang === 'KZ' ? 'Сокурсниктер арасындағы XP рейтингі' : lang === 'RU' ? 'Рейтинг XP среди сокурсников' : 'Peer XP ranking'}
             </p>
           </div>
         </div>
@@ -126,7 +126,7 @@ export const ClassLeaderboardCard: React.FC<ClassLeaderboardCardProps> = ({
               {activeCourse ? activeCourse.title : (lang === 'KZ' ? 'Курс рейтингі' : 'Рейтинг курса')}
             </h3>
             <p className="text-[10px] text-primer-fg-muted">
-              {lang === 'KZ' ? 'Академиялық ELO және стрик' : lang === 'RU' ? 'Академический ELO и стрик' : 'Academic ELO & streak'}
+              {lang === 'KZ' ? 'Академиялық XP және стрик' : lang === 'RU' ? 'Академический XP и стрик' : 'Academic XP & streak'}
             </p>
           </div>
         </div>

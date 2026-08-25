@@ -4,7 +4,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import {
   LayoutDashboard,
-  Maximize2,
   Sparkles,
   Calendar,
 } from 'lucide-react';
@@ -15,17 +14,10 @@ import { TeacherCalendarScreen } from './TeacherCalendarScreen';
 export type TeacherPortalTab = 'dashboard' | 'calendar' | 'builder';
 
 export const TeacherPortal: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const lang = (language as 'KZ' | 'RU' | 'EN') || 'KZ';
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TeacherPortalTab>('dashboard');
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -55,7 +47,7 @@ export const TeacherPortal: React.FC = () => {
               }`}
             >
               <Calendar className="w-3.5 h-3.5 text-primer-accent-fg" />
-              <span>Күнтізбе / Роадмап</span>
+              <span>{t('teacher.tab_calendar')}</span>
             </button>
 
             <button
@@ -67,16 +59,7 @@ export const TeacherPortal: React.FC = () => {
               }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-primer-accent-fg" />
-              <span>{t('teacher.tab_ai_studio')}</span>
-            </button>
-
-            <button
-              onClick={toggleFullscreen}
-              className="px-3 py-1.5 font-bold rounded-md transition flex items-center gap-1.5 whitespace-nowrap text-primer-attention-fg hover:bg-primer-attention-subtle/30 cursor-pointer"
-              title="Журналды толық экранға шығару"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span>Толық экран (F11)</span>
+              <span>{lang === 'RU' ? 'AI Студия & CoPilot' : lang === 'EN' ? 'AI Studio & CoPilot' : 'AI Студия & CoPilot'}</span>
             </button>
           </div>
 

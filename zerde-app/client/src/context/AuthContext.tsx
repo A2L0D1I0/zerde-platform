@@ -74,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const verifySession = async () => {
       const savedToken = localStorage.getItem('zerde_token');
+      const savedUserStr = localStorage.getItem('zerde_user');
       if (!savedToken) {
         setIsLoading(false);
         setUser(null);
@@ -83,15 +84,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         const response: any = await api.get('/auth/me');
-        if (response?.user) {
-          setUser(response.user);
-          setRole(response.user.role || 'student');
-        } else {
-          logout();
+        const validUser = response?.user || response?.data || (response?.id ? response : null);
+        if (validUser) {
+          setUser(validUser);
+          setRole(validUser.role || 'student');
+        } else if (savedUserStr) {
+          const parsed = JSON.parse(savedUserStr);
+          setUser(parsed);
+          setRole(parsed.role || 'student');
         }
       } catch (err: any) {
-        console.warn('[Auth] Session invalid or user deleted from DB. Logging out.');
-        logout();
+        if (err?.response?.status === 401) {
+          console.warn('[Auth] Token expired. Logging out.');
+          logout();
+        } else if (savedUserStr) {
+          try {
+            const parsed = JSON.parse(savedUserStr);
+            setUser(parsed);
+            setRole(parsed.role || 'student');
+          } catch {
+            // keep state
+          }
+        }
       } finally {
         setIsLoading(false);
       }

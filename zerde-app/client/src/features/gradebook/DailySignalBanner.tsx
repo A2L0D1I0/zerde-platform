@@ -1,7 +1,7 @@
 import React from 'react';
 import { DailySignal } from '@zerde/shared';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, Maximize2, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+import { AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
 
 interface DailySignalBannerProps {
   signal: DailySignal | null;
@@ -10,20 +10,12 @@ interface DailySignalBannerProps {
 
 export const DailySignalBanner: React.FC<DailySignalBannerProps> = ({
   signal,
-  onOpenSmartboard,
 }) => {
+  const { t, language } = useLanguage();
   if (!signal) return null;
 
   const cluster = signal.cluster_deficit;
   const hasDeficit = cluster && cluster.percentage > 0;
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
 
   return (
     <div className={`rounded-xl border-l-4 border-y border-r border-primer-border-default bg-primer-canvas-subtle p-4 shadow-primer-xs ${
@@ -36,15 +28,15 @@ export const DailySignalBanner: React.FC<DailySignalBannerProps> = ({
               hasDeficit ? 'bg-primer-attention-emphasis' : 'bg-primer-success-emphasis'
             }`}>
               {hasDeficit ? <AlertTriangle className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
-              <span>Күн сигналы (Signal of the Day)</span>
+              <span>{t('teacher.lesson_signal_title')}</span>
             </span>
 
             <span className={`text-xs font-mono font-semibold ${
               hasDeficit ? 'text-primer-attention-fg' : 'text-primer-success-fg'
             }`}>
               {hasDeficit
-                ? `${cluster.percentage}% оқушы осы тақырыптан қиналды`
-                : 'Сыныпта жүйелі қателіктер байқалмады'}
+                ? (language === 'RU' ? `${cluster.percentage}% учащихся испытывают трудности` : language === 'EN' ? `${cluster.percentage}% students struggle with this topic` : `${cluster.percentage}% оқушы осы тақырыптан қиналды`)
+                : (language === 'RU' ? 'В классе нет системных дефицитов' : language === 'EN' ? 'No systemic deficits found' : 'Сыныпта жүйелі қателіктер байқалмады')}
             </span>
           </div>
 
@@ -53,20 +45,12 @@ export const DailySignalBanner: React.FC<DailySignalBannerProps> = ({
           </h4>
 
           <p className="text-xs text-primer-fg-muted leading-relaxed">
-            {cluster.misconception_kz || (hasDeficit ? 'Интервалдар әдісінде таңбаларды анықтау немесе ОДЗ нөлдерін ескеру қатесі.' : 'Барлық оқушылар сабақ мақсаттарын сәтті орындауда.')}
+            {cluster.misconception_kz || (hasDeficit ? (language === 'RU' ? 'Трудности при определении интервалов или нулей знаменателя в ОДЗ.' : language === 'EN' ? 'Issues in interval sign determination or denominator zero constraints.' : 'Интервалдар әдісінде таңбаларды анықтау немесе ОДЗ нөлдерін ескеру қатесі.') : (language === 'RU' ? 'Все учащиеся успешно осваивают учебные цели.' : language === 'EN' ? 'All students are mastering the curriculum goals.' : 'Барлық оқушылар сабақ мақсаттарын сәтті орындауда.'))}
           </p>
         </div>
-
-        <Button
-          onClick={toggleFullscreen}
-          size="sm"
-          variant="outline"
-          className="shrink-0 gap-1.5 font-semibold text-xs cursor-pointer hover:bg-primer-canvas-inset"
-        >
-          <Maximize2 className="w-3.5 h-3.5" />
-          <span>Толық экран (F11)</span>
-        </Button>
       </div>
     </div>
   );
 };
+
+export default DailySignalBanner;

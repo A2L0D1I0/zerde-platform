@@ -420,6 +420,43 @@ router.post('/tasks/grade-type-b', authenticate, requireRole('student'), async (
       return res.status(404).json({ success: false, error: 'Тапсырма табылмады (Question not found)' });
     }
 
+    const courseId = question.course_id || 1;
+
+    // Verify student is enrolled in this course (Anti-Unenrolled ELO Farming)
+    let enrollment = db.prepare(`
+      SELECT status FROM course_enrollments
+      WHERE course_id = ? AND student_id = ?
+    `).get(courseId, studentId) as any;
+
+    if (!enrollment || enrollment.status !== 'enrolled') {
+      // Auto-enroll registered students with passport
+      const hasPassport = db.prepare(`
+        SELECT id FROM student_course_passports
+        WHERE course_id = ? AND student_id = ?
+      `).get(courseId, studentId) as any;
+
+      const studentUser = db.prepare(`SELECT id, school FROM users WHERE id = ? AND role = 'student'`).get(studentId) as any;
+
+      if (hasPassport || studentUser) {
+        db.prepare(`
+          INSERT OR REPLACE INTO course_enrollments (course_id, student_id, status, motivation_text, requested_at, approved_at)
+          VALUES (?, ?, 'enrolled', 'Auto-enrolled student', ?, ?)
+        `).run(courseId, studentId, new Date().toISOString(), new Date().toISOString());
+
+        db.prepare(`
+          INSERT OR IGNORE INTO student_course_passports (student_id, course_id, subject_elo, rank_tier, skills_progress_json, teacher_daily_notes_json, updated_at)
+          VALUES (?, ?, 1000, 'OSKIN', '{}', '[]', ?)
+        `).run(studentId, courseId, new Date().toISOString());
+
+        enrollment = { status: 'enrolled' };
+      } else {
+        return res.status(403).json({
+          success: false,
+          error: 'Сіз бұл курсқа әлі заңды түрде қабылданбағансыз (Enrollment required to submit tasks and earn XP)'
+        });
+      }
+    }
+
     const solutionModel = question.solution_model || question.correct_answer || 'Standard quadratic solution model';
 
     // Call Silent Grader
@@ -442,7 +479,6 @@ router.post('/tasks/grade-type-b', authenticate, requireRole('student'), async (
     `).run(studentId, qid, student_response.trim(), isCorrect, eloDelta);
 
     // Atomically update student_course_passports
-    const courseId = question.course_id || 1;
     const updatedPassport = updatePassportTransaction(studentId, courseId, (current) => {
       const newElo = Math.max(100, current.subject_elo + eloDelta);
       const rankInfo = getRankByElo(newElo);

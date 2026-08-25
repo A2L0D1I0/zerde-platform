@@ -39,7 +39,7 @@ export const ThoughtForkTriad: React.FC<ThoughtForkTriadProps> = ({
         <span>{headerTitle}</span>
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {forks.map((fork) => {
           const isA = fork.key === 'A' || fork.type === 'true_step';
           const isB = fork.key === 'B' || fork.type === 'cognitive_trap';
@@ -49,52 +49,58 @@ export const ThoughtForkTriad: React.FC<ThoughtForkTriadProps> = ({
               key={fork.key}
               onClick={() => !disabled && onSelectFork(fork)}
               disabled={disabled}
-              className={`p-3 rounded-lg border text-left transition flex flex-col justify-between group cursor-pointer ${
+              className={`p-3.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between group cursor-pointer shadow-primer-xs active:scale-[0.98] ${
                 isA
-                  ? 'bg-primer-canvas-subtle border-primer-accent-emphasis/40 hover:border-primer-accent-emphasis hover:bg-primer-accent-subtle/20'
+                  ? 'bg-primer-canvas-subtle border-primer-success-emphasis/40 hover:border-primer-success-emphasis hover:bg-primer-success-subtle/25'
                   : isB
-                  ? 'bg-primer-canvas-subtle border-primer-attention-emphasis/40 hover:border-primer-attention-emphasis hover:bg-primer-attention-subtle/20'
-                  : 'bg-primer-canvas-subtle border-primer-border-default hover:border-primer-fg-muted hover:bg-primer-canvas-inset'
+                  ? 'bg-primer-canvas-subtle border-primer-attention-emphasis/40 hover:border-primer-attention-emphasis hover:bg-primer-attention-subtle/25'
+                  : 'bg-primer-canvas-subtle border-primer-accent-emphasis/40 hover:border-primer-accent-emphasis hover:bg-primer-accent-subtle/25'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div>
-                <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                  <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold font-mono ${
+                <div className="flex items-center justify-between gap-1.5 mb-2">
+                  <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold font-mono shadow-xs ${
                     isA
-                      ? 'bg-primer-accent-emphasis text-white'
+                      ? 'bg-primer-success-emphasis text-white'
                       : isB
                       ? 'bg-primer-attention-emphasis text-white'
-                      : 'bg-primer-canvas-inset text-primer-fg-muted border border-primer-border-default'
+                      : 'bg-primer-accent-emphasis text-white'
                   }`}>
                     {fork.key}
                   </span>
 
-                  <span className="text-[10px] font-semibold text-primer-fg-muted uppercase flex items-center gap-1">
-                    {isA && <CheckCircle2 className="w-3 h-3 text-primer-accent-fg" />}
-                    {isB && <AlertTriangle className="w-3 h-3 text-primer-attention-fg" />}
-                    {!isA && !isB && <BookOpen className="w-3 h-3 text-primer-fg-muted" />}
+                  <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 px-2 py-0.5 rounded-md ${
+                    isA
+                      ? 'text-primer-success-fg bg-primer-success-subtle/50'
+                      : isB
+                      ? 'text-primer-attention-fg bg-primer-attention-subtle/50'
+                      : 'text-primer-accent-fg bg-primer-accent-subtle/50'
+                  }`}>
+                    {isA && <CheckCircle2 className="w-3 h-3" />}
+                    {isB && <AlertTriangle className="w-3 h-3" />}
+                    {!isA && !isB && <BookOpen className="w-3 h-3" />}
                     {getBadgeLabel(fork.type, isA, isB)}
                   </span>
                 </div>
 
-                <h5 className="text-xs font-semibold text-primer-fg-default group-hover:text-primer-accent-fg transition-colors">
+                <h5 className="text-xs font-bold text-primer-fg-default group-hover:text-primer-accent-fg transition-colors">
                   {fork.title}
                 </h5>
 
                 {fork.latex && (
-                  <div className="my-1.5 py-1 px-2 rounded bg-primer-canvas-inset border border-primer-border-muted text-xs font-mono">
+                  <div className="my-2 py-1.5 px-2.5 rounded-lg bg-primer-canvas-inset border border-primer-border-muted text-xs font-mono">
                     <MathText text={`$${fork.latex}$`} />
                   </div>
                 )}
 
-                <p className="text-[11px] text-primer-fg-muted leading-snug mt-1">
+                <p className="text-[11px] text-primer-fg-muted leading-relaxed mt-1">
                   {fork.description}
                 </p>
               </div>
 
-              <div className="mt-2.5 pt-1.5 border-t border-primer-border-muted/50 flex items-center justify-end text-[11px] text-primer-accent-fg font-semibold group-hover:translate-x-0.5 transition-transform">
+              <div className="mt-3 pt-2 border-t border-primer-border-muted/60 flex items-center justify-end text-[11px] font-bold group-hover:translate-x-0.5 transition-transform text-primer-fg-default group-hover:text-primer-accent-fg">
                 <span>{selectLabel}</span>
-                <ArrowRight className="w-3 h-3 ml-1" />
+                <ArrowRight className="w-3.5 h-3.5 ml-1 text-primer-accent-fg" />
               </div>
             </button>
           );

@@ -7,6 +7,7 @@ export type TopicStatus = 'mastered' | 'pending' | 'in_progress' | 'queued' | 'l
 
 export interface User {
   id: string;
+  uuid?: string;
   email: string;
   full_name: string;
   role: UserRole;

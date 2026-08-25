@@ -45,13 +45,33 @@ export class TeacherRepository {
     const params: any[] = [];
 
     if (teacherId) {
-      query += ` WHERE c.teacher_id = ?`;
-      params.push(teacherId);
+      query += ` WHERE (c.teacher_id = ? OR c.school IN (SELECT school FROM users WHERE id = ?))`;
+      params.push(teacherId, teacherId);
     }
 
     query += ` GROUP BY c.id ORDER BY c.id ASC`;
 
     return db.prepare(query).all(...params) as any[];
+  }
+
+  public createClassroom(params: { name: string; school: string; teacherId: number }): {
+    id: number;
+    name: string;
+    school: string;
+    teacher_id: number;
+  } {
+    const db = getDb();
+    const result = db.prepare(`
+      INSERT INTO classrooms (name, school, teacher_id)
+      VALUES (?, ?, ?)
+    `).run(params.name, params.school, params.teacherId);
+
+    return {
+      id: Number(result.lastInsertRowid),
+      name: params.name,
+      school: params.school,
+      teacher_id: params.teacherId
+    };
   }
 
   /**
@@ -201,12 +221,20 @@ export class TeacherRepository {
     const clsId = classroomId ? Number(classroomId) : null;
 
     if (clsId) {
-      return db.prepare(`
+      const slots = db.prepare(`
         SELECT id, course_id, classroom_id, slot_number, title, file_type, content_text, file_size, is_locked, uploaded_at
         FROM course_material_slots
         WHERE course_id = ? AND (classroom_id = ? OR classroom_id IS NULL)
-        ORDER BY slot_number ASC
-      `).all(cid, clsId) as any[];
+        ORDER BY (CASE WHEN classroom_id = ? THEN 0 ELSE 1 END) ASC, slot_number ASC
+      `).all(cid, clsId, clsId) as any[];
+
+      const map = new Map<number, any>();
+      for (const s of slots) {
+        if (!map.has(s.slot_number)) {
+          map.set(s.slot_number, s);
+        }
+      }
+      return Array.from(map.values()).sort((a, b) => a.slot_number - b.slot_number);
     }
 
     return db.prepare(`

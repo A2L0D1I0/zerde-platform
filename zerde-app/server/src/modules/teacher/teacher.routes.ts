@@ -1,9 +1,16 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { getDb } from '../../db/database';
 import { authenticate, requireRole, AuthRequest } from '../../middleware/auth.middleware';
 import { teacherController } from './teacher.controller';
 import { teacherRepository } from './teacher.repository';
+import { teacherQuestionBankController } from './teacher.question-bank.controller';
 import { copilotService } from '../../ai/copilot.service';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 } // 25MB
+});
 
 const router = Router();
 
@@ -34,6 +41,17 @@ router.post(
 );
 
 /**
+ * POST /api/teacher/courses/:courseId/topics/:topicId/generate-pack-10
+ * Generates a balanced batch of 10 tasks (5 Mode A + 5 Mode B with solution_model)
+ */
+router.post(
+  '/courses/:courseId/topics/:topicId/generate-pack-10',
+  authenticate,
+  requireRole('teacher'),
+  (req, res, next) => teacherController.generateTaskPack10(req, res, next)
+);
+
+/**
  * GET /api/teacher/classrooms/:classroomId/ai-insights
  * Aggregates classroom deficits via SQL GROUP BY and generates 1 AI advice card
  */
@@ -44,19 +62,45 @@ router.get(
   (req, res, next) => teacherController.getClassAiInsights(req, res, next)
 );
 
+/**
+ * POST /api/teacher/copilot/chat
+ * Multi-Turn Interactive Dialogue with Teacher Co-Pilot grounded in 5 course material slots
+ */
+router.post(
+  '/copilot/chat',
+  authenticate,
+  requireRole('teacher'),
+  (req, res, next) => teacherController.chatWithCopilot(req, res, next)
+);
+
 // ============================================================================
 // TEACHER CLASSROOM DIARY (PURE CRUD — 0 AI / 0 NLP) (Phase 3)
 // ============================================================================
 
 /**
  * GET /api/teacher/courses/:courseId/students/:studentId/notes
- * Reads notes for student from isolated passport
+ * Reads notes for student from isolated passport with multi-tenancy check
  */
 router.get(
   '/courses/:courseId/students/:studentId/notes',
   authenticate,
   requireRole('teacher'),
-  (req, res, next) => teacherController.getStudentNotes(req, res, next)
+  (req: AuthRequest, res: Response, next) => {
+    const db = getDb();
+    const studentId = req.params.studentId;
+    const teacherSchool = req.user?.school;
+
+    // Multi-tenancy check: verify student belongs to teacher's school
+    const student = db.prepare('SELECT school FROM users WHERE id = ?').get(studentId) as any;
+    if (student && teacherSchool && student.school && student.school !== teacherSchool) {
+      return res.status(403).json({
+        success: false,
+        error: 'Қатынауға тыйым салынған: бөтен мектеп оқушысының жазбаларын көруге болмайды (Cross-tenant access forbidden)'
+      });
+    }
+
+    return teacherController.getStudentNotes(req, res, next);
+  }
 );
 
 /**
@@ -100,14 +144,43 @@ router.get('/classrooms', authenticate, requireRole('teacher'), (req: AuthReques
 });
 
 /**
+ * POST /api/teacher/classrooms
+ * Creates a new classroom for teacher
+ */
+router.post(
+  '/classrooms',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.createClassroom(req, res, next)
+);
+
+/**
  * GET /api/teacher/class-matrix
- * Returns honest 2D Matrix of students enrolled in the classroom (Zero Fake SQLite)
+ * Returns honest 2D Matrix of students enrolled in the classroom with Multi-Tenancy Protection
  */
 router.get('/class-matrix', authenticate, requireRole('teacher'), (req: AuthRequest, res: Response) => {
   const db = getDb();
   const classroomId = (req.query.classroomId as string) || '1';
   const courseId = Number(req.query.courseId) || 1;
-  const cls = db.prepare('SELECT id, name, school FROM classrooms WHERE id = ?').get(classroomId) as any;
+  const teacherId = req.user?.id;
+  const teacherSchool = req.user?.school;
+
+  const cls = db.prepare('SELECT id, name, school, teacher_id FROM classrooms WHERE id = ?').get(classroomId) as any;
+
+  if (!cls) {
+    return res.status(404).json({
+      success: false,
+      error: 'Сынып табылмады (Classroom not found)'
+    });
+  }
+
+  // Multi-Tenancy Isolation Check
+  if (cls.school && teacherSchool && cls.school !== teacherSchool && cls.teacher_id !== teacherId) {
+    return res.status(403).json({
+      success: false,
+      error: 'Қатынауға тыйым салынған: бөтен мектептің сынып журналына кіруге болмайды (Cross-tenant access forbidden)'
+    });
+  }
 
   const data = teacherRepository.getClassMatrix(classroomId, courseId);
 
@@ -115,8 +188,8 @@ router.get('/class-matrix', authenticate, requireRole('teacher'), (req: AuthRequ
     success: true,
     data: {
       classroom_id: classroomId,
-      classroom_name: cls ? cls.name : 'Сынып',
-      school: cls ? cls.school : '',
+      classroom_name: cls.name,
+      school: cls.school || '',
       students_count: data.matrix.length,
       skills_header: data.skills_header,
       matrix: data.matrix,
@@ -200,6 +273,18 @@ router.post(
 );
 
 /**
+ * POST /api/teacher/courses/:id/slots/:slotNumber/upload
+ * Real multi-format file upload (PDF, DOCX, TXT, MD, images, etc.)
+ */
+router.post(
+  '/courses/:id/slots/:slotNumber/upload',
+  authenticate,
+  requireRole('teacher'),
+  upload.single('file'),
+  (req: AuthRequest, res: Response, next) => teacherController.uploadCourseSlotFile(req, res, next)
+);
+
+/**
  * POST /api/teacher/courses/:id/plan/generate
  */
 router.post(
@@ -251,6 +336,28 @@ router.post(
   authenticate,
   requireRole('teacher'),
   (req: AuthRequest, res: Response, next) => teacherController.moderateApplication(req, res, next)
+);
+
+/**
+ * POST /api/teacher/copilot/chat
+ * Multi-turn chat with teacher copilot grounded on 5 course slots
+ */
+router.post(
+  '/copilot/chat',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherController.chatWithCopilot(req, res, next)
+);
+
+/**
+ * GET /api/teacher/courses/:id/question-bank
+ * Returns all course questions with student subpassport submissions
+ */
+router.get(
+  '/courses/:id/question-bank',
+  authenticate,
+  requireRole('teacher'),
+  (req: AuthRequest, res: Response, next) => teacherQuestionBankController.getCourseQuestionBank(req, res, next)
 );
 
 export default router;

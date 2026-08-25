@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ClassMatrixResponse, ClassMatrixStudent, SkillMeta } from '@zerde/shared';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { useLanguage } from '@/context/LanguageContext';
 import { Search, Users, Sparkles, UserPlus, Info } from 'lucide-react';
 
 interface MasteryMatrixProps {
@@ -13,12 +14,13 @@ export const MasteryMatrix: React.FC<MasteryMatrixProps> = ({
   data,
   onSelectStudentSkill,
 }) => {
+  const { t, getLocalized, language } = useLanguage();
   const [search, setSearch] = useState('');
 
   if (!data) {
     return (
       <div className="p-8 text-center text-xs text-primer-fg-muted font-mono rounded-xl border border-primer-border-default bg-primer-canvas-subtle">
-        Деректер жүктелуде...
+        {t('teacher.loading_data')}
       </div>
     );
   }
@@ -32,10 +34,14 @@ export const MasteryMatrix: React.FC<MasteryMatrixProps> = ({
         </div>
         <div className="space-y-1">
           <h3 className="text-sm font-bold text-primer-fg-default">
-            Сыныпта әлі тіркелген оқушылар жоқ ({data.classroom_name})
+            {t('teacher.no_students_in_class', { classroom: data.classroom_name })}
           </h3>
           <p className="text-xs text-primer-fg-muted max-w-md mx-auto">
-            Оқушылар мектеп токенімен тіркелгенде немесе топқа қосылғанда олардың нақты нәтижелері осы журналда автоматты түрде пайда болады (Zero-Fake SQLite).
+            {language === 'RU'
+              ? 'Когда ученики присоединятся к этой группе или зарегистрируются по школьному токену, их реальные результаты автоматически появятся в этом журнале (Zero-Fake SQLite).'
+              : language === 'EN'
+              ? 'When students join this group or register with your school code, their real-time skill telemetry will appear in this live matrix (Zero-Fake SQLite).'
+              : 'Оқушылар мектеп токенімен тіркелгенде немесе топқа қосылғанда олардың нақты нәтижелері осы журналда автоматты түрде пайда болады (Zero-Fake SQLite).'}
           </p>
         </div>
       </div>
@@ -53,10 +59,10 @@ export const MasteryMatrix: React.FC<MasteryMatrixProps> = ({
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-primer-accent-fg" />
           <h3 className="text-sm font-bold text-primer-fg-default">
-            Сынып журналы & Диагностика матрицасы ({data.classroom_name})
+            {t('teacher.class_matrix_title')} ({data.classroom_name})
           </h3>
           <span className="text-xs font-mono text-primer-fg-muted">
-            {filteredStudents.length} оқушы
+            {filteredStudents.length} {t('common.students') || 'оқушы'}
           </span>
         </div>
 
@@ -64,7 +70,7 @@ export const MasteryMatrix: React.FC<MasteryMatrixProps> = ({
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Оқушыны іздеу..."
+            placeholder={language === 'RU' ? 'Поиск ученика...' : language === 'EN' ? 'Search student...' : 'Оқушыны іздеу...'}
             className="text-xs h-8"
           />
         </div>
@@ -72,22 +78,22 @@ export const MasteryMatrix: React.FC<MasteryMatrixProps> = ({
 
       {/* Traffic Light Legend */}
       <div className="flex items-center gap-3 text-[11px] text-primer-fg-muted flex-wrap px-1">
-        <span className="font-semibold">Светофор:</span>
+        <span className="font-semibold">{language === 'RU' ? 'Светофор:' : language === 'EN' ? 'Traffic Light:' : 'Бағдаршам:'}</span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          <span>Освоен (≥80%)</span>
+          <span>{language === 'RU' ? 'Освоен (≥80%)' : language === 'EN' ? 'Mastered (≥80%)' : 'Игерілді (≥80%)'}</span>
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-          <span>В процессе (50-79%)</span>
+          <span>{language === 'RU' ? 'В процессе (50-79%)' : language === 'EN' ? 'In Progress (50-79%)' : 'Дамуда (50-79%)'}</span>
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-          <span>Дефицит (&lt;50%)</span>
+          <span>{language === 'RU' ? 'Дефицит (<50%)' : language === 'EN' ? 'Deficit (<50%)' : 'Дефицит (<50%)'}</span>
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-gray-500"></span>
-          <span>Нет данных (—)</span>
+          <span>{language === 'RU' ? 'Нет данных (—)' : language === 'EN' ? 'No Data (—)' : 'Дерек жоқ (—)'}</span>
         </span>
       </div>
 
@@ -97,20 +103,23 @@ export const MasteryMatrix: React.FC<MasteryMatrixProps> = ({
           <thead>
             <tr className="border-b border-primer-border-default bg-primer-canvas-inset/50">
               <th className="py-2.5 px-3 font-semibold text-primer-fg-muted whitespace-nowrap min-w-[180px]">
-                Оқушы
+                {language === 'RU' ? 'Ученик' : language === 'EN' ? 'Student' : 'Оқушы'}
               </th>
               <th className="py-2.5 px-2 font-semibold text-primer-fg-muted whitespace-nowrap text-center">
-                Рейтинг ELO
+                {language === 'RU' ? 'Рейтинг XP' : language === 'EN' ? 'XP Rating' : 'XP рейтингі'}
               </th>
-              {data.skills_header.map((skill) => (
-                <th
-                  key={skill.code}
-                  className="py-2.5 px-2 font-semibold text-primer-fg-muted text-center whitespace-nowrap min-w-[95px]"
-                  title={skill.nameKZ}
-                >
-                  {skill.nameKZ.length > 16 ? skill.nameKZ.slice(0, 15) + '…' : skill.nameKZ}
-                </th>
-              ))}
+              {data.skills_header.map((skill) => {
+                const skillTitle = getLocalized(skill, 'name', skill.code);
+                return (
+                  <th
+                    key={skill.code}
+                    className="py-2.5 px-2 font-semibold text-primer-fg-muted text-center whitespace-nowrap min-w-[95px]"
+                    title={skillTitle}
+                  >
+                    {skillTitle.length > 16 ? skillTitle.slice(0, 15) + '…' : skillTitle}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>

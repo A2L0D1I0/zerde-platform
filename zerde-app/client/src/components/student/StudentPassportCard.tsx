@@ -24,7 +24,7 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
   const rankLevel = user?.eloRank?.level || (lang === 'KZ' ? 'Өскін' : lang === 'RU' ? 'Росток' : 'Seedling');
   const rankSymbol = user?.eloRank?.symbol || '🌱';
 
-  const eloLabel = lang === 'KZ' ? 'Рейтинг ELO' : lang === 'RU' ? 'Рейтинг ELO' : 'ELO Rating';
+  const eloLabel = lang === 'KZ' ? 'Рейтинг XP' : lang === 'RU' ? 'Рейтинг XP' : 'XP Rating';
   const ptsUnit = lang === 'KZ' ? 'ұпай' : lang === 'RU' ? 'pts' : 'pts';
   const streakLabel = lang === 'KZ' ? 'Оқу стригі' : lang === 'RU' ? 'Стрик учебы' : 'Study Streak';
   const streakDaysUnit = lang === 'KZ' ? 'күн' : lang === 'RU' ? 'дней' : 'days';
@@ -57,6 +57,9 @@ export const StudentPassportCard: React.FC<StudentPassportCardProps> = ({
             <Badge variant="accent" className="text-[10px] py-0 font-mono">
               {user?.grade || '9 «А»'}
             </Badge>
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-700/60">
+              {user?.uuid?.startsWith('MP-') ? user.uuid : `MP-${user?.school?.includes('BIL') ? 'BIL' : 'NIS'}-${(user?.grade?.match(/\d+/)?.[0] || '09').padStart(2, '0')}-${String(user?.id || 1).padStart(4, '0')}`}
+            </span>
           </div>
           <p className="text-[11px] text-primer-fg-muted flex items-center gap-1 mt-0.5 truncate">
             <School className="w-3 h-3 shrink-0" />

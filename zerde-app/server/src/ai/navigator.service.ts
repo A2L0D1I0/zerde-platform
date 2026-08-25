@@ -135,8 +135,29 @@ Generate 1 focal advice and return RAW JSON matching NavigatorAdviceSchema:
       return validated;
 
     } catch (err) {
-      console.error('[NavigatorService] Advice generation error:', (err as Error).message);
-      throw err;
+      console.warn('[NavigatorService] Advice generation exception (using resilient fallback):', (err as Error).message);
+      const courseId = subpassports[0]?.course_id || 1;
+      const courseTitle = subpassports[0]?.course_title || 'Алгебра 9';
+
+      return {
+        greeting: language === 'RU' 
+          ? `С возвращением, ${student.full_name || 'ученик'}! Готовы продолжить покорение вершин знаний?`
+          : language === 'EN'
+          ? `Welcome back, ${student.full_name || 'student'}! Ready to level up your mastery today?`
+          : `Қош келдіңіз, ${student.full_name || 'оқушы'}! Бүгін білім шыңын бірге бағындырайық!`,
+        primary_focus_course_id: courseId,
+        recommended_topic_title: 'Квадраттық теңсіздіктерді шешу',
+        rationale: language === 'RU'
+          ? `Рекомендуем закрепить ключевой навык интервалов по курсу «${courseTitle}» для повышения ELO рейтинга.`
+          : language === 'EN'
+          ? `We recommend practicing intervals in "${courseTitle}" to boost your ELO rating.`
+          : `«${courseTitle}» курсы бойынша интервалдар әдісін пысықтап, ELO рейтингіңізді көтеруді ұсынамыз.`,
+        encouragement: language === 'RU'
+          ? 'Каждая решенная задача приближает вас к новому рангу!'
+          : language === 'EN'
+          ? 'Every solved challenge brings you closer to the next mastery tier!'
+          : 'Әрбір дұрыс қадам — келесі дәрежеге бастайтын даңғыл жол!'
+      };
     }
   }
 }

@@ -122,7 +122,7 @@ export const StudentHomeScreen: React.FC<StudentHomeScreenProps> = ({
 
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primer-canvas-inset border border-primer-border-default text-xs font-mono font-bold text-primer-accent-fg">
             <Award className="w-4 h-4" />
-            <span>{currentElo} ELO ({rankLabel})</span>
+            <span>{currentElo} XP ({rankLabel})</span>
           </div>
         </div>
       </div>

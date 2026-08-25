@@ -31,6 +31,19 @@ export const MathText: React.FC<MathTextProps> = ({
       }
     }
 
+    // Check if the entire string is an unescaped LaTeX expression (e.g. "(-\infty; -2) \cup (3; +\infty)")
+    const hasUnescapedLatex = /\\(infty|cup|cap|frac|le|ge|pm|sqrt|neq|cdot|times|le|ge|alpha|beta|pi|le|ge)/i.test(content);
+    if (!content.includes('$') && hasUnescapedLatex) {
+      try {
+        return katex.renderToString(content, {
+          displayMode: false,
+          throwOnError: false,
+        });
+      } catch {
+        // Fall back to normal splitting
+      }
+    }
+
     // Split by block ($$...$$) and inline ($...$) formulas
     const regex = /(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g;
     const parts = content.split(regex);
@@ -58,6 +71,18 @@ export const MathText: React.FC<MathTextProps> = ({
             return part;
           }
         } else {
+          // If part contains unescaped LaTeX commands without $...$, try rendering
+          if (/\\(infty|cup|cap|frac|le|ge|pm|sqrt|neq|cdot|times)/i.test(part)) {
+            try {
+              return katex.renderToString(part.trim(), {
+                displayMode: false,
+                throwOnError: false,
+              });
+            } catch {
+              // fallback to escaping
+            }
+          }
+
           // Escape regular HTML to avoid injection, preserve linebreaks
           const escaped = part
             .replace(/&/g, '&amp;')

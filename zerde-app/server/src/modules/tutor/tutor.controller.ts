@@ -74,32 +74,51 @@ export class TutorController {
         }
 
         if (isEureka && eloDelta > 0) {
-          // Log EUREKA_MOMENT in system_audit_logs
-          db.prepare(`
-            INSERT INTO system_audit_logs (actor_user_id, actor_role, course_id, event_type, payload_json)
-            VALUES (?, 'student', ?, 'EUREKA_MOMENT', ?)
-          `).run(
-            studentId,
-            parsedCourseId || null,
-            JSON.stringify({
-              eloDelta,
-              newElo,
-              topic: body.topicTitle
-            })
-          );
-
           const targetCourseId = parsedCourseId || 1;
-          const passport = db.prepare(`
-            SELECT id, subject_elo FROM student_course_passports
-            WHERE student_id = ? AND course_id = ?
+
+          // Anti-Race / Idempotency Check:
+          // Check if student was awarded a Eureka moment within the last 15 seconds for this student/course
+          const recentEureka = db.prepare(`
+            SELECT id FROM system_audit_logs
+            WHERE actor_user_id = ? AND event_type = 'EUREKA_MOMENT'
+            AND (course_id = ? OR course_id IS NULL)
+            AND datetime(created_at) >= datetime('now', '-15 seconds')
+            ORDER BY id DESC LIMIT 1
           `).get(studentId, targetCourseId) as any;
 
-          if (passport) {
-            db.prepare(`
-              UPDATE student_course_passports
-              SET subject_elo = subject_elo + ?, updated_at = CURRENT_TIMESTAMP
-              WHERE id = ?
-            `).run(eloDelta, passport.id);
+          if (!recentEureka) {
+            // Atomic transaction for audit log and passport update
+            db.transaction(() => {
+              db.prepare(`
+                INSERT INTO system_audit_logs (actor_user_id, actor_role, course_id, event_type, payload_json)
+                VALUES (?, 'student', ?, 'EUREKA_MOMENT', ?)
+              `).run(
+                studentId,
+                targetCourseId,
+                JSON.stringify({
+                  eloDelta,
+                  newElo,
+                  topic: body.topicTitle
+                })
+              );
+
+              const passport = db.prepare(`
+                SELECT id, subject_elo FROM student_course_passports
+                WHERE student_id = ? AND course_id = ?
+              `).get(studentId, targetCourseId) as any;
+
+              if (passport) {
+                db.prepare(`
+                  UPDATE student_course_passports
+                  SET subject_elo = subject_elo + ?, updated_at = CURRENT_TIMESTAMP
+                  WHERE id = ?
+                `).run(eloDelta, passport.id);
+              }
+            })();
+          } else {
+            // Already awarded recently in this concurrent batch (idempotent response)
+            eloDelta = 0;
+            guidance.elo_delta = 0;
           }
         }
       }

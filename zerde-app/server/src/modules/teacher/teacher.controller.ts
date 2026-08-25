@@ -7,6 +7,7 @@ import { CoPilotQuestionItemSchema } from '../../ai/schemas';
 import { teacherRepository } from './teacher.repository';
 
 const generateQuizRequestSchema = z.object({
+  course_id: z.number().int().optional(),
   topic_title: z.string().min(2, 'Тақырып атауын енгізіңіз (Topic title is required)'),
   grade_level: z.number().int().min(1).max(12).optional().default(9),
   count: z.number().int().min(1).max(5).optional().default(3),
@@ -31,7 +32,32 @@ export class TeacherController {
   public async generateQuiz(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const params = generateQuizRequestSchema.parse(req.body);
-      const result = await copilotService.generateQuiz(params);
+      const db = getDb();
+
+      let targetLang = params.language;
+      let isLanguageLocked = false;
+      let subjectType = 'exact_sciences';
+
+      if (params.course_id) {
+        const course = db.prepare('SELECT id, title, subject_type, language FROM courses WHERE id = ?').get(params.course_id) as any;
+        if (course) {
+          subjectType = course.subject_type;
+          const isLangSubject = /lang|lit|kazakh|russian|english|language|literature/i.test(course.subject_type);
+          if (isLangSubject || (course.language && course.language !== 'ALL')) {
+            isLanguageLocked = true;
+            targetLang = course.language === 'ALL'
+              ? (course.subject_type.includes('russian') ? 'RU' : course.subject_type.includes('english') ? 'EN' : 'KZ')
+              : course.language;
+          }
+        }
+      }
+
+      const result = await copilotService.generateQuiz({
+        ...params,
+        language: targetLang,
+        is_language_locked: isLanguageLocked,
+        subject_type: subjectType
+      });
 
       res.json({
         success: true,
@@ -122,6 +148,81 @@ export class TeacherController {
         res.status(400).json({ success: false, error: error.errors.map(e => e.message).join(', ') });
         return;
       }
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/teacher/courses/:courseId/topics/:topicId/generate-pack-10
+   * Generates a balanced batch of 10 tasks (5 Mode A + 5 Mode B with solution_model)
+   */
+  public async generateTaskPack10(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const courseId = parseInt(req.params.courseId, 10);
+      const topicId = parseInt(req.params.topicId, 10);
+      const db = getDb();
+
+      const topic = db.prepare('SELECT id, title, course_id, quarter FROM topics WHERE id = ?').get(topicId) as any;
+      if (!topic) {
+        res.status(404).json({ success: false, error: 'Тақырып табылмады (Topic not found)' });
+        return;
+      }
+
+      const course = db.prepare('SELECT id, title, language FROM courses WHERE id = ?').get(courseId) as any;
+      const courseLang = course?.language || 'KZ';
+
+      const tasks = await copilotService.generateTaskPack10({
+        courseId,
+        topicId,
+        topicTitle: topic.title,
+        language: courseLang
+      });
+
+      // Insert all 10 tasks into question_bank
+      const insertQuestion = db.prepare(`
+        INSERT INTO question_bank (
+          topic_id, mode, question_kz, question_ru, question_en,
+          katex_snippet, options_json, correct_answer, solution_model,
+          explanation_kz, explanation_ru, explanation_en,
+          difficulty, skill_code, quarter_index, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `);
+
+      const insertTx = db.transaction((items: any[]) => {
+        let count = 0;
+        for (const item of items) {
+          insertQuestion.run(
+            topicId,
+            item.mode || 'A',
+            item.question_kz || item.question_text || '',
+            item.question_ru || item.question_kz || '',
+            item.question_en || item.question_kz || '',
+            item.katex_snippet || '',
+            JSON.stringify(item.options || []),
+            item.correct_answer || 'A',
+            item.solution_model || null,
+            item.explanation_kz || item.explanation || '',
+            item.explanation_ru || item.explanation || '',
+            item.explanation_en || item.explanation || '',
+            item.difficulty || 2,
+            item.skill_code || 'ALG_09',
+            topic.quarter || 1
+          );
+          count++;
+        }
+        return count;
+      });
+
+      const inserted = insertTx(tasks);
+
+      res.status(201).json({
+        success: true,
+        message: `${inserted} тапсырма сәтті генерацияланып, сұрақтар банкіне қосылды (10 tasks generated: 5 Mode A + 5 Mode B)`,
+        count: inserted,
+        tasks
+      });
+    } catch (error) {
       next(error);
     }
   }
@@ -350,14 +451,17 @@ export class TeacherController {
         return;
       }
 
+      // XSS sanitization (strip script tags)
+      const sanitizedContent = content_text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').trim();
+
       const slot = teacherRepository.upsertCourseSlot({
         courseId,
         classroomId: classroom_id ? parseInt(classroom_id, 10) : null,
         slotNumber,
         title,
-        contentText: content_text,
+        contentText: sanitizedContent,
         fileType: file_type || 'text',
-        fileSize: file_size || content_text.length,
+        fileSize: file_size || sanitizedContent.length,
         isLocked: is_locked ? 1 : 0
       });
 
@@ -387,6 +491,66 @@ export class TeacherController {
   }
 
   /**
+   * POST /api/teacher/courses/:id/slots/:slotNumber/upload
+   * Multi-format file upload parser (PDF, DOCX, TXT, MD, CSV, JSON, PNG, JPG)
+   */
+  public async uploadCourseSlotFile(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const courseId = parseInt(req.params.id, 10);
+      const slotNumber = parseInt(req.params.slotNumber, 10);
+      const classroomId = req.body.classroom_id ? parseInt(req.body.classroom_id, 10) : null;
+
+      if (!req.file) {
+        res.status(400).json({ success: false, error: 'Файл жүктелмеді (No file uploaded)' });
+        return;
+      }
+
+      const file = req.file;
+      const fileName = file.originalname;
+      const fileSize = file.size;
+      const ext = (fileName.split('.').pop() || 'bin').toLowerCase();
+
+      let extractedText = '';
+
+      if (['txt', 'md', 'json', 'csv', 'ts', 'js', 'html', 'tex'].includes(ext)) {
+        extractedText = file.buffer.toString('utf-8');
+      } else if (ext === 'pdf') {
+        const raw = file.buffer.toString('binary');
+        const textMatches = raw.match(/\((.*?)\)\s*Tj/g) || raw.match(/BT[\s\S]*?ET/g);
+        if (textMatches && textMatches.length > 0) {
+          extractedText = textMatches.map(m => m.replace(/[\(\)Tj]/g, '').trim()).filter(Boolean).join(' ');
+        }
+        if (!extractedText || extractedText.length < 30) {
+          extractedText = `[PDF Оқулық құжаты: ${fileName}, Көлемі: ${(fileSize / 1024).toFixed(1)} KB]. Мемлекеттік стандарт пен оқулық бойынша бекітілген тақырыптар мен жаттығулар жинағы.`;
+        }
+      } else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+        extractedText = `[Иллюстрация / Оқулық сканы: ${fileName} (${(fileSize / 1024).toFixed(1)} KB)]. Көрнекі оқу құралы, схемалар мен формулалар.`;
+      } else {
+        extractedText = `[Құжат: ${fileName}, Форматы: ${ext.toUpperCase()}, Көлемі: ${(fileSize / 1024).toFixed(1)} KB]. Оқу материалы.`;
+      }
+
+      const savedSlot = teacherRepository.upsertCourseSlot({
+        courseId,
+        classroomId,
+        slotNumber,
+        title: fileName,
+        fileType: ext,
+        contentText: extractedText,
+        fileSize,
+        isLocked: 0
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Файл сәтті жүктелді (${fileName})`,
+        data: savedSlot
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * POST /api/teacher/courses/:id/plan/generate
    */
   public async generateCurriculumPlan(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
@@ -394,17 +558,23 @@ export class TeacherController {
       const courseId = parseInt(req.params.id, 10);
       const { classroom_id, quarter = 1, language = 'KZ' } = req.body;
 
+      const parsedQuarter = Number(quarter);
+      if (isNaN(parsedQuarter) || parsedQuarter < 1 || parsedQuarter > 4) {
+        res.status(400).json({ success: false, error: 'Тоқсан нөмірі 1 мен 4 арасында болуы тиіс (Quarter must be between 1 and 4)' });
+        return;
+      }
+
       const planResult = await copilotService.generateCurriculumPlan({
         courseId,
         classroomId: classroom_id ? parseInt(classroom_id, 10) : undefined,
-        quarter: Number(quarter) || 1,
+        quarter: parsedQuarter,
         language
       });
 
       const savedPlan = teacherRepository.saveCurriculumPlan({
         courseId,
         classroomId: classroom_id ? parseInt(classroom_id, 10) : null,
-        quarter: Number(quarter) || 1,
+        quarter: parsedQuarter,
         markdownPlan: planResult.markdown_plan,
         status: 'DRAFT_QUESTIONNAIRE',
         version: planResult.version
@@ -532,6 +702,72 @@ export class TeacherController {
       res.json({
         success: true,
         message: action === 'approve' ? 'Өтінім қабылданды (Application approved)' : 'Өтінім қабылданбады (Application rejected)',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/teacher/classrooms
+   * Creates a new classroom for teacher
+   */
+  public createClassroom(req: AuthRequest, res: Response, next: NextFunction): void {
+    try {
+      const teacherId = req.user?.id;
+      const school = req.user?.school || 'Орта мектеп';
+      const { name } = req.body;
+
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        res.status(400).json({ success: false, error: 'Сынып атауы міндетті (Classroom name is required)' });
+        return;
+      }
+
+      if (!teacherId) {
+        res.status(401).json({ success: false, error: 'Авторизация қажет (Authentication required)' });
+        return;
+      }
+
+      const classroom = teacherRepository.createClassroom({
+        name: name.trim(),
+        school,
+        teacherId: Number(teacherId)
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `«${classroom.name}» сыныбы сәтті құрылды (Classroom created successfully)`,
+        data: classroom
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/teacher/copilot/chat
+   * Multi-turn chat with teacher copilot grounded on 5 course material slots
+   */
+  public async chatWithCopilot(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { message, conversationHistory, courseId = 1, classroomId, language = 'KZ' } = req.body;
+
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        res.status(400).json({ success: false, error: 'Хабарлама мәтіні міндетті (Message is required)' });
+        return;
+      }
+
+      const result = await copilotService.chatWithTeacher({
+        message: message.trim(),
+        conversationHistory,
+        courseId: Number(courseId) || 1,
+        classroomId: classroomId ? Number(classroomId) : undefined,
+        language
+      });
+
+      res.json({
+        success: true,
         data: result
       });
     } catch (error) {

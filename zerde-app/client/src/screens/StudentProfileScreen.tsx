@@ -162,10 +162,13 @@ export const StudentProfileScreen: React.FC = () => {
                 </Badge>
               </div>
               <p className="text-xs text-primer-fg-muted">{user?.email}</p>
-              <div className="flex items-center gap-1.5 pt-0.5">
+              <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
                 <Building2 className="w-3.5 h-3.5 text-primer-accent-fg" />
                 <span className="text-xs font-semibold text-primer-fg-default">
                   {user?.school || (isEN ? 'Self-study' : isRU ? 'Самостоятельное обучение' : 'Өз бетінше оқу')}
+                </span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-700/60">
+                  Master Passport: {user?.uuid?.startsWith('MP-') ? user.uuid : `MP-${user?.school?.includes('BIL') ? 'BIL' : 'NIS'}-${(user?.grade?.match(/\d+/)?.[0] || '09').padStart(2, '0')}-${String(user?.id || 1).padStart(4, '0')}`}
                 </span>
                 {user?.organizationId && (
                   <Badge variant="accent" className="text-[9px] py-0 font-mono">

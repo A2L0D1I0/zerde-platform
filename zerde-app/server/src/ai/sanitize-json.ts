@@ -80,47 +80,41 @@ export function sanitizeJsonString(str: string): string {
  * Tries the primary model, automatically handling temporary 503/429 demand spikes by retrying with official Gemini models.
  */
 export async function callGeminiApi(
-  primaryModel: string,
+  _primaryModel: string,
   apiKey: string,
   payload: any
 ): Promise<string> {
-  const models = [primaryModel, 'gemini-2.0-flash'];
-  let lastError: any = null;
+  const model = 'gemini-2.5-flash';
 
-  for (const model of models) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+  try {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000)
+    });
 
-        if (response.ok) {
-          const rawData = (await response.json()) as any;
-          const text = rawData?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            return text;
-          }
-          throw new Error('GEMINI_EMPTY_RESPONSE: Gemini returned empty candidate');
-        }
-
-        if (response.status === 503 || response.status === 429) {
-          const errBody = await response.text();
-          console.warn(`[Gemini API] Model ${model} (attempt ${attempt}/3) returned HTTP ${response.status}. Waiting 2s before retry...`);
-          lastError = new Error(`GEMINI_API_ERROR: HTTP ${response.status} - ${errBody}`);
-          await new Promise((r) => setTimeout(r, 2000));
-          continue;
-        }
-
-        const errBody = await response.text();
-        throw new Error(`GEMINI_API_ERROR: HTTP ${response.status} - ${errBody}`);
-      } catch (err: any) {
-        lastError = err;
+    if (response.ok) {
+      const rawData = (await response.json()) as any;
+      const text = rawData?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) {
+        return text;
       }
+      throw new Error('GEMINI_EMPTY_RESPONSE: Gemini returned empty candidate');
     }
-  }
 
-  throw lastError || new Error('GEMINI_API_ERROR: All Gemini model attempts failed');
+    if (response.status === 429) {
+      console.warn(`[Gemini API] Model ${model} returned HTTP 429 (Rate Limit / Quota Exceeded).`);
+      throw new Error(`GEMINI_RATE_LIMIT_429: Модель ${model} уақытша қолжетімсіз (Сұраныстар шегі асып кетті, Қате коды: 429 Too Many Requests). 1 минуттан соң қайталап көріңіз. / Модель ${model} временно недоступна (Превышен лимит запросов, Код ошибки: 429 Too Many Requests). Пожалуйста, повторите через минуту.`);
+    }
+
+    const errBody = await response.text();
+    throw new Error(`GEMINI_API_ERROR: HTTP ${response.status} - ${errBody}`);
+  } catch (err: any) {
+    if (err.name === 'TimeoutError' || err.message?.includes('aborted')) {
+      throw new Error(`GEMINI_TIMEOUT: Модель ${model} сұранысының уақыты асып кетті (Таймаут).`);
+    }
+    throw err;
+  }
 }
