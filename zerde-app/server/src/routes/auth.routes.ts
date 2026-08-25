@@ -309,4 +309,44 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response) => {
   });
 });
 
+/**
+ * PUT /api/auth/profile
+ * Updates authenticated user profile (full_name, grade, school) in SQLite
+ */
+router.put('/profile', authenticate, (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, error: 'Авторизация қажет' });
+  }
+
+  const { full_name, grade, school } = req.body;
+  const db = getDb();
+
+  const parsedGrade = grade ? parseInt(String(grade).replace(/\D/g, ''), 10) || undefined : undefined;
+
+  db.prepare(`
+    UPDATE users
+    SET full_name = COALESCE(?, full_name),
+        grade = COALESCE(?, grade),
+        school = COALESCE(?, school),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(
+    full_name ? String(full_name).trim() : null,
+    parsedGrade !== undefined ? parsedGrade : null,
+    school ? String(school).trim() : null,
+    req.user.id
+  );
+
+  const updatedUser = db.prepare(`
+    SELECT id, uuid, email, full_name, role, grade, school, organization_id, streak_days, longest_streak
+    FROM users WHERE id = ?
+  `).get(req.user.id) as DbUser;
+
+  return res.json({
+    success: true,
+    message: 'Профиль сәтті жаңартылды',
+    user: updatedUser
+  });
+});
+
 export default router;

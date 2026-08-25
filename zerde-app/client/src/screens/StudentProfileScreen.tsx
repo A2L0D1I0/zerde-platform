@@ -103,10 +103,24 @@ export const StudentProfileScreen: React.FC = () => {
         }
       }
 
+      const trimmedName = fullName.trim() || user?.full_name;
+      const targetGrade = (typeof grade === 'string' ? grade.trim() : String(grade || '')) || user?.grade;
+      const targetSchool = updatedSchool || (isEN ? 'Self-study' : isRU ? 'Самостоятельное обучение' : 'Өз бетінше оқу');
+
+      try {
+        await api.put('/auth/profile', {
+          full_name: trimmedName,
+          grade: targetGrade,
+          school: targetSchool,
+        });
+      } catch (saveErr) {
+        console.warn('[StudentProfileScreen] Failed to sync profile to server', saveErr);
+      }
+
       updateUser({
-        full_name: fullName.trim() || user?.full_name,
-        grade: (typeof grade === 'string' ? grade.trim() : String(grade || '')) || user?.grade,
-        school: updatedSchool || (isEN ? 'Self-study' : isRU ? 'Самостоятельное обучение' : 'Өз бетінше оқу'),
+        full_name: trimmedName,
+        grade: targetGrade,
+        school: targetSchool,
         organizationId: updatedOrgId,
       });
 
@@ -114,7 +128,7 @@ export const StudentProfileScreen: React.FC = () => {
       showToast({
         type: 'success',
         title: isEN ? 'Profile Updated' : isRU ? 'Профиль обновлен' : 'Профиль сақталды',
-        message: fullName.trim() || user?.full_name || '',
+        message: trimmedName || '',
       });
     } finally {
       setIsSaving(false);
