@@ -8,9 +8,9 @@
 
 ### 🔗 1. ССЫЛКИ И ДОСТУП ДЛЯ ЖЮРИ
 
-* 📊 **Презентация (Pitch Deck PDF / Canva):** `[ВСТАВЬТЕ_ССЫЛКУ_НА_CANVA_ИЛИ_PDF]`
+* 📊 **Презентация (Pitch Deck PDF / Canva):** [https://canva.link/64s2s6z9cyaq32o](https://canva.link/64s2s6z9cyaq32o) *(PDF Файл загружен в папку Ekiboston)*
 * 💻 **Публичный репозиторий с кодом (GitHub):** `[ВСТАВЬТЕ_ССЫЛКУ_НА_GITHUB]`
-* 🌐 **Рабочий Live MVP (деплой):** `[ВСТАВЬТЕ_ССЫЛКУ_НА_ВЕБ_ДЕПЛОЙ]`
+* 🌐 **Рабочий Live MVP (деплой):** [https://follow-anybody-original-antenna.trycloudflare.com](https://follow-anybody-original-antenna.trycloudflare.com)
 
 > **Тестовые аккаунты для проверки:**  
 > • **Ученик:** `student.nis@nis.kz` (Пароль: `Password2026!`)  
